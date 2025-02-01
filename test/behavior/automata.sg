@@ -1,7 +1,7 @@
 binary =
-  -i(e) ok;
-  -i(0:X) +i(X);
-  -i(1:X) +i(X).
+	-i(e) ok;
+	-i(0:X) +i(X);
+	-i(1:X) +i(X).
 
 e :: binary.
 e = +i(e).
@@ -13,15 +13,15 @@ e = +i(e).
 1 = +i(1:e).
 
 a1 = galaxy
-  initial:
-    -i(W) +a(W q0).
-  final:
-    -a(e q2) accept.
-  transitions:
-    -a(0:W q0) +a(W q0);
-    -a(0:W q0) +a(W q1);
-    -a(1:W q0) +a(W q0);
-    -a(0:W q1) +a(W q2).
+	initial:
+		-i(W) +a(W q0).
+	final:
+		-a(e q2) accept.
+	transitions:
+		-a(0:W q0) +a(W q0);
+		-a(0:W q0) +a(W q1);
+		-a(1:W q0) +a(W q0);
+		-a(0:W q1) +a(W q2).
 end
 
 empty = {}.

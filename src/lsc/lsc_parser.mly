@@ -5,8 +5,6 @@ open Lsc_ast
 %token BAR
 %token NEQ
 %token COMMA
-%token LBRACK RBRACK
-%token LPAR RPAR
 %token <string> VAR
 %token <string> SYM
 %token PLUS MINUS
@@ -31,8 +29,7 @@ let marked_constellation :=
 
 %public let star :=
   | AT; ~=star_content; EOL*; <Marked>
-  | ~=star_content; EOL*; <Unmarked>
-  | LBRACK; EOL*; ~=star_content; EOL*; RBRACK; EOL*; <Unmarked>
+  | ~=bracks_opt(star_content); EOL*; <Unmarked>
 
 let star_content :=
   | LBRACK; RBRACK;
@@ -62,7 +59,7 @@ let ban :=
   | f=SYM; { muted (Null, f) }
 
 %public let args :=
-  | LPAR; ~=separated_nonempty_list(COMMA?, ray); RPAR; <>
+  | ~=pars(separated_nonempty_list(COMMA?, ray)); <>
 
 %public let ray :=
   | PLACEHOLDER; { to_var ("_"^(fresh_placeholder ())) }
@@ -78,5 +75,5 @@ let cons_expr :=
     { to_func (noisy (Null, ":"), [r1; r2]) }
   | LPAR; r1=ray; CONS; r2=ray; RPAR;
     { to_func (noisy (Null, ":"), [r1; r2]) }
-  | LPAR; e=cons_expr; RPAR; CONS; r=ray;
+  | e=pars(cons_expr); CONS; r=ray;
     { to_func (muted (Null, ":"), [e; r]) }

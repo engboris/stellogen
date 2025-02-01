@@ -1,7 +1,7 @@
 '''unary addition'''
 add =
-  +add(0 Y Y);
-  -add(X Y Z) +add(s(X) Y s(Z)).
+	+add(0 Y Y);
+	-add(X Y Z) +add(s(X) Y s(Z)).
 
 empty = {}.
 
