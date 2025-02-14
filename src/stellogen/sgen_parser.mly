@@ -34,7 +34,10 @@ let declaration :=
 let type_declaration :=
   | x=SYM; CONS; CONS; ts=separated_list(COMMA, SYM);
     EOL*; ck=bracks(SYM)?; EOL*; DOT;
-    { (x, ts, ck) }
+    { TDef (x, ts, ck) }
+  | x=SYM; CONS; EQ; CONS; EOL*; g=galaxy_content;
+    EOL*; DOT;
+    { TExp (x, g) }
 
 let galaxy_expr :=
   | ~=galaxy_content; EOL*; DOT; <>
