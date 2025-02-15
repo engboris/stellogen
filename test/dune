@@ -4,7 +4,8 @@
  (deps
   (glob_files ./syntax/*.sg)
   (glob_files ./behavior/*.sg)
-  (glob_files ../examples/*.sg))
+  (glob_files ../examples/*.sg)
+  (glob_files ../exercises/solutions/*.sg))
  (libraries alcotest base stellogen))
 
 (env

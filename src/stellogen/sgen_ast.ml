@@ -10,9 +10,11 @@ type idfunc = polarity * string
 
 type ray_prefix = StellarRays.fmark * idfunc
 
-type type_declaration = ident * ident list * ident option
+type type_declaration =
+  | TDef of ident * ident list * ident option
+  | TExp of ident * galaxy_expr
 
-type galaxy =
+and galaxy =
   | Const of marked_constellation
   | Galaxy of galaxy_declaration list
   | Interface of type_declaration list
@@ -62,7 +64,13 @@ type env =
   ; types : (ident * (ident list * ident option)) list
   }
 
-let empty_env = { objs = []; types = [] }
+let expect (g : galaxy_expr) : galaxy_expr =
+  Raw (Galaxy [ GLabelDef ("expect", g) ])
+
+let initial_env =
+  { objs = [ ("^empty", Raw (Const [])) ]
+  ; types = [ ("^empty", ([ "^empty" ], None)) ]
+  }
 
 type declaration =
   | Def of ident * galaxy_expr
@@ -142,12 +150,17 @@ let group_galaxy =
 
 let rec typecheck_galaxy env g =
   let types, fields = group_galaxy g in
-  List.iter types ~f:(fun (x, ts, ck) ->
-    let checker : galaxy_expr =
-      match ck with None -> default_checker | Some xck -> get_obj env xck
-    in
-    let new_env = { types = env.types; objs = fields @ env.objs } in
-    List.iter ts ~f:(fun t -> typecheck new_env x t checker) )
+  List.iter types ~f:(function
+    | TExp (x, g) ->
+      let checker = expect g in
+      let new_env = { types = env.types; objs = fields @ env.objs } in
+      typecheck new_env x "^empty" checker
+    | TDef (x, ts, ck) ->
+      let checker =
+        match ck with None -> default_checker | Some xck -> get_obj env xck
+      in
+      let new_env = { types = env.types; objs = fields @ env.objs } in
+      List.iter ts ~f:(fun t -> typecheck new_env x t checker) )
 
 and eval_galaxy_expr (env : env) : galaxy_expr -> galaxy = function
   | Raw (Galaxy g) ->
@@ -249,10 +262,10 @@ and string_of_exn e =
         else "test '" ^ id ^ "' failed" )
       x t
       ( got
-      |> galaxy_to_constellation empty_env
+      |> galaxy_to_constellation initial_env
       |> List.map ~f:remove_mark |> string_of_constellation )
       ( expected
-      |> galaxy_to_constellation empty_env
+      |> galaxy_to_constellation initial_env
       |> List.map ~f:remove_mark |> string_of_constellation )
   | _ -> raise e
 
@@ -295,7 +308,7 @@ and typecheck env x t (ck : galaxy_expr) : unit =
         , Exec
             (Subst
                ( Subst (format, SGal ("test", test))
-               , SGal ("tested", get_obj env x) ) )
+               , SGal ("tested", Exec (get_obj env x)) ) )
           |> eval_galaxy_expr env )
       | _weak73 -> raise IllFormedChecker )
   in
@@ -314,27 +327,28 @@ and default_checker =
            )
        ] )
 
-and string_of_type_declaration (x, ts, ck) =
-  match ck with
-  | None ->
+and string_of_type_declaration env = function
+  | TDef (x, ts, None) ->
     Printf.sprintf "  %s :: %s.\n" x (Pretty.string_of_list Fn.id "," ts)
-  | Some xck ->
+  | TDef (x, ts, Some xck) ->
     Printf.sprintf "  %s :: %s [%s].\n" x
       (Pretty.string_of_list Fn.id "," ts)
       xck
+  | TExp (x, g) ->
+    Printf.sprintf "%s :=: %s" x
+      (g |> eval_galaxy_expr env |> string_of_galaxy env)
 
 and string_of_galaxy_declaration env = function
   | GLabelDef (k, v) ->
     Printf.sprintf "  %s = %s\n" k
       (v |> eval_galaxy_expr env |> string_of_galaxy env)
-  | GTypeDef (x, ts, ck) -> string_of_type_declaration (x, ts, ck)
+  | GTypeDef decl -> string_of_type_declaration env decl
 
-and string_of_galaxy env g =
-  match g with
+and string_of_galaxy env : galaxy -> string = function
   | Const mcs -> mcs |> remove_mark_all |> string_of_constellation
   | Interface i ->
     Printf.sprintf "interface\n%send"
-      (Pretty.string_of_list string_of_type_declaration "" i)
+      (Pretty.string_of_list (string_of_type_declaration env) "" i)
   | Galaxy g ->
     Printf.sprintf "galaxy\n%send"
       (Pretty.string_of_list (string_of_galaxy_declaration env) "" g)
@@ -383,10 +397,15 @@ let rec eval_decl env : declaration -> env = function
   | Run e ->
     let _ = eval_galaxy_expr env (Exec e) in
     env
-  | TypeDef (x, ts, ck) -> { objs = env.objs; types = add_type env x (ts, ck) }
+  | TypeDef (TDef (x, ts, ck)) ->
+    { objs = env.objs; types = add_type env x (ts, ck) }
+  | TypeDef (TExp (x, mcs)) ->
+    { objs = add_obj env "^expect" (expect mcs)
+    ; types = add_type env x ([ "^empty" ], Some "^expect")
+    }
 
 let eval_program p =
-  try List.fold_left ~f:(fun acc x -> eval_decl acc x) ~init:empty_env p
+  try List.fold_left ~f:(fun acc x -> eval_decl acc x) ~init:initial_env p
   with e ->
     string_of_exn e |> Out_channel.output_string Out_channel.stderr;
     raise e
