@@ -308,7 +308,7 @@ and typecheck env x t (ck : galaxy_expr) : unit =
         , Exec
             (Subst
                ( Subst (format, SGal ("test", test))
-               , SGal ("tested", get_obj env x) ) )
+               , SGal ("tested", Exec (get_obj env x ) ) ) )
           |> eval_galaxy_expr env )
       | _weak73 -> raise IllFormedChecker )
   in

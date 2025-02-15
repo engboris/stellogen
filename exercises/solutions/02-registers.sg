@@ -1,0 +1,32 @@
+show-exec process
+  'represents a register with value 0
+  +r0(0).
+
+  'update the value to 1
+  -r0(X) +tmp0(X).
+  -tmp0(X) +r0(1).
+
+  'duplicate the register into two registers r1 and r2
+  -r0(X) +r1(X);
+  -r0(X) +r2(X).
+
+  'update r1 to 0
+  -r1(X) +tmp0(X).
+  -tmp0(X) +r1(0).
+
+  'swap the value of r1 and r2
+  -r1(X) +s1(X); -r2(X) +s2(X).
+  -s1(X) +r2(X); -s2(X) +r1(X).
+
+  'duplicate r1 and add a copy identifier as first argument
+  -r1(X) +r1(l X);
+  -r1(X) +r1(r X).
+
+  'update the two copies to 5 at once
+  -r1(A X) +tmp0(A X).
+  -tmp0(A X) +r1(A 5).
+
+  'duplicate each copy of r1 again with the same method
+  -r1(A X) +r1(l A X);
+  -r1(A X) +r1(r A X).
+end

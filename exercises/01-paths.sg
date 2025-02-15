@@ -1,0 +1,14 @@
+'fill the 'your_answer' holes to replace #1 in the constellations
+'below such that the result of execution is { ok }
+
+x :=: { ok }.
+
+x = ((-1 ok) #1)[#1=>your_answer].
+
+x = ((-1; +2) #1)[#1=>your_answer].
+
+x = ((-1 ok; -2 +3) #1)[#1=>your_answer].
+
+x = ((-f(+g(X)) ok) #1)[#1=>your_answer].
+
+x = ((+f(a) +f(b); +g(a); @+g(b) ok) #1)[#1=>your_answer].

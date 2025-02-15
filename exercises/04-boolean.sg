@@ -1,0 +1,62 @@
+'fill the #your_answer hole by following the specifications
+
+not_spec = galaxy
+  test0 = @-not(0 1) ok.
+  test1 = @-not(1 0) ok.
+end
+
+not :: not_spec.
+not = #your_answer.
+
+'how to print the truth table of NOT ?
+table_not :=: { table_not(1 0); table_not(0 1) }.
+table_not = not #your_answer.
+
+and_spec = galaxy
+  test00 = @-and(0 0 0) ok.
+  test01 = @-and(0 1 0) ok.
+  test10 = @-and(1 0 0) ok.
+  test11 = @-and(1 1 1) ok.
+end
+
+and :: and_spec.
+and = #your_answer.
+
+'find a second way to compute AND
+and2 :: and_spec.
+and2 = #your_answer.
+
+or_spec = galaxy
+  test00 = @-or(0 0 0) ok.
+  test01 = @-or(0 1 1) ok.
+  test10 = @-or(1 0 1) ok.
+  test11 = @-or(1 1 1) ok.
+end
+
+or :: or_spec.
+or = #your_answer.
+
+'find a second way to compute OR
+or2 :: or_spec.
+or2 = #your_answer.
+
+impl_spec = galaxy
+  test00 = @-impl(0 0 1) ok.
+  test01 = @-impl(0 1 1) ok.
+  test10 = @-impl(1 0 0) ok.
+  test11 = @-impl(1 1 1) ok.
+end
+
+impl :: impl_spec.
+impl = not or #your_answer.
+
+'find a second way to compute IMPLICATION
+impl2 :: impl_spec.
+impl2 = not or #your_answer.
+
+'implement the excluded middle X \/ ~X
+ex :=: { +ex(1 1); +ex(0 1) }.
+ex = not or #your_answer.
+
+'how to show the values of X, Y and Z for which X /\ ~(Y /\ Z) is true?
+show-exec #your_answer.
