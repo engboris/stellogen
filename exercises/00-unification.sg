@@ -12,11 +12,9 @@ x3 = @+f(X) X; -f(a); -f(b).
 x4 :=: #your_answer.
 x4 = @+1(X) -2(X); -2(X) +3(X).
 
-'FIXME: variable are renamed in a unpredictable way
 x5 :=: #your_answer.
 x5 = @-1(X) +2(X); -2(X) +1(X).
 
-'FIXME: variable are renamed in a unpredictable way
 x6 :=: #your_answer.
 x6 = @-1(X) +2(X); -2(X) +1(X).
 
