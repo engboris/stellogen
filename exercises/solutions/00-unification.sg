@@ -9,16 +9,14 @@ x2 = @+f(X); -f(Y) a.
 x3 :=: { b; a }.
 x3 = @+f(X) X; -f(a); -f(b).
 
-x4 :=: { +1(X) -2(X) }.
-x4 = @+1(X) -2(X); -2(X) +3(X).
+x4 :=: +1 -2.
+x4 = @+1 -2; -2 +3.
 
-'FIXME: variable are renamed in a unpredictable way
-x5 :=: { -2(X3) +1(X3) }.
-x5 = @-1(X) +2(X); -2(X) +1(X).
+x5 :=: -2 +1.
+x5 = @-1 +2; -2 +1.
 
-'FIXME: variable are renamed in a unpredictable way
-x6 :=: { -2(X3) +1(X3) }.
-x6 = @-1(X) +2(X); -2(X) +1(X).
+x6 :=: -2 +1.
+x6 = @-1 +2; -2 +1.
 
 x7 :=: { a }.
 x7 = @-f(X) X; +f(+g(a)); -g(X) X.
