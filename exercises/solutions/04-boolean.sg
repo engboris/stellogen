@@ -9,7 +9,7 @@ not :: not_spec.
 not = +not(0 1); +not(1 0).
 
 'how to print the truth table of NOT ?
-table_not :=: { table_not(1 0); table_not(0 1) }.
+table_not :=: { table_not(0 1); table_not(1 0) }.
 table_not = not {@-not(X Y) table_not(X Y)}.
 
 and_spec = galaxy
