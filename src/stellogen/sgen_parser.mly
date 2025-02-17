@@ -80,6 +80,10 @@ let substitution ==
 
 %public let non_neutral_start_mcs :=
   (* single star *)
+  | bracks(EOL*); EOL*; bs=bans?;
+    { [ Unmarked { content = [];
+        bans = Option.to_list bs |> List.concat } ]
+    }
   | marked=AT?; EOL*; pf=pol_symbol; ts=args?; EOL*;
     rs=separated_list(pair(COMMA?, EOL*), ray); EOL*; bs=bans?;
     {
