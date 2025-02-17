@@ -57,9 +57,36 @@ type star =
 
 type constellation = star list
 
+let rec compare_ray r1 r2 =
+  match (r1, r2) with
+  | Var (x, i), Var (y, j) ->
+    let i' = Option.value (Option.map i ~f:Int.to_string) ~default:"" in
+    let j' = Option.value (Option.map j ~f:Int.to_string) ~default:"" in
+    String.compare (x ^ i') (y ^ j')
+  | Func _, Var _ -> 1
+  | Var _, Func _ -> -1
+  | Func ((_, pf1), args1), Func ((_, pf2), args2) -> begin
+    match (pf1, pf2) with
+    | pf1, pf2 when StellarSig.equal_idfunc pf1 pf2 ->
+      List.compare compare_ray args1 args2
+    | (Null, f1), (Null, f2) | (Neg, f1), (Neg, f2) | (Pos, f1), (Pos, f2) ->
+      String.compare f1 f2
+    | (Null, _), (_, _) -> -1
+    | (Pos, _), (_, _) -> 1
+    | (Neg, _), (Null, _) -> 1
+    | (Neg, _), (Pos, _) -> -1
+  end
+
+let compare_star = List.compare compare_ray
+
 let equal_ray = equal_term
 
-let equal_star s s' = List.equal equal_ray s.content s'.content
+let sort_rays = List.sort ~compare:compare_ray
+
+let equal_star s1 s2 =
+  let s1 = sort_rays s1.content in
+  let s2 = sort_rays s2.content in
+  List.equal equal_ray s1 s2
 
 let to_var x = Var (x, None)
 
@@ -170,12 +197,22 @@ type marked_star =
 
 type marked_constellation = marked_star list
 
-let equal_mstar ms ms' =
+let compare_mstar ms ms' =
   match (ms, ms') with
-  | Marked s, Marked s' | Unmarked s, Unmarked s' -> equal_star s s'
-  | _ -> false
+  | Marked _, Unmarked _ -> 1
+  | Unmarked _, Marked _ -> -1
+  | Marked s, Marked s' | Unmarked s, Unmarked s' ->
+    compare_star s.content s'.content
 
-let equal_mconstellation = List.equal equal_mstar
+let equal_mstar ms ms' = equal_int (compare_mstar ms ms') 0
+
+let fresh_var vars =
+  let rec aux i =
+    if not @@ List.mem vars ("X", Some i) ~equal:StellarSig.equal_idvar then
+      ("X", Some i)
+    else aux (i + 1)
+  in
+  aux 0
 
 let map_mstar ~f : marked_star -> marked_star = function
   | Marked s -> Marked { content = List.map ~f s.content; bans = s.bans }
@@ -184,6 +221,26 @@ let map_mstar ~f : marked_star -> marked_star = function
 let subst_all_vars sub = List.map ~f:(map_mstar ~f:(subst sub))
 
 let subst_all_funcs sub = List.map ~f:(map_mstar ~f:(replace_funcs sub))
+
+let all_vars mcs : StellarSig.idvar list =
+  List.map mcs ~f:(function Marked s | Unmarked s ->
+    List.map s.content ~f:StellarRays.vars |> List.concat )
+  |> List.concat
+
+let normalize_vars (mcs : marked_constellation) =
+  let vars = all_vars mcs in
+  let new_x, new_i = fresh_var vars in
+  let new_vars =
+    List.mapi vars ~f:(fun i _ ->
+      Var (new_x, Some (Option.value new_i ~default:0 + i)) )
+  in
+  let sub = List.zip_exn vars new_vars in
+  subst_all_vars sub mcs
+
+let equal_mconstellation mcs mcs' =
+  let smcs = List.sort ~compare:compare_mstar mcs in
+  let smcs' = List.sort ~compare:compare_mstar mcs' in
+  List.equal equal_mstar (normalize_vars smcs) (normalize_vars smcs')
 
 let unmark = function s -> Unmarked s
 
