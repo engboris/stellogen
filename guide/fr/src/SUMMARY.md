@@ -11,7 +11,6 @@
 - [Unification de termes](./stellarresolution/unification.md)
 - [Etoiles et constellations](./stellarresolution/entities.md)
 - [Exécution de constellations](./stellarresolution/execution.md)
-- [Exercices](./stellarresolution/exercises.md)
 
 # Bases de Stellogen
 
@@ -22,7 +21,6 @@
 - [Galaxies](./stellogen/galaxies.md)
 - [Substitutions](./stellogen/substitutions.md)
 - [Typage](./stellogen/typing.md)
-- [Exercices](./stellogen/exercises.md)
 
 # Théorie des automates
 

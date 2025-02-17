@@ -11,7 +11,6 @@
 - [Term unification](./stellarresolution/unification.md)
 - [Stars and constellations](./stellarresolution/entities.md)
 - [Execution of constellations](./stellarresolution/execution.md)
-- [Exercises](./stellarresolution/exercises.md)
 
 # Basics of Stellogen
 
@@ -22,7 +21,6 @@
 - [Galaxies](./stellogen/galaxies.md)
 - [Substitutions](./stellogen/substitutions.md)
 - [Typing](./stellogen/typing.md)
-- [Exercises](./stellogen/exercises.md)
 
 # Automata theory
 
