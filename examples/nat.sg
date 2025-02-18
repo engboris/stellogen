@@ -1,5 +1,10 @@
 nat = -nat(0) ok; -nat(s(N)) +nat(N).
 
+checker = galaxy
+  interaction = (@#tested) #test.
+  expect = { ok }.
+end
+
 fchecker = galaxy
   interaction = #tested #test.
   expect = { arg out }.
@@ -9,13 +14,13 @@ end
   +nat(X) arg;
   -nat(X) out.
 
-0 :: nat.
+0 :: nat [checker].
 0 = +nat(0).
 
-1 :: nat.
+1 :: nat [checker].
 1 = +nat(s(0)).
 
-2 :: nat.
+2 :: nat [checker].
 2 = +nat(s(s(0))).
 
 add1 :: "nat -> nat" [fchecker].

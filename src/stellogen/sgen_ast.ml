@@ -278,18 +278,20 @@ and typecheck env x t (ck : galaxy_expr) : unit =
     | Raw (Galaxy gtests) -> group_galaxy gtests |> snd
     | e ->
       let mcs = eval_galaxy_expr env e |> galaxy_to_constellation env in
-      [ ("_", Raw (Const mcs)) ]
+      [ ("test", Raw (Const mcs)) ]
   in
   let testing =
     List.map gtests ~f:(fun (idtest, test) ->
       match ck with
       | Raw (Galaxy gck) ->
+            Stdlib.print_string "[@@@]";
+            Stdlib.flush Stdlib.stdout;
         let format =
           try
             List.Assoc.find_exn ~equal:equal_string
               (group_galaxy gck |> snd)
               "interaction"
-          with Not_found_s _ -> Union (Token "test", Token "tested")
+          with Not_found_s _ -> default_interaction
         in
         ( idtest
         , Exec
@@ -304,13 +306,18 @@ and typecheck env x t (ck : galaxy_expr) : unit =
     if not (equal_galaxy env got expect) then
       raise (TestFailed (x, t, idtest, got, expect)) )
 
+and default_interaction = Union (Token "tested", Token "test")
+
+and default_expect =
+  Raw (Const [ Unmarked { content = [ func "ok" [] ]; bans = [] } ] )
+
 and default_checker =
   Raw
     (Galaxy
-       [ GLabelDef ("interaction", Union (Token "tested", Token "test"))
+       [ GLabelDef ("interaction", default_interaction)
        ; GLabelDef
            ( "expect"
-           , Raw (Const [ Unmarked { content = [ func "ok" [] ]; bans = [] } ])
+           , default_expect
            )
        ] )
 
