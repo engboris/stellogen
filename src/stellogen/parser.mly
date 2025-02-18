@@ -155,10 +155,6 @@ let neutral_start_mcs :=
          |> if Option.is_some marked then mark else unmark) :: cs
     }
 
-let raw_constellation :=
-  | ~=braces(neutral_start_mcs); <>
-  | ~=braces_opt(non_neutral_start_mcs); <>
-
 let galaxy_def :=
   | GALAXY; EOL*; ~=galaxy_item*; <>
 
