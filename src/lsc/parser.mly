@@ -1,5 +1,5 @@
 %{
-open Lsc_ast
+open Ast
 %}
 
 %token BAR
@@ -27,9 +27,9 @@ let marked_constellation :=
   | ~=separated_nonempty_list(pair(SEMICOLON, EOL*), star); SEMICOLON?; <>
 
 %public let star :=
-  | ~=star_content; EOL*;                       <Unmarked>
-  | ~=bracks(star_content); EOL*;               <Unmarked>
-  | ~=bracks_opt(AT; EOL*; star_content); EOL*; <Marked>
+  | s=star_content; EOL*;                       <Unmarked>
+  | s=bracks(star_content); EOL*;               <Unmarked>
+  | s=bracks_opt(AT; EOL*; star_content); EOL*; <Marked>
 
 let star_content :=
   | LBRACK; RBRACK;

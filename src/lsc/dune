@@ -1,6 +1,6 @@
 (library
  (name lsc)
- (libraries base))
+ (libraries base common))
 
 (env
  (dev
@@ -8,8 +8,8 @@
    (:standard -warn-error -A))))
 
 (menhir
- (modules common_parser lsc_parser)
- (merge_into lsc_parser)
+ (modules ../common/parser parser)
+ (merge_into parser)
  (flags --dump --explain))
 
-(ocamllex lsc_lexer)
+(ocamllex lexer)

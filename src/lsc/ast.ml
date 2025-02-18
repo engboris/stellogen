@@ -1,5 +1,5 @@
 open Base
-open Pretty
+open Common.Pretty
 open Format_exn
 
 type polarity =

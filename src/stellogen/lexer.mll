@@ -1,5 +1,5 @@
 {
-  open Sgen_parser
+  open Parser
   exception SyntaxError of string
 }
 

@@ -1,6 +1,6 @@
 open Base
-open Lsc_ast
-open Format_exn
+open Lsc.Ast
+open Lsc.Format_exn
 
 type ident = string
 
@@ -137,10 +137,10 @@ let rec fill_token env (_from : string) _to e =
   | Raw _ | Token _ -> e
 
 let subst_vars env _from _to =
-  map_galaxy_expr env ~f:(Lsc_ast.subst_all_vars [ (_from, _to) ])
+  map_galaxy_expr env ~f:(Lsc.Ast.subst_all_vars [ (_from, _to) ])
 
 let subst_funcs env _from _to =
-  map_galaxy_expr env ~f:(Lsc_ast.subst_all_funcs [ (_from, _to) ])
+  map_galaxy_expr env ~f:(Lsc.Ast.subst_all_funcs [ (_from, _to) ])
 
 let group_galaxy =
   List.fold_left ~init:([], []) ~f:(function types, fields ->
@@ -218,17 +218,17 @@ and eval_galaxy_expr (env : env) : galaxy_expr -> galaxy = function
     Const
       ( eval_galaxy_expr env e
       |> galaxy_to_constellation env
-      |> List.map ~f:(Lsc_ast.map_mstar ~f:(fun r -> Lsc_ast.gfunc pf [ r ])) )
+      |> List.map ~f:(Lsc.Ast.map_mstar ~f:(fun r -> Lsc.Ast.gfunc pf [ r ])) )
   | Subst (e, Reduce pf) ->
     Const
       ( eval_galaxy_expr env e
       |> galaxy_to_constellation env
       |> List.map
            ~f:
-             (Lsc_ast.map_mstar ~f:(fun r ->
+             (Lsc.Ast.map_mstar ~f:(fun r ->
                 match r with
-                | Lsc_ast.StellarRays.Func (pf', ts)
-                  when Lsc_ast.StellarSig.equal_idfunc (snd pf) (snd pf')
+                | Lsc.Ast.StellarRays.Func (pf', ts)
+                  when Lsc.Ast.StellarSig.equal_idfunc (snd pf) (snd pf')
                        && List.length ts = 1 ->
                   List.hd_exn ts
                 | _ -> r ) ) )
@@ -272,7 +272,7 @@ and string_of_exn e =
 and equal_galaxy env g g' =
   let mcs = galaxy_to_constellation env g in
   let mcs' = galaxy_to_constellation env g' in
-  Lsc_ast.equal_mconstellation mcs mcs'
+  Lsc.Ast.equal_mconstellation mcs mcs'
 
 and check_interface env x i =
   let g =
@@ -329,10 +329,10 @@ and default_checker =
 
 and string_of_type_declaration env = function
   | TDef (x, ts, None) ->
-    Printf.sprintf "  %s :: %s.\n" x (Pretty.string_of_list Fn.id "," ts)
+    Printf.sprintf "  %s :: %s.\n" x (Common.Pretty.string_of_list Fn.id "," ts)
   | TDef (x, ts, Some xck) ->
     Printf.sprintf "  %s :: %s [%s].\n" x
-      (Pretty.string_of_list Fn.id "," ts)
+      (Common.Pretty.string_of_list Fn.id "," ts)
       xck
   | TExp (x, g) ->
     Printf.sprintf "%s :=: %s" x
@@ -348,10 +348,10 @@ and string_of_galaxy env : galaxy -> string = function
   | Const mcs -> mcs |> remove_mark_all |> string_of_constellation
   | Interface i ->
     Printf.sprintf "interface\n%send"
-      (Pretty.string_of_list (string_of_type_declaration env) "" i)
+      (Common.Pretty.string_of_list (string_of_type_declaration env) "" i)
   | Galaxy g ->
     Printf.sprintf "galaxy\n%send"
-      (Pretty.string_of_list (string_of_galaxy_declaration env) "" g)
+      (Common.Pretty.string_of_list (string_of_galaxy_declaration env) "" g)
 
 let rec eval_decl env : declaration -> env = function
   | Def (x, _) when is_reserved x -> raise (ReservedWord x)

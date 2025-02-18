@@ -1,5 +1,5 @@
 %{
-open Sgen_ast
+open Ast
 %}
 
 %token SHOW SHOWEXEC
