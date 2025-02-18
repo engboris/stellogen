@@ -1,5 +1,5 @@
 {
-  open Parser
+  open Lsc_parser
   exception SyntaxError of string
 }
 

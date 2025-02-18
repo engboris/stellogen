@@ -1,7 +1,7 @@
 open Base
-open Lsc.Ast
-open Lsc.Parser
-open Lsc.Lexer
+open Lsc.Lsc_ast
+open Lsc.Lsc_parser
+open Lsc.Lsc_lexer
 open Out_channel
 
 let usage_msg =

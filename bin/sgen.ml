@@ -1,7 +1,7 @@
 open Base
-open Stellogen.Ast
-open Stellogen.Parser
-open Stellogen.Lexer
+open Stellogen.Sgen_ast
+open Stellogen.Sgen_parser
+open Stellogen.Sgen_lexer
 open Lexing
 
 let usage_msg = "sgen <filename>"

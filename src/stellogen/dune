@@ -8,8 +8,8 @@
    (:standard -warn-error -A))))
 
 (menhir
- (modules ../common/parser ../lsc/parser parser)
- (merge_into parser)
+ (modules ../common/common_parser ../lsc/lsc_parser sgen_parser)
+ (merge_into sgen_parser)
  (flags --dump --explain))
 
-(ocamllex lexer)
+(ocamllex sgen_lexer)

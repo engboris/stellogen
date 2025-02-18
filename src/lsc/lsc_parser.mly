@@ -1,5 +1,5 @@
 %{
-open Ast
+open Lsc_ast
 %}
 
 %token BAR
