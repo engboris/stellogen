@@ -284,8 +284,8 @@ and typecheck env x t (ck : galaxy_expr) : unit =
     List.map gtests ~f:(fun (idtest, test) ->
       match ck with
       | Raw (Galaxy gck) ->
-            Stdlib.print_string "[@@@]";
-            Stdlib.flush Stdlib.stdout;
+        Stdlib.print_string "[@@@]";
+        Stdlib.flush Stdlib.stdout;
         let format =
           try
             List.Assoc.find_exn ~equal:equal_string
@@ -309,16 +309,13 @@ and typecheck env x t (ck : galaxy_expr) : unit =
 and default_interaction = Union (Token "tested", Token "test")
 
 and default_expect =
-  Raw (Const [ Unmarked { content = [ func "ok" [] ]; bans = [] } ] )
+  Raw (Const [ Unmarked { content = [ func "ok" [] ]; bans = [] } ])
 
 and default_checker =
   Raw
     (Galaxy
        [ GLabelDef ("interaction", default_interaction)
-       ; GLabelDef
-           ( "expect"
-           , default_expect
-           )
+       ; GLabelDef ("expect", default_expect)
        ] )
 
 and string_of_type_declaration (x, ts, ck) =
