@@ -8,7 +8,7 @@
    (:standard -warn-error -A))))
 
 (menhir
- (modules common_parser lsc_parser sgen_parser)
+ (modules ../common/common_parser lsc_parser sgen_parser)
  (merge_into sgen_parser)
  (flags --explain --dump))
 
