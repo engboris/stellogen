@@ -1,6 +1,6 @@
 open Base
-open Pretty
-open Format_exn
+open Common.Pretty
+open Common.Format_exn
 
 type polarity =
   | Pos

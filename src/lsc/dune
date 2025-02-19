@@ -1,6 +1,7 @@
 (library
  (name lsc)
- (libraries base))
+ (libraries base common)
+ (modules lsc_ast unification lsc_parser lsc_lexer))
 
 (env
  (dev
@@ -8,7 +9,7 @@
    (:standard -warn-error -A))))
 
 (menhir
- (modules common_parser lsc_parser)
+ (modules ../common/common_parser lsc_parser)
  (merge_into lsc_parser)
  (flags --dump --explain))
 
