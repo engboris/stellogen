@@ -1,0 +1,1 @@
+../lsc/lsc_parser.mly

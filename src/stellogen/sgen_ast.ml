@@ -1,5 +1,5 @@
 open Base
-open Lsc.Lsc_ast
+open Lsc_ast
 open Common.Format_exn
 open Common.Pretty
 
