@@ -30,7 +30,13 @@ let () =
   Stdlib.Arg.parse speclist anon_fun usage_msg;
   let lexbuf = Lexing.from_channel (Stdlib.open_in !input_file) in
   let mcs = constellation_file read lexbuf in
-  let result = exec ~showtrace:!showtrace mcs in
+  let result =
+    match exec ~showtrace:!showtrace mcs with
+    | Ok result -> result
+    | Error e ->
+      string_of_err_effect e |> Out_channel.output_string Out_channel.stderr;
+      Stdlib.exit 1
+  in
   if not !showtrace then
     result
     |> (if !unfincomp then kill else Fn.id)

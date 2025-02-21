@@ -1,6 +1,8 @@
 (library
  (name stellogen)
- (libraries base common))
+ (libraries base common)
+ (preprocess
+  (pps ppx_let)))
 
 (env
  (dev
