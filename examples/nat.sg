@@ -6,7 +6,7 @@ checker = galaxy
 end
 
 fchecker = galaxy
-  interaction = #tested #test.
+  interaction = (@#tested) #test.
   expect = { arg out }.
 end
 
@@ -15,7 +15,7 @@ end
   -nat(X) out.
 
 0 :: nat [checker].
-0 = +nat(0).
+0 = +nat(1).
 
 1 :: nat [checker].
 1 = +nat(s(0)).
@@ -27,9 +27,9 @@ add1 :: "nat -> nat" [fchecker].
 add1 = -nat(X) +nat(s(X)).
 
 is_empty =
-  @-nat(0) res(1);
-  @-nat(s(_)) res(0).
+  -nat(0) res(1);
+  -nat(s(_)) res(0).
 
-show-exec (add1 2).
-show-exec (is_empty 0).
-show-exec (is_empty 1).
+show-exec add1 2.
+show-exec is_empty (@0).
+show-exec is_empty (@1).

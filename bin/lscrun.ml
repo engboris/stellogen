@@ -1,5 +1,6 @@
 open Base
 open Lsc.Lsc_ast
+open Lsc.Lsc_err
 open Lsc.Lsc_parser
 open Lsc.Lsc_lexer
 open Out_channel
@@ -30,7 +31,13 @@ let () =
   Stdlib.Arg.parse speclist anon_fun usage_msg;
   let lexbuf = Lexing.from_channel (Stdlib.open_in !input_file) in
   let mcs = constellation_file read lexbuf in
-  let result = exec ~showtrace:!showtrace mcs in
+  let result =
+    match exec ~showtrace:!showtrace mcs with
+    | Ok result -> result
+    | Error e ->
+      pp_err_effect e |> Out_channel.output_string Out_channel.stderr;
+      Stdlib.exit 1
+  in
   if not !showtrace then
     result
     |> (if !unfincomp then kill else Fn.id)

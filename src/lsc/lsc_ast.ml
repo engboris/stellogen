@@ -1,6 +1,10 @@
 open Base
 open Common.Pretty
-open Common.Format_exn
+open Out_channel
+open In_channel
+open Lsc_err
+
+let ( let* ) x f = Result.bind x ~f
 
 type polarity =
   | Pos
@@ -336,88 +340,68 @@ let fusion repl1 repl2 s1 s2 bans1 bans2 theta : star =
         (subst theta x, subst theta y) )
   }
 
-exception TooFewArgs of string
-
-exception TooManyArgs of string
-
-exception UnknownEffect of string
-
-let apply_effect r theta =
+let apply_effect r theta : (unit, err_effect) Result.t =
   match (r, theta) with
-  | Func ((Noisy, (_, "print")), _), [] -> raise (TooFewArgs "print")
-  | Func ((Noisy, (_, "print")), _), _ :: _ :: _ -> raise (TooManyArgs "print")
+  | Func ((Noisy, (_, "print")), _), [] -> Error (TooFewArgs "print")
+  | Func ((Noisy, (_, "print")), _), _ :: _ :: _ -> Error (TooManyArgs "print")
   | Func ((Noisy, (_, "print")), _), [ (_, Func ((_, (Null, arg)), [])) ] ->
-    String.strip ~drop:(fun x -> equal_char x '\"') arg
-    |> Out_channel.output_string Out_channel.stdout;
-    Out_channel.flush Out_channel.stdout
+    String.strip ~drop:(fun x -> equal_char x '\"') arg |> output_string stdout;
+    flush stdout;
+    Ok ()
   | Func ((Noisy, (_, "print")), _), [ (_, arg) ] ->
-    Out_channel.output_string Out_channel.stdout (string_of_ray arg);
-    Out_channel.flush Out_channel.stdout
-  | Func ((Noisy, (_, s)), _), _ -> raise (UnknownEffect s)
-  | _ -> ()
-
-let string_of_exn = function
-  | TooFewArgs x when equal_string x "print" ->
-    Printf.sprintf "%s: effect '%s' expects 1 arguments.\n"
-      (red "Missing argument") x
-  | TooFewArgs x ->
-    Printf.sprintf "%s: for effect '%s'.\n" (red "Missing argument") x
-  | TooManyArgs x when equal_string x "print" ->
-    Printf.sprintf "%s: effect '%s' expects 1 arguments.\n"
-      (red "Too many arguments") x
-  | TooManyArgs x ->
-    Printf.sprintf "%s: for effect '%s'.\n" (red "Too many arguments") x
-  | UnknownEffect x -> Printf.sprintf "%s '%s'.\n" (red "UnknownEffect") x
-  | _ -> "unknown exception.\n"
+    output_string stdout (string_of_ray arg);
+    flush stdout;
+    Ok ()
+  | Func ((Noisy, (_, s)), _), _ -> Error (UnknownEffect s)
+  | _ -> Ok ()
 
 let pause () =
-  let open Out_channel in
-  let open In_channel in
   flush stdout;
   let _ = input_line stdin in
   ()
 
 let search_partners ?(showtrace = false) (r, other_rays, bans) candidates :
-  star list =
-  let open Out_channel in
-  let print_string = output_string stdout in
+  (star list, err_effect) Result.t =
   if showtrace then begin
-    print_string
+    output_string stdout
     @@ Printf.sprintf "select state: >>%s<< %s" (string_of_ray r)
          (string_of_raylist other_rays);
     pause ()
   end;
-  let rec select_ray ~queue other_stars repl1 repl2 s : star list =
+  let rec select_ray ~queue other_stars repl1 repl2 s :
+    (star list, err_effect) Result.t =
     match s.content with
-    | [] -> []
+    | [] -> Ok []
     | r' :: s' when not (is_polarised r') ->
       select_ray ~queue:(r' :: queue) other_stars repl1 repl2
         { content = s'; bans }
     | r' :: s' -> (
       if showtrace then begin
-        print_string
-        @@ Printf.sprintf "  try action: >>%s<< %s..." (string_of_ray r')
+        output_string stdout
+        @@ Printf.sprintf "  try action: >>%s<< %s...\n" (string_of_ray r')
              (string_of_raylist s')
       end;
-      let next =
+      let* next =
         select_ray ~queue:(r' :: queue) other_stars repl1 repl2
           { content = s'; bans }
       in
       match raymatcher (repl1 r) (repl2 r') with
       | None ->
-        if showtrace then print_string "failed.";
-        next
+        if showtrace then output_string stdout "failed.";
+        Ok next
       (* if there is an actual connection between rays *)
       | Some theta ->
-        ( try apply_effect r theta
-          with e ->
-            string_of_exn e |> Out_channel.output_string Out_channel.stderr;
-            Stdlib.exit (-1) );
-        if showtrace then begin
-          print_string
-          @@ Printf.sprintf "success with %s." (string_of_subst theta)
-        end;
-        if showtrace then pause ();
+        let* _ = apply_effect r theta in
+        let* _ =
+          if showtrace then
+            output_string stdout
+            @@ Printf.sprintf "success with %s." (string_of_subst theta);
+          Ok ()
+        in
+        let* _ =
+          if showtrace then pause ();
+          Ok ()
+        in
         let other_rays' = queue @ s' in
         let after_fusion =
           fusion repl1 repl2 other_rays other_rays' bans s.bans theta
@@ -425,51 +409,58 @@ let search_partners ?(showtrace = false) (r, other_rays, bans) candidates :
         let all_coherent =
           List.for_all ~f:(fun (b1, b2) -> not @@ equal_ray b1 b2)
         in
-        let res =
+        let* res =
           if all_coherent after_fusion.bans then begin
-            if showtrace then begin
-              print_string
-              @@ Printf.sprintf "  add star %s." (string_of_star after_fusion)
-            end;
-            after_fusion :: next
+            let _ =
+              if showtrace then
+                output_string stdout
+                @@ Printf.sprintf "  add star %s." (string_of_star after_fusion)
+            in
+            Ok (after_fusion :: next)
           end
           else begin
-            if showtrace then begin
-              print_string
-              @@ Printf.sprintf "  result filtered out by constraint."
-            end;
-            next
+            let _ =
+              if showtrace then
+                output_string stdout
+                @@ Printf.sprintf "  result filtered out by constraint."
+            in
+            Ok next
           end
         in
         if showtrace then pause ();
         ident_counter := !ident_counter + 2;
-        res )
+        Ok res )
   in
   let repl1 = replace_indices !ident_counter in
-  selections candidates
-  |> List.concat_map ~f:(fun (s, cs) ->
-       let repl2 = replace_indices (!ident_counter + 1) in
-       select_ray ~queue:[] cs repl1 repl2 s )
+  List.map (selections candidates) ~f:(fun (s, cs) ->
+    let repl2 = replace_indices (!ident_counter + 1) in
+    select_ray ~queue:[] cs repl1 repl2 s )
+  |> Result.all
+  |> function
+  | Ok l -> Ok (List.concat l)
+  | Error e -> Error e
 
 let interaction ?(showtrace = false) (actions : star list) (states : star list)
-  : constellation option =
+  : (constellation option, err_effect) Result.t =
   let rec select_ray states' ~queue s ~bans =
     match s with
-    | [] -> None
+    | [] -> Ok None
     | r :: rs when not (is_polarised r) ->
       select_ray states' ~queue:(r :: queue) rs ~bans
     | r :: rs -> begin
       match search_partners ~showtrace (r, queue @ rs, bans) actions with
-      | [] -> select_ray states' ~queue:(r :: queue) rs ~bans
-      | new_stars -> Some new_stars
+      | Ok [] -> select_ray states' ~queue:(r :: queue) rs ~bans
+      | Ok new_stars -> Ok (Some new_stars)
+      | Error e -> Error e
     end
   in
   let rec select_star ~queue = function
-    | [] -> None
+    | [] -> Ok None
     | s :: states' -> begin
       match select_ray states' ~queue:[] s.content ~bans:s.bans with
-      | None -> select_star ~queue:(s :: queue) states'
-      | Some new_stars -> Some (List.rev queue @ states' @ new_stars)
+      | Ok None -> select_star ~queue:(s :: queue) states'
+      | Ok (Some new_stars) -> Ok (Some (List.rev queue @ states' @ new_stars))
+      | Error e -> Error e
     end
   in
   select_star ~queue:[] states
@@ -479,25 +470,25 @@ let string_of_configuration (actions, states) : string =
     (string_of_constellation actions)
     (string_of_constellation states)
 
-let exec ?(showtrace = false) mcs =
-  let open Out_channel in
-  let print_string = output_string stdout in
+let exec ?(showtrace = false) mcs : (constellation, err_effect) Result.t =
   let rec aux (actions, states) =
     if showtrace then begin
-      print_string @@ string_of_configuration (actions, states);
+      output_string stdout @@ string_of_configuration (actions, states);
       pause ()
     end;
     begin
       match interaction ~showtrace actions states with
-      | None -> states
-      | Some result' -> aux (actions, result')
+      | Ok None -> Ok states
+      | Ok (Some result') -> aux (actions, result')
+      | Error e -> Error e
     end
   in
   let actions, states = extract_intspace mcs in
-  if showtrace then print_string @@ Printf.sprintf "\n>> starting trace...\n";
+  if showtrace then
+    output_string stdout @@ Printf.sprintf "\n>> starting trace...\n";
   let res = aux (actions, states) in
   if showtrace then begin
-    print_string @@ Printf.sprintf ">> end trace.\n";
+    output_string stdout @@ Printf.sprintf ">> end trace.\n";
     pause ()
   end;
   res

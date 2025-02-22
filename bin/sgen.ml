@@ -1,5 +1,5 @@
 open Base
-open Stellogen.Sgen_ast
+open Stellogen.Sgen_eval
 open Stellogen.Sgen_parser
 open Stellogen.Sgen_lexer
 open Lexing
