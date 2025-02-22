@@ -1,7 +1,7 @@
 (library
  (name lsc)
  (libraries base common)
- (modules lsc_ast unification lsc_parser lsc_lexer))
+ (modules lsc_err lsc_ast unification lsc_parser lsc_lexer))
 
 (env
  (dev

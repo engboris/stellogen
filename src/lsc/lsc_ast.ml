@@ -1,8 +1,8 @@
 open Base
 open Common.Pretty
-open Common.Format_exn
 open Out_channel
 open In_channel
+open Lsc_err
 
 let ( let* ) x f = Result.bind x ~f
 
@@ -340,11 +340,6 @@ let fusion repl1 repl2 s1 s2 bans1 bans2 theta : star =
         (subst theta x, subst theta y) )
   }
 
-type err_effect =
-  | TooFewArgs of string
-  | TooManyArgs of string
-  | UnknownEffect of string
-
 let apply_effect r theta : (unit, err_effect) Result.t =
   match (r, theta) with
   | Func ((Noisy, (_, "print")), _), [] -> Error (TooFewArgs "print")
@@ -359,19 +354,6 @@ let apply_effect r theta : (unit, err_effect) Result.t =
     Ok ()
   | Func ((Noisy, (_, s)), _), _ -> Error (UnknownEffect s)
   | _ -> Ok ()
-
-let string_of_err_effect = function
-  | TooFewArgs x when equal_string x "print" ->
-    Printf.sprintf "%s: effect '%s' expects 1 arguments.\n"
-      (red "Missing argument") x
-  | TooFewArgs x ->
-    Printf.sprintf "%s: for effect '%s'.\n" (red "Missing argument") x
-  | TooManyArgs x when equal_string x "print" ->
-    Printf.sprintf "%s: effect '%s' expects 1 arguments.\n"
-      (red "Too many arguments") x
-  | TooManyArgs x ->
-    Printf.sprintf "%s: for effect '%s'.\n" (red "Too many arguments") x
-  | UnknownEffect x -> Printf.sprintf "%s '%s'.\n" (red "UnknownEffect") x
 
 let pause () =
   flush stdout;

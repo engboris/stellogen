@@ -1,5 +1,6 @@
 open Base
 open Lsc.Lsc_ast
+open Lsc.Lsc_err
 open Lsc.Lsc_parser
 open Lsc.Lsc_lexer
 open Out_channel
@@ -34,7 +35,7 @@ let () =
     match exec ~showtrace:!showtrace mcs with
     | Ok result -> result
     | Error e ->
-      string_of_err_effect e |> Out_channel.output_string Out_channel.stderr;
+      pp_err_effect e |> Out_channel.output_string Out_channel.stderr;
       Stdlib.exit 1
   in
   if not !showtrace then
