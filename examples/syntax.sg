@@ -40,7 +40,7 @@ end
 show g.
 
 'reactive effects
-run +#print(X); -#print("hello world\n").
+run +%print(X); -%print("hello world\n").
 
 'access to field of a galaxy
 show g->test1.

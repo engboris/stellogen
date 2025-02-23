@@ -48,11 +48,11 @@ let ban :=
   | ~=unpol_symbol; <>
 
 %public let pol_symbol :=
-  | PLUS; SHARP; f = SYM;  { noisy (Pos, f) }
-  | PLUS; SHARP; PRINT;    { noisy (Pos, "print") }
+  | PLUS; PERCENT; f = SYM;  { noisy (Pos, f) }
+  | PLUS; PERCENT; PRINT;    { noisy (Pos, "print") }
   | PLUS; f = SYM;         { muted (Pos, f) }
-  | MINUS; SHARP; f = SYM; { noisy (Neg, f) }
-  | MINUS; SHARP; PRINT;   { noisy (Neg, "print") }
+  | MINUS; PERCENT; f = SYM; { noisy (Neg, f) }
+  | MINUS; PERCENT; PRINT;   { noisy (Neg, "print") }
   | MINUS; f = SYM;        { muted (Neg, f) }
 
 %public let unpol_symbol :=

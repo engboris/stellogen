@@ -1,7 +1,7 @@
 %token PRINT
 %token EOF
-%token SHARP
 %token AT
+%token PERCENT
 %token EOL
 %token LBRACK RBRACK
 %token LBRACE RBRACE

@@ -28,6 +28,7 @@ rule read = parse
   | "=>"        { DRARROW }
   | "."         { DOT }
   | "#"         { SHARP }
+  | "%"         { PERCENT }
   | '"'         { read_string (Buffer.create 255) lexbuf }
   (* Stellar resolution *)
   | '|'         { BAR }

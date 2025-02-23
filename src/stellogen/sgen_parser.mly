@@ -7,6 +7,7 @@ open Sgen_ast
 %token INTERFACE
 %token RUN
 %token TRACE
+%token SHARP
 %token PROCESS
 %token GALAXY
 %token RARROW DRARROW

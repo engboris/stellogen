@@ -21,7 +21,7 @@ rule read = parse
   | ')'      { RPAR }
   | ','      { COMMA }
   | '@'      { AT }
-  | '#'      { SHARP }
+  | '%'      { PERCENT }
   | '+'      { PLUS }
   | '-'      { MINUS }
   | ':'      { CONS }
