@@ -12,7 +12,6 @@ open Sgen_ast
 %token GALAXY
 %token RARROW DRARROW
 %token EQ
-%token DOT
 %token END
 
 %start <Sgen_ast.program> program
@@ -46,6 +45,7 @@ let galaxy_expr :=
 
 let raw_galaxy_expr :=
   | ~=non_neutral_start_mcs; EOL*; DOT;      <Const>
+  | ~=neutral_start_mcs; EOL*; DOT;      <Const>
   | ~=galaxy_def; END;                       <Galaxy>
   | INTERFACE; EOL*; ~=interface_item*; END; <Interface>
 
@@ -60,9 +60,8 @@ let raw_galaxy_content :=
 
 let galaxy_content :=
   | ~=pars(galaxy_content);           <>
-  | ~=SYM;                            <Id>
+  | SHARP; ~=SYM;                     <Id>
   | ~=raw_galaxy_content;             <Raw>
-  | SHARP; ~=SYM;                     <Token>
   | g=galaxy_content; EOL*;
     h=galaxy_content; EOL*;           { Union (g, h) }
   | ~=galaxy_content; RARROW; ~=SYM;  <Access>
@@ -164,6 +163,9 @@ let galaxy_item :=
   | x=SYM; EQ; EOL*; mcs=non_neutral_start_mcs;
     DOT; EOL*;
     { GLabelDef (x, Raw (Const mcs)) }
+  | x=SYM; EQ; EOL*; mcs=neutral_start_mcs;
+    DOT; EOL*;
+    { GLabelDef (x, Raw (Const mcs)) }
   | ~=SYM; EQ; EOL*; ~=galaxy_block; END; EOL*;   <GLabelDef>
   | ~=type_declaration; EOL*;                     <GTypeDef>
 
@@ -172,7 +174,9 @@ let galaxy_block :=
   | PROCESS; EOL*; ~=process_item+;        <Process>
   | EXEC; EOL*; ~=galaxy_content;          <Exec>
   | EXEC; EOL*; mcs=non_neutral_start_mcs; { Exec (Raw (Const mcs)) }
+  | EXEC; EOL*; mcs=neutral_start_mcs; { Exec (Raw (Const mcs)) }
 
 let process_item :=
   | ~=galaxy_content; DOT; EOL*;          <>
   | mcs=non_neutral_start_mcs; DOT; EOL*; { Raw (Const mcs) }
+  | mcs=neutral_start_mcs; DOT; EOL*; { Raw (Const mcs) }

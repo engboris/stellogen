@@ -1,5 +1,4 @@
 open Base
-open Common.Format_exn
 open Sgen_ast
 
 type ident = string

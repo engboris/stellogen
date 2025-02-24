@@ -37,7 +37,7 @@ ps1 = galaxy
   cuts = -7(X) -8(X).
 end
 
-show-exec ps1->vehicle ps1->cuts.
+show-exec #ps1->vehicle #ps1->cuts.
 
 '''
 FIXME : MLL incorrectness

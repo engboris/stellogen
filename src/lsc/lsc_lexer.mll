@@ -14,6 +14,7 @@ rule read = parse
   | '\''     { comment lexbuf }
   | "'''"    { comments lexbuf }
   | '_'      { PLACEHOLDER }
+  | '.'      { DOT }
   | '|'      { BAR }
   | '['      { LBRACK }
   | ']'      { RBRACK }
