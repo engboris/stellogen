@@ -20,8 +20,8 @@ open Lsc_ast
 %%
 
 let constellation_file :=
-  | EOF;                         { [] }
-  | ~=marked_constellation; EOF; <>
+  | DOT?; EOF;                         { [] }
+  | ~=marked_constellation; DOT?; EOF; <>
 
 let marked_constellation :=
   | ~=separated_nonempty_list(pair(SEMICOLON, EOL*), star); SEMICOLON?; <>
@@ -48,12 +48,12 @@ let ban :=
   | ~=unpol_symbol; <>
 
 %public let pol_symbol :=
-  | PLUS; SHARP; f = SYM;  { noisy (Pos, f) }
-  | PLUS; SHARP; PRINT;    { noisy (Pos, "print") }
-  | PLUS; f = SYM;         { muted (Pos, f) }
-  | MINUS; SHARP; f = SYM; { noisy (Neg, f) }
-  | MINUS; SHARP; PRINT;   { noisy (Neg, "print") }
-  | MINUS; f = SYM;        { muted (Neg, f) }
+  | PLUS; PERCENT; f = SYM;  { noisy (Pos, f) }
+  | PLUS; PERCENT; PRINT;    { noisy (Pos, "print") }
+  | PLUS; f = SYM;           { muted (Pos, f) }
+  | MINUS; PERCENT; f = SYM; { noisy (Neg, f) }
+  | MINUS; PERCENT; PRINT;   { noisy (Neg, "print") }
+  | MINUS; f = SYM;          { muted (Neg, f) }
 
 %public let unpol_symbol :=
   | f=SYM; { muted (Null, f) }

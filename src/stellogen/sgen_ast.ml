@@ -31,7 +31,6 @@ and galaxy_expr =
   | Subst of galaxy_expr * substitution
   | Focus of galaxy_expr
   | Process of galaxy_expr list
-  | Token of ident
 
 and substitution =
   | Extend of ray_prefix
