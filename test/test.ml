@@ -26,7 +26,7 @@ let make_expect_test name path f expected =
   in
   (name, `Quick, test (f (path ^ name) ()) expected)
 
-let lsc_test_suite =
+let lsc_test_suite () =
   let path = "./lsc/" in
   [ make_expect_test "empty.stellar" path lsc "{}"
   ; make_expect_test "basic.stellar" path lsc "a."
@@ -35,7 +35,7 @@ let lsc_test_suite =
 
 let () =
   Alcotest.run "Stellogen Test Suite"
-    [ ("LSC test suite", lsc_test_suite)
+    [ ("LSC test suite", lsc_test_suite ())
     ; ("Stellogen examples", run_dir sgen "../examples/")
     ; ("Stellogen exercises solutions", run_dir sgen "../exercises/solutions/")
     ; ("Stellogen syntax", run_dir sgen "./syntax/")

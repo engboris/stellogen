@@ -20,60 +20,55 @@ open Lsc_ast
 %%
 
 let constellation_file :=
-  | DOT?; EOF;                         { [] }
-  | ~=marked_constellation; DOT?; EOF; <>
+  | DOT?; EOL*; EOF;                               { [] }
+  | ~=marked_constellation; EOL*; DOT?; EOL*; EOF; <>
 
 let marked_constellation :=
-  | ~=separated_nonempty_list(pair(SEMICOLON, EOL*), star); SEMICOLON?; <>
+  | ~=separated_nonempty_list(pair(SEMICOLON, EOL*), star);
+    EOL*; SEMICOLON?; <>
 
-%public let star :=
-  | ~=star_content; EOL*;                       <Unmarked>
-  | ~=bracks(star_content); EOL*;               <Unmarked>
-  | ~=bracks_opt(AT; EOL*; star_content); EOL*; <Marked>
+let star :=
+  | ~=bracks_opt(star_content);           <Unmarked>
+  | ~=bracks_opt(AT; EOL*; star_content); <Marked>
 
 let star_content :=
-  | LBRACK; RBRACK;
+  | LBRACK; EOL*; RBRACK;
     { {content=[]; bans=[]} }
   | l=separated_nonempty_list(pair(COMMA?, EOL*), ray); bs=bans?;
     { {content=l; bans=Option.to_list bs |> List.concat } }
 
 %public let bans :=
-  | BAR; ~=separated_nonempty_list(COMMA?, ban); <>
+  | BAR; EOL*; ~=separated_nonempty_list(COMMA?, ban); <>
 
 let ban :=
   | r1=ray; NEQ; r2=ray; { (r1, r2) }
 
 %public let symbol :=
-  | ~=pol_symbol;   <>
-  | ~=unpol_symbol; <>
-
-%public let pol_symbol :=
-  | PLUS; PERCENT; f = SYM;  { noisy (Pos, f) }
-  | PLUS; PERCENT; PRINT;    { noisy (Pos, "print") }
-  | PLUS; f = SYM;           { muted (Pos, f) }
-  | MINUS; PERCENT; f = SYM; { noisy (Neg, f) }
-  | MINUS; PERCENT; PRINT;   { noisy (Neg, "print") }
-  | MINUS; f = SYM;          { muted (Neg, f) }
-
-%public let unpol_symbol :=
+  | p=polarity; PERCENT; f = SYM; { noisy (p, f) }
+  | p=polarity; PERCENT; PRINT;   { noisy (p, "print") }
+  | p=polarity; f = SYM;          { muted (p, f) }
   | f=SYM; { muted (Null, f) }
 
-%public let args :=
-  | ~=pars(separated_nonempty_list(COMMA?, ray)); <>
+let polarity :=
+  | PLUS;  { Pos }
+  | MINUS; { Neg }
 
 %public let ray :=
-  | PLACEHOLDER; { to_var ("_"^(fresh_placeholder ())) }
-  | ~=VAR;       <to_var>
-  | ~=func_expr; <>
-
-let func_expr :=
-  | ~=cons_expr;         <>
+  | PLACEHOLDER;         { to_var ("_"^(fresh_placeholder ())) }
+  | ~=VAR;               <to_var>
   | pf=symbol; ts=args?; { to_func (pf, Option.to_list ts |> List.concat) }
 
+let ray_internal :=
+  | ~=ray;       <>
+  | ~=cons_expr; <>
+
+let args :=
+  | ~=pars(separated_nonempty_list(COMMA?, ray_internal)); <>
+
 let cons_expr :=
-  | r1=ray; CONS; r2=ray;
-    { to_func (noisy (Null, ":"), [r1; r2]) }
-  | LPAR; r1=ray; CONS; r2=ray; RPAR;
-    { to_func (noisy (Null, ":"), [r1; r2]) }
-  | e=pars(cons_expr); CONS; r=ray;
+  | r1=ray_internal; CONS; r2=ray_internal;
+    { to_func (muted (Null, ":"), [r1; r2]) }
+  | LPAR; r1=ray_internal; CONS; r2=ray_internal; RPAR;
+    { to_func (muted (Null, ":"), [r1; r2]) }
+  | e=pars(cons_expr); CONS; r=ray_internal;
     { to_func (muted (Null, ":"), [e; r]) }
