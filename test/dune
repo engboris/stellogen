@@ -2,11 +2,12 @@
  (name test)
  (modules test)
  (deps
+  (glob_files ./lsc/*.stellar)
   (glob_files ./syntax/*.sg)
   (glob_files ./behavior/*.sg)
   (glob_files ../examples/*.sg)
   (glob_files ../exercises/solutions/*.sg))
- (libraries alcotest base stellogen))
+ (libraries alcotest base stellogen lsc))
 
 (env
  (dev

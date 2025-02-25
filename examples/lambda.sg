@@ -1,11 +1,11 @@
 ''' id id '''
 id = +id(exp(l:X d)) +id(r:X).
-id_arg = { ida(exp(l:X Y)) +arg(exp(l:r:X Y)) }.
+id_arg = ida(exp(l:X Y)) +arg(exp(l:r:X Y)).
 linker = -id(X) -arg(X); @+arg(r:X) out(X).
 show-exec id id_arg linker.
 
 ''' id x '''
-var_x = { x(exp(X Y)) +arg(exp(l:X Y)) }.
+var_x = x(exp(X Y)) +arg(exp(l:X Y)).
 linker = -id(X) -arg(X); @+arg(r:X) out(X).
 show-exec id var_x linker.
 

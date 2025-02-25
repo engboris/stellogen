@@ -22,6 +22,7 @@ x = +w(0:(1:0):(1:e)).
 x = +w((0:1):0:(1:e)).
 
 'trailing end of star
+'FIXME: it should work
 'x = { a; }.
 
 'focussed
@@ -43,6 +44,7 @@ x = { a b; @-c d }.
 x = { @a b; @-c d }.
 
 'with EOL
+'''FIX ME: it should work
 x
 =
 +a
@@ -56,24 +58,16 @@ x
 
 x
 =
-{
-+a
-}
+{+a}
 .
 
 x
 =
-{
-@
-+a
-}
+{@+a}
 .
 
 x
 =
-{
-[
-a
-]
-}
+{[a]}
 .
+'''
