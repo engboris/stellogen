@@ -80,11 +80,6 @@ let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
   match e with
   | Id x when is_reserved x -> Ok (Id x)
   | Id x when equal_string x _from -> Ok _to
-  | Id x -> begin
-    match get_obj env x with
-    | None -> Error (UnknownID x)
-    | Some g -> replace_id env _from _to g
-  end
   | Access (g, x) ->
     let* g' = replace_id env _from _to g in
     Access (g', x) |> Result.return
@@ -104,7 +99,7 @@ let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
   | Process gs ->
     let* procs = List.map ~f:(replace_id env _from _to) gs |> Result.all in
     Process procs |> Result.return
-  | Raw _ -> e |> Result.return
+  | Raw _ | Id _ -> e |> Result.return
 
 let subst_vars env _from _to =
   map_galaxy_expr env ~f:(subst_all_vars [ (_from, _to) ])
