@@ -25,6 +25,8 @@ let program :=
 
 let declaration :=
   | ~=SYM; EOL*; EQ; EOL*; ~=galaxy_expr; <Def>
+  | INTERFACE; EOL*; x=SYM; EOL*;
+    i=interface_item*; END;               { Def (x, Raw (Interface i)) }
   | SHOW; EOL*; ~=galaxy_expr;            <Show>
   | SHOWEXEC; EOL*; ~=galaxy_expr;        <ShowExec>
   | TRACE; EOL*; ~=galaxy_expr;           <Trace>
@@ -47,7 +49,6 @@ let interface_item :=
 let undelimited_raw_galaxy :=
   | ~=marked_constellation; EOL*; DOT;       <Const>
   | GALAXY; EOL*; ~=galaxy_item*; EOL*; END; <Galaxy>
-  | INTERFACE; EOL*; ~=interface_item*; END; <Interface>
 
 let delimited_raw_galaxy :=
   | ~=pars(marked_constellation);   <Const>

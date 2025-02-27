@@ -56,8 +56,6 @@ show-exec (+f(X); f(X))[+f=>].
 'substitutions
 show-exec (+f(X))[X=>+a(X)].
 show-exec (+f(X))[+f=>+g].
-
-'tokens (fillable named empty constellation)
 show-exec (#1 #2)[#1=>+f(X) X][#2=>-f(a)].
 
 'checkers & typechecking
@@ -80,7 +78,7 @@ end
 
 'plural typing
 nat2 = -nat(X) ok.
-2 :: nat [checker].
+2 :: nat.
 2 :: nat2.
 2 = +nat(s(s(0))).
 3 :: nat, nat2.
@@ -88,16 +86,15 @@ nat2 = -nat(X) ok.
 
 'galaxy with type declarations
 show galaxy
-  n1 :: nat [checker].
+  n1 :: nat.
   n1 = +nat(0).
-  n2 :: nat [checker].
+  n2 :: nat.
   n2 = +nat(s(s(0))).
 end
 
-'interfaces
-nat_pair = interface
-  n :: nat [checker].
-  m :: nat [checker].
+interface nat_pair
+  n :: nat.
+  m :: nat.
 end
 
 g_pair :: nat_pair.
