@@ -1,12 +1,12 @@
 nat = -nat(0) ok; -nat(s(N)) +nat(N).
 
 checker = galaxy
-  interaction = (@#tested) #test.
+  interaction = @#tested #test.
   expect = ok.
 end
 
 fchecker = galaxy
-  interaction = (@#tested) #test.
+  interaction = @#tested #test.
   expect = arg out.
 end
 
@@ -31,5 +31,5 @@ is_empty =
   -nat(s(_)) res(0).
 
 show-exec #add1 #2.
-show-exec #is_empty (@#0).
-show-exec #is_empty (@#1).
+show-exec #is_empty @#0.
+show-exec #is_empty @#1.

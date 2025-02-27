@@ -60,8 +60,8 @@ let galaxy_content :=
   | ~=delimited_raw_galaxy;                   <Raw>
   | g=galaxy_content; h=galaxy_content;       { Union (g, h) }
   | ~=galaxy_content; RARROW; ~=SYM;          <Access>
-  | LPAR; EOL*; AT; EOL*;
-    ~=galaxy_content; RPAR;                   <Focus>
+  | AT; SHARP; x=SYM;                         { Focus (Id x) }
+  | AT; g=delimited_raw_galaxy;               { Focus (Raw g) }
   | ~=galaxy_content; ~=bracks(substitution); <Subst>
 
 let substitution :=

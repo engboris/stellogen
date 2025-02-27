@@ -10,7 +10,7 @@ w = "hello world".
 w = +w(0:1:0:1:e).
 
 'full focus
-show-exec (@#w) #w.
+show-exec @#w #w.
 
 'show (literal) contellations
 show a; b; c.

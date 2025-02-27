@@ -1,5 +1,5 @@
 checker = galaxy
-  interaction = (@#tested) #test.
+  interaction = @#tested #test.
   expect = ok.
 end
 
@@ -24,4 +24,4 @@ get_ok =
   -ok(X) X;
   -error(X) +error(X).
 
-show-exec #get_ok (@#x).
+show-exec #get_ok @#x.
