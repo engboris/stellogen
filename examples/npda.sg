@@ -1,4 +1,4 @@
-binary =
+spec binary =
   -i(e) ok;
   -i(0:X) +i(X);
   -i(1:X) +i(X).

@@ -64,7 +64,7 @@ checker = galaxy
   expect = ok.
 end
 
-nat = galaxy
+spec nat = galaxy
   test =
     -nat(0) ok;
     -nat(s(N)) +nat(N).

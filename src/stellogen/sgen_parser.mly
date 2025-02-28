@@ -6,6 +6,7 @@ open Sgen_ast
 %token EXEC
 %token INTERFACE
 %token RUN
+%token SPEC
 %token TRACE
 %token SHARP
 %token PROCESS
@@ -24,14 +25,17 @@ let program :=
   | EOL*; d=declaration; EOF;             { [d] }
 
 let declaration :=
-  | ~=SYM; EOL*; EQ; EOL*; ~=galaxy_expr; <Def>
+  | SPEC; ~=SYM; EOL*; EQ; EOL*;
+    ~=galaxy_expr;                 <Def>
+  | ~=SYM; EOL*; EQ; EOL*;
+    ~=galaxy_expr;                 <Def>
   | INTERFACE; EOL*; x=SYM; EOL*;
-    i=interface_item*; END;               { Def (x, Raw (Interface i)) }
-  | SHOW; EOL*; ~=galaxy_expr;            <Show>
-  | SHOWEXEC; EOL*; ~=galaxy_expr;        <ShowExec>
-  | TRACE; EOL*; ~=galaxy_expr;           <Trace>
-  | RUN; EOL*; ~=galaxy_expr;             <Run>
-  | ~=type_declaration;                   <TypeDef>
+    i=interface_item*; END;        { Def (x, Raw (Interface i)) }
+  | SHOW; EOL*; ~=galaxy_expr;     <Show>
+  | SHOWEXEC; EOL*; ~=galaxy_expr; <ShowExec>
+  | TRACE; EOL*; ~=galaxy_expr;    <Trace>
+  | RUN; EOL*; ~=galaxy_expr;      <Run>
+  | ~=type_declaration;            <TypeDef>
 
 let type_declaration :=
   | x=SYM; CONS; CONS; ts=separated_list(COMMA, SYM);

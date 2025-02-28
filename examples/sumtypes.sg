@@ -3,7 +3,7 @@ checker = galaxy
   expect = ok.
 end
 
-direction =
+spec direction =
   -north ok;
   -south ok;
   -west ok;
@@ -12,7 +12,7 @@ direction =
 n :: direction [checker].
 n = +north.
 
-result =
+spec result =
   -ok(X) ok;
   -error(X) ok.
 

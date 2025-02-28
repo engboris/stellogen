@@ -20,6 +20,7 @@ rule read = parse
   | "run"       { RUN }
   | "interface" { INTERFACE }
   | "show"      { SHOW }
+  | "spec"      { SPEC }
   | "trace"     { TRACE }
   | "show-exec" { SHOWEXEC }
   | "galaxy"    { GALAXY }

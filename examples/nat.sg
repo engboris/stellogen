@@ -1,4 +1,4 @@
-nat = -nat(0) ok; -nat(s(N)) +nat(N).
+spec nat = -nat(0) ok; -nat(s(N)) +nat(N).
 
 checker = galaxy
   interaction = @#tested #test.
@@ -10,7 +10,7 @@ fchecker = galaxy
   expect = arg out.
 end
 
-"nat -> nat" =
+spec "nat -> nat" =
   +nat(X) arg;
   -nat(X) out.
 

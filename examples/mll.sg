@@ -1,5 +1,5 @@
 '''test of linear identity'''
-"a -o a" = galaxy
+spec "a -o a" = galaxy
   testrl =
     -1(X) -2(X) +c5(X);
     -3(X); -4(X) +c6(X);
