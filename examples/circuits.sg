@@ -20,7 +20,7 @@ show-exec process
     -c2(X) -c3(Y) -and(X Y R) +c4(R).
   'output
     -c4(R) R.
-    semantics.
+    #semantics.
     'kill.
 end
 
@@ -36,6 +36,6 @@ show-exec process
   'output
     -c4(R) R.
   'apply semantics
-    semantics.
+    #semantics.
     'kill.
 end

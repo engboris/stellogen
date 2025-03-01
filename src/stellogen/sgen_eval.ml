@@ -74,38 +74,32 @@ and map_galaxy_expr env ~f e : (galaxy_expr, err) Result.t =
   | Process gs ->
     let* procs = List.map ~f:(map_galaxy_expr env ~f) gs |> Result.all in
     Process procs |> Result.return
-  | Token _ -> e |> Result.return
 
-let rec fill_token env (_from : ident) (_to : galaxy_expr) e :
+let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
   (galaxy_expr, err) Result.t =
   match e with
   | Id x when is_reserved x -> Ok (Id x)
-  | Id x -> begin
-    match get_obj env x with
-    | None -> Error (UnknownID x)
-    | Some g -> fill_token env _from _to g
-  end
+  | Id x when equal_string x _from -> Ok _to
   | Access (g, x) ->
-    let* g' = fill_token env _from _to g in
+    let* g' = replace_id env _from _to g in
     Access (g', x) |> Result.return
   | Exec e ->
-    let* g = fill_token env _from _to e in
+    let* g = replace_id env _from _to e in
     Exec g |> Result.return
   | Union (e1, e2) ->
-    let* g1 = fill_token env _from _to e1 in
-    let* g2 = fill_token env _from _to e2 in
+    let* g1 = replace_id env _from _to e1 in
+    let* g2 = replace_id env _from _to e2 in
     Union (g1, g2) |> Result.return
   | Focus e ->
-    let* g = fill_token env _from _to e in
+    let* g = replace_id env _from _to e in
     Focus g |> Result.return
   | Subst (e, subst) ->
-    let* g = fill_token env _from _to e in
+    let* g = replace_id env _from _to e in
     Subst (g, subst) |> Result.return
   | Process gs ->
-    let* procs = List.map ~f:(fill_token env _from _to) gs |> Result.all in
+    let* procs = List.map ~f:(replace_id env _from _to) gs |> Result.all in
     Process procs |> Result.return
-  | Token x when equal_string x _from -> _to |> Result.return
-  | Raw _ | Token _ -> e |> Result.return
+  | Raw _ | Id _ -> e |> Result.return
 
 let subst_vars env _from _to =
   map_galaxy_expr env ~f:(subst_all_vars [ (_from, _to) ])
@@ -175,7 +169,6 @@ and eval_galaxy_expr (env : env) : galaxy_expr -> (galaxy, err) Result.t =
     Ok (Galaxy g)
   | Raw (Const mcs) -> Ok (Const mcs)
   | Raw (Interface _) -> Ok (Interface [])
-  | Token _ -> Ok (Const [])
   | Access (e, x) -> begin
     match eval_galaxy_expr env e with
     | Ok (Const _) -> Error (UnknownField x)
@@ -259,7 +252,7 @@ and eval_galaxy_expr (env : env) : galaxy_expr -> (galaxy, err) Result.t =
     let* subst = subst_funcs env pf1 pf2 e in
     eval_galaxy_expr env subst
   | Subst (e, SGal (x, _to)) ->
-    let* fill = fill_token env x _to e in
+    let* fill = replace_id env x _to e in
     eval_galaxy_expr env fill
 
 and galaxy_to_constellation env : galaxy -> (marked_constellation, err) Result.t
@@ -338,7 +331,7 @@ and typecheck env x t (ck : galaxy_expr) : (unit, err) Result.t =
     | Error e -> Error e )
   |> Result.all_unit
 
-and default_interaction = Union (Token "tested", Token "test")
+and default_interaction = Union (Id "tested", Id "test")
 
 and default_expect =
   Raw (Const [ Unmarked { content = [ func "ok" [] ]; bans = [] } ])

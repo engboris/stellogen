@@ -1,5 +1,5 @@
 '''test of linear identity'''
-"a -o a" = galaxy
+spec "a -o a" = galaxy
   testrl =
     -1(X) -2(X) +c5(X);
     -3(X); -4(X) +c6(X);
@@ -37,7 +37,7 @@ ps1 = galaxy
   cuts = -7(X) -8(X).
 end
 
-show-exec ps1->vehicle ps1->cuts.
+show-exec #ps1->vehicle #ps1->cuts.
 
 '''
 FIXME : MLL incorrectness

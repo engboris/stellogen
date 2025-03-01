@@ -16,8 +16,8 @@ end
 Fields of a galaxy are then accessed with `->`:
 
 ```
-show g->test1.
-show g->test2.
+show #g->test1.
+show #g->test2.
 ```
 
 > This resembles the concept of a record in programming, except that when

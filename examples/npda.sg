@@ -1,4 +1,4 @@
-binary =
+spec binary =
   -i(e) ok;
   -i(0:X) +i(X);
   -i(1:X) +i(X).
@@ -30,7 +30,7 @@ a1 = galaxy
     -a(1:W 1:S q1) +a(W S q1).
 end
 
-show process e.    a1. kill. end
-show process 0000. a1. kill. end
-show process 0110. a1. kill. end
-show process 1110. a1. kill. end
+show process #e.    #a1. #kill. end
+show process #0000. #a1. #kill. end
+show process #0110. #a1. #kill. end
+show process #1110. #a1. #kill. end

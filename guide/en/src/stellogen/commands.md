@@ -32,8 +32,7 @@ show-exec +a; -a b.
 
 ## Execution trace
 
-It is possible to follow step by step the execution of a constellation with the
-`trace` command:
+It is possible to follow step by step the execution of a constellation:
 
 ```
 ineq = +f(a); +f(b); @-f(X) -f(Y) r(X Y) | X!=Y.

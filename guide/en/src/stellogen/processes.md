@@ -55,7 +55,7 @@ In the result of an execution, if we represent results as rays with zero
 polarity, then stars containing polarized rays can be interpreted as
 incomplete computations that could be discarded.
 
-To achieve this in construction processes, we can use the special `kill`
+To achieve this in construction processes, we can use the special `#kill`
 expression:
 
 ```
@@ -64,7 +64,7 @@ c = process
   -n0(X) +n1(s(X)).
   -n1(X) +n2(s(X)).
   -n2(X) result(X); -n2(X) +n3(X).
-  kill.
+  #kill.
 end
 
 show-exec c.
@@ -72,17 +72,17 @@ show-exec c.
 
 We used a ray `+n3(X)` to continue computations if desired. The result is stored in `result(X)`.
 However, if we want to keep only the result and eliminate any further
-computation possibilities, we can use `kill`.
+computation possibilities, we can use `#kill`.
 
 ## Process Cleanup
 
 Sometimes we encounter empty stars `[]` in processes. These can be removed
-using the `clean` command:
+using the `#clean` command:
 
 ```
 show-exec process
   +f(0).
   -f(X).
-  clean.
+  #clean.
 end
 ```

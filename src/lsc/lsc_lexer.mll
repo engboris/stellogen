@@ -14,6 +14,7 @@ rule read = parse
   | '\''     { comment lexbuf }
   | "'''"    { comments lexbuf }
   | '_'      { PLACEHOLDER }
+  | '.'      { DOT }
   | '|'      { BAR }
   | '['      { LBRACK }
   | ']'      { RBRACK }
@@ -21,7 +22,7 @@ rule read = parse
   | ')'      { RPAR }
   | ','      { COMMA }
   | '@'      { AT }
-  | '#'      { SHARP }
+  | '%'      { PERCENT }
   | '+'      { PLUS }
   | '-'      { MINUS }
   | ':'      { CONS }

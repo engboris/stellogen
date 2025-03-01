@@ -16,8 +16,8 @@ end
 On accède ensuite aux champs d'une galaxie avec `->` :
 
 ```
-show g->test1.
-show g->test2.
+show #g->test1.
+show #g->test2.
 ```
 
 > Cela ressemble au concept de record (enregistrement) en programmation sauf

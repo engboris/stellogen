@@ -33,14 +33,9 @@ show-exec +a; -a b.
 
 ## Trace d'exécution
 
-Il est possible de suivre pas à pas l'exécution d'une constellation avec la
-commande `trace` :
+Il est possible de suivre pas à pas l'exécution d'une constellation :
 
 ```
 ineq = +f(a); +f(b); @-f(X) -f(Y) r(X Y) | X!=Y.
 'trace ineq.
 ```
-
-## Exécution directe
-
-Il est possible de simplement exécuter 

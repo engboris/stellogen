@@ -9,8 +9,8 @@ not :: not_spec.
 not = +not(0 1); +not(1 0).
 
 'how to print the truth table of NOT ?
-table_not :=: { table_not(0 1); table_not(1 0) }.
-table_not = not {@-not(X Y) table_not(X Y)}.
+table_not :=: table_not(0 1); table_not(1 0).
+table_not = #not {@-not(X Y) table_not(X Y)}.
 
 and_spec = galaxy
   test00 = @-and(0 0 0) ok.
@@ -46,13 +46,13 @@ impl_spec = galaxy
 end
 
 impl :: impl_spec.
-impl = not or (@{-not(X Y) -or(Y Z R) +impl(X Z R)}).
+impl = #not #or @{-not(X Y) -or(Y Z R) +impl(X Z R)}.
 
 impl2 :: impl_spec.
-impl2 = not or (@{-not(X Y) -or(Y Z R) +impl(X Z R)}).
+impl2 = #not #or @{-not(X Y) -or(Y Z R) +impl(X Z R)}.
 
-ex :=: { +ex(1 1); +ex(0 1) }.
-ex = not or (@{-not(X R1) -or(R1 X R2) +ex(X R2)}).
+ex :=: +ex(1 1); +ex(0 1).
+ex = #not #or @{-not(X R1) -or(R1 X R2) +ex(X R2)}.
 
 'how to show the values of X, Y and Z for which X /\ ~(Y /\ Z) is true?
-show-exec or not and (@{-or(Y Z R1) -not(R1 R2) -and(X R2 1) x(X) y(Y) z(Z)}).
+show-exec #or #not #and @{-or(Y Z R1) -not(R1 R2) -and(X R2 1) x(X) y(Y) z(Z)}.
