@@ -54,7 +54,7 @@ peuvent être interprétés comme des calculs non terminés qui pourraient être
 effacés.
 
 Pour cela, dans les processus de constructions, nous pouvons utiliser
-l'expression spéciale `kill` :
+l'expression spéciale `#kill` :
 
 ```
 c = process
@@ -62,7 +62,7 @@ c = process
   -n0(X) +n1(s(X)).
   -n1(X) +n2(s(X)).
   -n2(X) result(X); -n2(X) +n3(X).
-  kill.
+  #kill.
 end
 
 show-exec c.
@@ -71,17 +71,17 @@ show-exec c.
 Nous avons utilisé un rayon `+n3(X)` pour poursuivre des calculs
 si nous souhaitons. Le résultat est stocké dans `result(X)`.
 Mais si nous souhaitons seulement conserver le résultat et retirer toute
-autre possibilité de calcul alors on peut utiliser `kill`.
+autre possibilité de calcul alors on peut utiliser `#kill`.
 
 # Nettoyage de processus
 
 Il arrive parfois que l'on se retrouve avec des étoiles vides `[]` dans
-les processus. Il est possible de s'en débarrasser avec la commande `clean` :
+les processus. Il est possible de s'en débarrasser avec la commande `#clean` :
 
 ```
 show-exec process
   +f(0).
   -f(X).
-  clean.
+  #clean.
 end
 ```

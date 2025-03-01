@@ -29,16 +29,8 @@ show-exec (+f(X); f(X))[=>a].
 show-exec (+f(X); f(X))[+f=>].
 ```
 
-## Tokens and galactic replacement
-
-Galaxy expressions can contain special variables such
-as `#1`, `#2` or `#variable`.
-
-These are holes named *tokens* that can be replaced by another
-galaxy:
+## Constellation identifiers
 
 ```
 show-exec (#1 #2)[#1=>+f(X) X][#2=>-f(a)].
 ```
-
-This allows, notably, to write parametrized galaxies.

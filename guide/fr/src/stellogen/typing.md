@@ -1,15 +1,25 @@
 # Typage
 
-Le typage en Stellogen illustre des principes majeurs de syntaxe transcendantale
+Le typage dans Stellogen illustre des principes majeurs de syntaxe transcendantale
 où les types sont définis comme des ensembles de *tests* eux-mêmes définis
 avec des constellations. La vérification de type implique le passage de tous
 les tests associés à un type.
 
-Les types sont donnés par une galaxie où chaque champ représent un test à faire
+Les types sont donnés par une galaxie où chaque champ représentent un test à faire
 passer :
 
 ```
 t = galaxy
+  test1 = @-f(X) ok; -g(X).
+  test2 = @-g(X) ok; -f(X).
+end
+```
+
+On peut aussi faire précéder la définition par `spec` pour indiquer qu'il
+s'agit d'une spécification :
+
+```
+spec t = galaxy
   test1 = @-f(X) ok; -g(X).
   test2 = @-g(X) ok; -f(X).
 end
@@ -32,8 +42,8 @@ plus sophistiquées.
 ## Checkers
 
 Il faut définir des *checkers* qui sont des galaxies "juges" définissant :
-- un champ `interaction` contenant nécessairement un token `#tested` et un
-autre token `#tested` expliquant comment faire interagir un testé et un test;
+- un champ `interaction` contenant un identificateur `#tested` et `#tested`.
+Ce champ explique comment faire interagir un testé et un test;
 - un champ `expect` indiquant quel est le résultat attendu par l'interaction.
 
 Par exemple :
@@ -41,7 +51,7 @@ Par exemple :
 ```
 checker = galaxy
   interaction = #tested #test.
-  expect = { ok }.
+  expect = ok.
 end
 ```
 
@@ -73,7 +83,7 @@ Voici un type avec un unique test pour une représentation naïve des entiers
 naturels :
 
 ```
-nat =
+spec nat =
   -nat(0) ok;
   -nat(s(N)) +nat(N).
 
@@ -90,7 +100,7 @@ défaut est :
 ```
 checker = galaxy
   interaction = #tested #test.
-  expect = { ok }.
+  expect = ok.
 end
 ```
 
@@ -114,7 +124,7 @@ checker est utilisé.
 Par exemple:
 
 ```
-nat2 = { -nat(X) ok }.
+nat2 = -nat(X) ok.
 2 :: nat [checker].
 2 :: nat2.
 2 = +nat(s(s(0))).
@@ -132,8 +142,8 @@ devant être d'un certain type.
 
 ```
 nat_pair = interface
-	n :: nat [checker].
-	m :: nat [checker].
+  n :: nat [checker].
+  m :: nat [checker].
 end
 ```
 
@@ -142,7 +152,7 @@ On peut ensuite demander à ce qu'une galaxie respecte cette interface.
 ```
 g_pair :: nat_pair.
 g_pair = galaxy
-	n = +nat(0).
-	m = +nat(0).
+  n = +nat(0).
+  m = +nat(0).
 end
 ```

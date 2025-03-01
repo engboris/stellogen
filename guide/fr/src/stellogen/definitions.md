@@ -6,39 +6,30 @@ On peut nommer des constellations que l'on écrit directement. Les identifiants
 suivent les mêmes règles que pour les symboles de fonction des rayons.
 
 ```
-w = { a }.
-x = { +a; -a b }.
+w = a.
+x = +a; -a b.
 z = { -f(X) }.
 ```
 
-On peut aussi choisir d'associer un identifiant à un autre :
+Lorsque l'on se réfère à un identifiant de constellation, on utilise le
+préfixe `#`:
 
 ```
-y = x.
-```
-
-Les accolades autour des constellations peuvent être omises lorsqu'il
-n'y a pas d'ambiguïté avec les identifiants (constellation commençant
-par un symbole non polarisé) :
-
-```
-w = { a }.
-x = +a; -a b.
-z = -f(X).
+y = #x.
 ```
 
 Comme pour l'application en programmation fonctionnelle, l'union de
 constellations est notée avec un espacement :
 
 ```
-union1 = x y z.
+union1 = #x #y #z.
 ```
 
 On peut aussi ajouter des parenthèses autour des expressions pour
 plus de lisibilité ou pour éviter des ambiguïtés syntaxiques :
 
 ```
-union1 = (x y) z.
+union1 = (#x #y) #z.
 ```
 
 Mais il faut noter que contrairement à la programmation fonctionnelle,
@@ -55,7 +46,7 @@ la préfixant aussi avec `@` et en l'entourant de parenthèses :
 ```
 x = +a; -a b.
 z = -f(X).
-union1 = (@x) z.
+union1 = @#x #z.
 ```
 
 ## Contraintes d'inégalité
@@ -88,5 +79,5 @@ L'exécution d'une constellation dans un bloc `exec ... end` définit aussi
 une constellation :
 
 ```
-exec { +f(X); -f(a) } end
+exec +f(X); -f(a) end
 ```

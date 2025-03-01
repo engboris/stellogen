@@ -11,33 +11,24 @@ x = +a; -a b.
 z = -f(X).
 ```
 
-We can also choose to associate an identifier to another:
+When we refer to a constellation identifier, we use the prefix `#`:
 
 ```
-y = x.
-```
-
-Braces around constellations can be omitted when there is no ambiguity
-with identifiers (constellation starting with an unpolarized symbol):
-
-```
-w = { a }.
-x = +a; -a b.
-z = -f(X).
+y = #x.
 ```
 
 As for application in functional programming, union of constellations is
 written with a space:
 
 ```
-union1 = x y z.
+union1 = #x #y #z.
 ```
 
 We can also add parentheses around expressions for more readability or to
 avoid syntactic ambiguity:
 
 ```
-union1 = (x y) z.
+union1 = (#x #y) #z.
 ```
 
 However, note that unlike in functional programming there is no defined
@@ -54,7 +45,7 @@ it around parentheses:
 ```
 x = +a; -a b.
 z = -f(X).
-union1 = (@x) z.
+union1 = @#x #z.
 ```
 
 ## Inequality constraints
@@ -86,5 +77,5 @@ The execution of a constellation within a block `exec ... end` also defines
 a constellation:
 
 ```
-exec { +f(X); -f(a) } end
+exec +f(X); -f(a) end
 ```

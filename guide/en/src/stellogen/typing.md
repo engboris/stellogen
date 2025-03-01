@@ -15,6 +15,16 @@ t = galaxy
 end
 ```
 
+It is also possible to prefix the definition with a `spec` keyword to make
+explicit that it is a specification:
+
+```
+spec t = galaxy
+  test1 = @-f(X) ok; -g(X).
+  test2 = @-g(X) ok; -f(X).
+end
+```
+
 A galaxy/constellation under test must therefore *satisfy all the tests*
 defined by the galaxy above to be of type `t`.
 
@@ -32,8 +42,7 @@ proposal of viewing algorithms as more sophisticated specifications.
 
 We need to define checkers, which are "judge" galaxies that specify:
 
-- an interaction field, necessarily containing a `#tested` token and another
-`#test` token that explains how the tested and the test interact;
+- an interaction field, necessarily containing the identifiers `#tested` and `#test`. It explains how the tested and the test interact;
 - an `expect` field indicating the expected result of the interaction.
 
 For example:
@@ -41,7 +50,7 @@ For example:
 ```
 checker = galaxy
   interaction = #tested #test.
-  expect = { ok }.
+  expect = ok.
 end
 ```
 
@@ -71,7 +80,7 @@ Here is an example of a type with a single test for a naive representation of
 natural numbers:
 
 ```
-nat =
+spec nat =
   -nat(0) ok;
   -nat(s(N)) +nat(N).
 
@@ -87,7 +96,7 @@ We can also omit specifying the checker. In this case, the default checker is:
 ```
 checker = galaxy
   interaction = #tested #test.
-  expect = { ok }.
+  expect = ok.
 end
 ```
 
@@ -111,7 +120,7 @@ is used.
 For example:
 
 ```
-nat2 = { -nat(X) ok }.
+nat2 = -nat(X) ok.
 2 :: nat [checker].
 2 :: nat2.
 2 = +nat(s(s(0))).
@@ -129,8 +138,8 @@ a corresponding type to satisfy.
 
 ```
 nat_pair = interface
-	n :: nat [checker].
-	m :: nat [checker].
+  n :: nat [checker].
+  m :: nat [checker].
 end
 ```
 
@@ -139,7 +148,7 @@ It is then possible to ask for a galaxy to satisfy that interface.
 ```
 g_pair :: nat_pair.
 g_pair = galaxy
-	n = +nat(0).
-	m = +nat(0).
+  n = +nat(0).
+  m = +nat(0).
 end
 ```
