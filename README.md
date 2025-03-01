@@ -3,36 +3,41 @@
 **Note: this project is an experimental proof of concept, not a fully
 designed and specified programming language.**
 
-Stellogen is a *logic-agnostic* programming language based
-on term unification.
-It has been designed from concepts of Girard's transcendental syntax programme.
+Stellogen is a *logic-agnostic* programming language based on term unification.
+It has been designed from concepts of Girard's transcendental syntax.
 
-# Key characteristics
+## Key characteristics
 
-- naturally describe state transitions and logic programs as a sort of
-**syntactic tiling system**;
 - dynamically/statically **typed** but without primitive type nor type systems,
-by using very flexible assert-like expressions defining *sets of tests* to
-pass;
-- both program execution and typechecking rely on a minimal kernel using
-**term unification**.
+by using very flexible assert-like expressions defining *sets of tests* to pass;
+- everything is based on **term unification**;
 
-It draws inspiration (or try to draw inspiration) from:
+It is multi-paradigm:
+- _logic programs_ are the elementary bricks of computation and typing;
+- _functional programs_ correspond to logic programs enforcing an order of
+interaction;
+- _imperative programs_ are iterative recipes constructing logic programs;
+- _objects_ are ways to structure logic programs.
+
+## Influences
+
+It draws (or try to draw) inspiration from:
 - Prolog/Datalog (for unification-based computation);
 - Smalltalk (for message-passing, object-oriented paradigm and minimalism);
 - Coq (for proof-as-program paradigm and iterative programming with tactics);
 - Scheme/Racket (for minimalism and metaprogramming);
 - Haskell/Ruby/Lua (for syntax).
 
-## Syntax sample
+## Syntax samples
+
+Finite state machine
 
 ```
-binary =
+spec binary =
   -i(e) ok;
   -i(0:X) +i(X);
   -i(1:X) +i(X).
 
-'input words
 e :: binary.
 e = +i(e).
 
@@ -57,10 +62,10 @@ a1 = galaxy
     -a(0:W q1) +a(W q2).
 end
 
-show process e.   a1. kill. end
-show process 000. a1. kill. end
-show process 010. a1. kill. end
-show process 110. a1. kill. end
+show process #e.   #a1. #kill. end
+show process #000. #a1. #kill. end
+show process #010. #a1. #kill. end
+show process #110. #a1. #kill. end
 ```
 
 More examples can be found in `examples/`.
