@@ -12,30 +12,14 @@ end
 
 Cet enchaînement part de la première constellation `+n0(0)` considérée comme
 initiale. Chaque constellation suivante interagit ensuite avec le résultat
-précédent. C'est comme si nous faisions le calcul suivant :
+précédent.
+
+C'est comme si nous faisions le calcul suivant :
 
 ```
-@+n0(0);
--n0(X) +n1(s(X)).
-```
-
-donnant
-
-```
-+n1(s(0)).
-```
-
-puis
-
-```
-@+n1(s(0));
--n1(X) +n2(s(X)).
-```
-
-donnant
-
-```
-+n2(s(s(0))).
+c = +n0(0).
+c = @#c {-n0(X) +n1(s(X))}.
+c = @#c {-n1(X) +n2(s(X))}.
 ```
 
 > C'est ce qui correspond aux tactiques dans des assistants de preuve comme Coq

@@ -17,19 +17,29 @@
 - [Définir des constellations](./stellogen/definitions.md)
 - [Commandes](./stellogen/commands.md)
 - [Effets réactifs](./stellogen/effects.md)
-- [Processus de construction](./stellogen/processes.md)
-- [Galaxies](./stellogen/galaxies.md)
 - [Substitutions](./stellogen/substitutions.md)
-- [Typage](./stellogen/typing.md)
+- [Programmation logique](./stellogen/prolog.md)
 
-# Théorie des automates
+# Programmation orientée objet
+
+- [Galaxies](./objects/galaxies.md)
+
+# Typage
+
+- [Spécifications](./typing/spec.md)
+
+# Programmation impérative
+
+- [Processus](./imperative/processes.md)
+
+# Machines à états
 
 - [Automate finis (TODO)](./automata/nfsa.md)
 - [Transducteurs (TODO)](./automata/transducers.md)
 - [Automates à pile (TODO)](./automata/pda.md)
 - [Machines de Turing (TODO)](./automata/turing.md)
 
-# Lambda-calcul
+# Programmation fonctionnelle
 
 - [Lambda-calcul linéaire non typé (TODO)](./lambda/untypedlin.md)
 - [Types linéaires (TODO)](./lambda/lintypes.md)
