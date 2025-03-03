@@ -17,19 +17,29 @@
 - [Defining constellations](./stellogen/definitions.md)
 - [Commands](./stellogen/commands.md)
 - [Reactive effects](./stellogen/effects.md)
-- [Construction processes](./stellogen/processed.md)
-- [Galaxies](./stellogen/galaxies.md)
 - [Substitutions](./stellogen/substitutions.md)
-- [Typing](./stellogen/typing.md)
+- [Logic programming](./stellogen/prolog.md)
 
-# Automata theory
+# Object-oriented programming
+
+- [Galaxies](./objects/galaxies.md)
+
+# Typing
+
+- [Specficiations](./typing/spec.md)
+
+# Imperative programming
+
+- [Processes](./imperative/processes.md)
+
+# State machines
 
 - [Finite automata (TODO)](./automata/nfsa.md)
 - [Transducers (TODO)](./automata/transducers.md)
 - [Pushdown automata (TODO)](./automata/pda.md)
 - [Turing machines (TODO)](./automata/turing.md)
 
-# Lambda-calculus
+# Functional programming
 
 - [Untyped linear lambda-calculus (TODO)](./lambda/untypedlin.md)
 - [Linear types (TODO)](./lambda/lintypes.md)

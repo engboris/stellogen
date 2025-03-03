@@ -18,27 +18,9 @@ have an interaction chain with a complete focus on the previous result.
 It's as if we did the following computation:
 
 ```
-@+n0(0);
--n0(X) +n1(s(X)).
-```
-
-yielding
-
-```
-+n1(s(0)).
-```
-
-then
-
-```
-@+n1(s(0));
--n1(X) +n2(s(X)).
-```
-
-yielding
-
-```
-+n2(s(s(0))).
+c = +n0(0).
+c = @#c {-n0(X) +n1(s(X))}.
+c = @#c {-n1(X) +n2(s(X))}.
 ```
 
 > This is what corresponds to tactics in proof assistants such as Coq and could
