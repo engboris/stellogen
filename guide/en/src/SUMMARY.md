@@ -23,10 +23,12 @@
 # Object-oriented programming
 
 - [Galaxies](./objects/galaxies.md)
+- [Interfaces](./objects/interfaces.md)
 
 # Typing
 
 - [Specficiations](./typing/spec.md)
+- [Expectations](./typing/expect.md)
 
 # Imperative programming
 
