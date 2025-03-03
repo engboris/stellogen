@@ -23,10 +23,12 @@
 # Programmation orientée objet
 
 - [Galaxies](./objects/galaxies.md)
+- [Interfaces](./objects/interfaces.md)
 
 # Typage
 
 - [Spécifications](./typing/spec.md)
+- [Attentes](./typing/expect.md)
 
 # Programmation impérative
 
