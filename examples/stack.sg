@@ -16,5 +16,5 @@ show-exec process
 
   -save(C) save(C).
   'kill remaining polarized stars
-  kill.
+  #kill.
 end
