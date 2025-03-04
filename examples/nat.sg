@@ -15,7 +15,7 @@ spec "nat -> nat" =
   -nat(X) out.
 
 0 :: nat [checker].
-0 = +nat(1).
+0 = +nat(0).
 
 1 :: nat [checker].
 1 = +nat(s(0)).
