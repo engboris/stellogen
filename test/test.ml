@@ -10,7 +10,9 @@ let lsc filename () =
 let sgen filename () =
   let lexbuf = Lexing.from_channel (Stdlib.open_in filename) in
   let p = Stellogen.Sgen_parser.program Stellogen.Sgen_lexer.read lexbuf in
-  let _ = Stellogen.Sgen_eval.eval_program p in
+  let _ =
+    Stellogen.Sgen_eval.eval_program ~typecheckonly:false ~notyping:false p
+  in
   ()
 
 let run_dir test_f directory =
