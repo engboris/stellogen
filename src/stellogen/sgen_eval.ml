@@ -200,7 +200,7 @@ and eval_galaxy_expr ~notyping (env : env) :
     let* eval_e = eval_galaxy_expr ~notyping env e in
     let* mcs = galaxy_to_constellation ~notyping env eval_e in
     begin
-      match exec ~showtrace:false mcs with
+      match exec ~showtrace:true mcs with
       | Ok mcs -> Ok (Const (unmark_all mcs))
       | Error e -> Error (LscError e)
     end
