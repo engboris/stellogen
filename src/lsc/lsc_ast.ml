@@ -356,14 +356,14 @@ let pause () =
   ()
 
 (* interaction between one selected ray and one selected action *)
-let rec interaction ~linear ~showtrace ~queue repl1 repl2
+let rec interaction ~showtrace ~queue repl1 repl2
   (selected_action, other_actions) (selected_ray, other_rays, bans) :
-  (star list * star list, err_effect) Result.t =
+  (star list, err_effect) Result.t =
   match selected_action.content with
-  | [] -> Ok ([], [])
+  | [] -> Ok []
   | r' :: s' when not (is_polarised r') ->
-    interaction ~linear ~showtrace ~queue:(r' :: queue) repl1 repl2
-      ({ content = s'; bans }, selected_action :: other_actions)
+    interaction ~showtrace ~queue:(r' :: queue) repl1 repl2
+      ({ content = s'; bans }, other_actions)
       (selected_ray, other_rays, bans)
   | r' :: s' -> (
     if showtrace then begin
@@ -373,13 +373,10 @@ let rec interaction ~linear ~showtrace ~queue repl1 repl2
     end;
     match raymatcher (repl1 selected_ray) (repl2 r') with
     | None ->
-      let* next, new_actions =
-        interaction ~linear ~showtrace ~queue:(r' :: queue) repl1 repl2
-          ({ content = s'; bans }, selected_action :: other_actions)
-          (selected_ray, other_rays, bans)
-      in
       if showtrace then output_string stdout "failed.";
-      Ok (next, new_actions)
+      interaction ~showtrace ~queue:(r' :: queue) repl1 repl2
+        ({ content = s'; bans }, other_actions)
+        (selected_ray, other_rays, bans)
     (* if there is an actual connection between rays *)
     | Some theta ->
       let* _ = apply_effect selected_ray theta in
@@ -389,13 +386,10 @@ let rec interaction ~linear ~showtrace ~queue repl1 repl2
           @@ Printf.sprintf "success with %s." (string_of_subst theta);
         if showtrace then pause ()
       end;
-      (* action is consumed is execution is linear *)
-      let next_actions =
-        if linear then other_actions else selected_action :: other_actions
-      in
-      let* next, new_actions =
-        interaction ~linear ~showtrace ~queue:(r' :: queue) repl1 repl2
-          ({ content = s'; bans }, next_actions)
+      (* action is consumed when execution is linear *)
+      let* next =
+        interaction ~showtrace ~queue:(r' :: queue) repl1 repl2
+          ({ content = s'; bans }, other_actions)
           (selected_ray, other_rays, bans)
       in
       let other_rays' = queue @ s' in
@@ -413,13 +407,13 @@ let rec interaction ~linear ~showtrace ~queue repl1 repl2
               output_string stdout
               @@ Printf.sprintf "  add star %s." (string_of_star after_fusion)
           in
-          Ok (after_fusion :: next, new_actions)
+          Ok (after_fusion :: next)
         end
         else begin
           if showtrace then
             output_string stdout
             @@ Printf.sprintf "  result filtered out by constraint.";
-          Ok (next, new_actions)
+          Ok next
         end
       in
       if showtrace then pause ();
@@ -441,23 +435,28 @@ let search_partners ~linear ~showtrace (selected_ray, other_rays, bans) actions
     | [] -> Ok ([], acc)
     | selected_action :: other_actions ->
       let repl2 = replace_indices (!ident_counter + 1) in
-      let* res, new_actions =
-        interaction ~linear ~showtrace ~queue:[] repl1 repl2
+      let* res =
+        interaction ~showtrace ~queue:[] repl1 repl2
           (selected_action, other_actions)
           (selected_ray, other_rays, bans)
       in
-      let* (next, new_actions') = try_actions new_actions other_actions in
-      Ok (res @ next, new_actions')
+      if not @@ List.is_empty res && linear then
+        let* next, new_actions = try_actions acc other_actions in
+        Ok (res @ next, new_actions)
+      else
+        let* next, new_actions = try_actions (selected_action :: acc) other_actions in
+        Ok (res @ next, new_actions)
   in
   try_actions [] actions
 
-let rec select_ray ~linear ~showtrace actions states' ~queue selected_state
-  ~bans : (star list option * star list, err_effect) Result.t =
+let rec select_ray ~linear ~showtrace ~queue actions other_states
+  (selected_state, bans) : (star list option * star list, err_effect) Result.t =
   match selected_state with
   | [] -> Ok (None, actions)
   (* if unpolarized, no need to try, try other stars *)
   | r :: rs when not (is_polarised r) ->
-    select_ray ~linear ~showtrace actions states' ~queue:(r :: queue) rs ~bans
+    select_ray ~linear ~showtrace ~queue:(r :: queue) actions other_states
+      (rs, bans)
   | selected_ray :: other_rays -> (
     (* look for partners for the selected rays in actions *)
     match
@@ -467,26 +466,26 @@ let rec select_ray ~linear ~showtrace actions states' ~queue selected_state
     with
     (* interaction did nothing (no partner), try other rays *)
     | Ok ([], new_actions) ->
-      select_ray ~linear ~showtrace new_actions states'
-        ~queue:(selected_ray :: queue) other_rays ~bans
+      select_ray ~linear ~showtrace ~queue:(selected_ray :: queue) new_actions
+        other_states (other_rays, bans)
     (* interaction returns a result, keep it for the next round *)
     | Ok (new_stars, new_actions) -> Ok (Some new_stars, new_actions)
     | Error e -> Error e )
 
-let rec select_star ~linear ~showtrace actions ~queue :
+let rec select_star ~linear ~showtrace ~queue actions :
   star list -> (star list option * star list, err_effect) Result.t = function
   | [] -> Ok (None, actions)
   (* select a state star and try finding a partner for each ray *)
   | selected_state :: other_states -> (
     match
-      select_ray ~linear ~showtrace actions other_states ~queue:[]
-        selected_state.content ~bans:selected_state.bans
+      select_ray ~linear ~showtrace ~queue:[] actions other_states
+        (selected_state.content, selected_state.bans)
     with
     (* no success with this star, try other stars *)
     | Ok (None, new_actions) ->
       select_star ~linear ~showtrace new_actions
         ~queue:(selected_state :: queue) other_states
-    (* got new stars to add, construct the result for the next iteration *)
+    (* got new stars to add, construct the result for the next round *)
     | Ok (Some new_stars, new_actions) ->
       Ok (Some (List.rev queue @ other_states @ new_stars), new_actions)
     | Error e -> Error e )
@@ -504,9 +503,9 @@ let exec ?(showtrace = false) ?(linear = false) mcs :
       output_string stdout @@ string_of_cfg cfg;
       pause ()
     end;
-    match select_star ~linear ~showtrace actions ~queue:[] states with
+    match select_star ~linear ~showtrace ~queue:[] actions states with
     | Ok (None, _) -> Ok states (* no more possible interaction *)
-    | Ok (Some result', new_actions) -> loop (new_actions, result')
+    | Ok (Some res, new_actions) -> loop (new_actions, res)
     | Error e -> Error e
   in
   let cfg = extract_intspace mcs in
