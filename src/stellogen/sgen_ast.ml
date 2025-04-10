@@ -27,6 +27,7 @@ and galaxy_expr =
   | Access of galaxy_expr * ident
   | Id of ident
   | Exec of galaxy_expr
+  | LinExec of galaxy_expr
   | Union of galaxy_expr * galaxy_expr
   | Subst of galaxy_expr * substitution
   | Focus of galaxy_expr
