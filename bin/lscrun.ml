@@ -5,12 +5,13 @@ open Lsc.Lsc_parser
 open Lsc.Lsc_lexer
 open Out_channel
 
-let usage_msg =
-  "exec [-allow-unfinished-computation] [-show-steps] [-show-trace] <filename>"
+let usage_msg = "exec [-linear] [-show-trace] <filename>"
 
 let unfincomp = ref false
 
 let showtrace = ref false
+
+let linear = ref false
 
 let input_file = ref ""
 
@@ -25,6 +26,7 @@ let speclist =
   ; ( "-show-trace"
     , Stdlib.Arg.Set showtrace
     , "Interactively show steps of selection and unification." )
+  ; ("-linear", Stdlib.Arg.Set linear, "Actions which are used are consummed.")
   ]
 
 let () =
@@ -32,7 +34,7 @@ let () =
   let lexbuf = Lexing.from_channel (Stdlib.open_in !input_file) in
   let mcs = constellation_file read lexbuf in
   let result =
-    match exec ~showtrace:!showtrace mcs with
+    match exec ~linear:!linear ~showtrace:!showtrace mcs with
     | Ok result -> result
     | Error e ->
       pp_err_effect e |> Out_channel.output_string Out_channel.stderr;
