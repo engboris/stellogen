@@ -31,7 +31,8 @@ let rec map_galaxy env ~f : galaxy -> (galaxy, err) Result.t = function
     in
     Galaxy g' |> Result.return
 
-and map_galaxy_expr env ~f : galaxy_expr -> (galaxy_expr, err) Result.t = function
+and map_galaxy_expr env ~f : galaxy_expr -> (galaxy_expr, err) Result.t =
+  function
   | Raw g ->
     let* map_g = map_galaxy env ~f g in
     Raw map_g |> Result.return

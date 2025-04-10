@@ -440,11 +440,13 @@ let search_partners ~linear ~showtrace (selected_ray, other_rays, bans) actions
           (selected_action, other_actions)
           (selected_ray, other_rays, bans)
       in
-      if not @@ List.is_empty res && linear then
+      if (not @@ List.is_empty res) && linear then
         let* next, new_actions = try_actions acc other_actions in
         Ok (res @ next, new_actions)
       else
-        let* next, new_actions = try_actions (selected_action :: acc) other_actions in
+        let* next, new_actions =
+          try_actions (selected_action :: acc) other_actions
+        in
         Ok (res @ next, new_actions)
   in
   try_actions [] actions
