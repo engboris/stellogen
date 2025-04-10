@@ -31,8 +31,8 @@ let rec map_galaxy env ~f : galaxy -> (galaxy, err) Result.t = function
     in
     Galaxy g' |> Result.return
 
-and map_galaxy_expr env ~f e : (galaxy_expr, err) Result.t =
-  match e with
+and map_galaxy_expr env ~f : galaxy_expr -> (galaxy_expr, err) Result.t =
+  function
   | Raw g ->
     let* map_g = map_galaxy env ~f g in
     Raw map_g |> Result.return
@@ -48,6 +48,9 @@ and map_galaxy_expr env ~f e : (galaxy_expr, err) Result.t =
   | Exec e ->
     let* map_e = map_galaxy_expr env ~f e in
     Exec map_e |> Result.return
+  | LinExec e ->
+    let* map_e = map_galaxy_expr env ~f e in
+    LinExec map_e |> Result.return
   | Union (e, e') ->
     let* map_e = map_galaxy_expr env ~f e in
     let* map_e' = map_galaxy_expr env ~f e' in
@@ -86,6 +89,9 @@ let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
   | Exec e ->
     let* g = replace_id env _from _to e in
     Exec g |> Result.return
+  | LinExec e ->
+    let* g = replace_id env _from _to e in
+    LinExec g |> Result.return
   | Union (e1, e2) ->
     let* g1 = replace_id env _from _to e1 in
     let* g2 = replace_id env _from _to e2 in
@@ -200,7 +206,15 @@ and eval_galaxy_expr ~notyping (env : env) :
     let* eval_e = eval_galaxy_expr ~notyping env e in
     let* mcs = galaxy_to_constellation ~notyping env eval_e in
     begin
-      match exec ~showtrace:false mcs with
+      match exec ~linear:false ~showtrace:false mcs with
+      | Ok mcs -> Ok (Const (unmark_all mcs))
+      | Error e -> Error (LscError e)
+    end
+  | LinExec e ->
+    let* eval_e = eval_galaxy_expr ~notyping env e in
+    let* mcs = galaxy_to_constellation ~notyping env eval_e in
+    begin
+      match exec ~linear:true ~showtrace:false mcs with
       | Ok mcs -> Ok (Const (unmark_all mcs))
       | Error e -> Error (LscError e)
     end

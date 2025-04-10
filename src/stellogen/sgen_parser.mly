@@ -9,6 +9,7 @@ open Sgen_ast
 %token SPEC
 %token TRACE
 %token SHARP
+%token LINEXEC
 %token PROCESS
 %token GALAXY
 %token RARROW DRARROW
@@ -95,6 +96,10 @@ let galaxy_block :=
     <Exec>
   | EXEC; EOL*; mcs=marked_constellation; END; EXEC?;
     { Exec (Raw (Const mcs)) }
+  | LINEXEC; EOL*; ~=galaxy_content; END; LINEXEC?;
+    <LinExec>
+  | LINEXEC; EOL*; mcs=marked_constellation; END; LINEXEC?;
+    { LinExec (Raw (Const mcs)) }
 
 let process_item :=
   | ~=galaxy_content; DOT; EOL*;    <>

@@ -26,26 +26,20 @@ end
 
 empty = {}.
 
-expect = galaxy expect = {}. end
-tested :: empty [expect].
+tested :=: {}.
 tested = process #e. #a1. #kill. end
 
-expect = galaxy expect = {}. end
-tested :: empty [expect].
+tested :=: {}.
 tested = process #0. #a1. #kill. end
 
-expect = galaxy expect = {}. end
-tested :: empty [expect].
+tested :=: {}.
 tested = process #1. #a1. #kill. end
 
-expect = galaxy expect = { accept }. end
-tested :: empty [expect].
+tested :=: accept.
 tested = process +i(0:0:0:e). #a1. #kill. end
 
-expect = galaxy expect = {}. end
-tested :: empty [expect].
+tested :=: {}.
 tested = process +i(0:1:0:e). #a1. #kill. end
 
-expect = galaxy expect = {}. end
-tested :: empty [expect].
+tested :=: {}.
 tested = process +i(1:1:0:e). #a1. #kill. end

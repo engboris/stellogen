@@ -13,46 +13,47 @@ let newline  = '\r' | '\n' | "\r\n"
 
 rule read = parse
   (* Stellogen *)
-  | '{'         { LBRACE }
-  | '}'         { RBRACE }
-  | "end"       { END }
-  | "exec"      { EXEC }
-  | "run"       { RUN }
-  | "interface" { INTERFACE }
-  | "show"      { SHOW }
-  | "spec"      { SPEC }
-  | "trace"     { TRACE }
-  | "show-exec" { SHOWEXEC }
-  | "galaxy"    { GALAXY }
-  | "process"   { PROCESS }
-  | "->"        { RARROW }
-  | "=>"        { DRARROW }
-  | "."         { DOT }
-  | "#"         { SHARP }
-  | "%"         { PERCENT }
-  | '"'         { read_string (Buffer.create 255) lexbuf }
+  | '{'           { LBRACE }
+  | '}'           { RBRACE }
+  | "end"         { END }
+  | "exec"        { EXEC }
+  | "run"         { RUN }
+  | "interface"   { INTERFACE }
+  | "show"        { SHOW }
+  | "spec"        { SPEC }
+  | "trace"       { TRACE }
+  | "linear-exec" { LINEXEC }
+  | "show-exec"   { SHOWEXEC }
+  | "galaxy"      { GALAXY }
+  | "process"     { PROCESS }
+  | "->"          { RARROW }
+  | "=>"          { DRARROW }
+  | "."           { DOT }
+  | "#"           { SHARP }
+  | "%"           { PERCENT }
+  | '"'           { read_string (Buffer.create 255) lexbuf }
   (* Stellar resolution *)
-  | '|'         { BAR }
-  | "!="        { NEQ }
-  | '_'         { PLACEHOLDER }
-  | '['         { LBRACK }
-  | ']'         { RBRACK }
-  | '('         { LPAR }
-  | ')'         { RPAR }
-  | ','         { COMMA }
-  | '@'         { AT }
-  | '+'         { PLUS }
-  | '-'         { MINUS }
-  | '='         { EQ }
-  | ':'         { CONS }
-  | ';'         { SEMICOLON }
-  | var_id      { VAR (Lexing.lexeme lexbuf) }
-  | ident       { SYM (Lexing.lexeme lexbuf) }
+  | '|'     { BAR }
+  | "!="    { NEQ }
+  | '_'     { PLACEHOLDER }
+  | '['     { LBRACK }
+  | ']'     { RBRACK }
+  | '('     { LPAR }
+  | ')'     { RPAR }
+  | ','     { COMMA }
+  | '@'     { AT }
+  | '+'     { PLUS }
+  | '-'     { MINUS }
+  | '='     { EQ }
+  | ':'     { CONS }
+  | ';'     { SEMICOLON }
+  | var_id  { VAR (Lexing.lexeme lexbuf) }
+  | ident   { SYM (Lexing.lexeme lexbuf) }
   (* Common *)
-  | '\''        { comment lexbuf }
-  | "'''"       { comments lexbuf }
-  | space       { read lexbuf }
-  | newline     {
+  | '\''     { comment lexbuf }
+  | "'''"    { comments lexbuf }
+  | space    { read lexbuf }
+  | newline  {
     let pos = lexbuf.lex_curr_p in
     lexbuf.lex_curr_p <- {
       lexbuf.lex_curr_p with

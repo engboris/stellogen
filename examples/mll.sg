@@ -39,15 +39,18 @@ end
 
 show-exec #ps1->vehicle #ps1->cuts.
 
-'''
-FIXME : MLL incorrectness
+spec "a * b" =
+  -1(g:X) -2(g:X) +3(g:X);
+  @-3(g:X) ok.
 
+linear = galaxy
+  interaction = linear-exec #tested #test end
+  expect = ok.
+end
+
+'does not typecheck
+'vehicle :: "a * a" [linear].
 vehicle =
   +3(l:X) +3(r:X);
   -3(l:X) +1(g:X);
   -3(r:X) +2(g:X).
-
-test =
-  -1(g:X) -2(g:X) +3(g:X);
-  @-3(g:X) 3(X).
-'''
