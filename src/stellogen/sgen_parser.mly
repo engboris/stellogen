@@ -46,7 +46,7 @@ let type_declaration :=
 
 let galaxy_expr :=
   | ~=galaxy_content; EOL*; DOT; <>
-  | ~=galaxy_block;              <>
+  | ~=process;                   <>
   | ~=undelimited_raw_galaxy;    <Raw>
 
 let interface_item :=
@@ -62,14 +62,20 @@ let delimited_raw_galaxy :=
   | ~=braces(marked_constellation); <Const>
 
 let galaxy_content :=
-  | ~=pars(galaxy_content);                   <>
-  | SHARP; ~=SYM;                             <Id>
-  | ~=delimited_raw_galaxy;                   <Raw>
-  | g=galaxy_content; h=galaxy_content;       { Union (g, h) }
-  | ~=galaxy_content; RARROW; ~=SYM;          <Access>
-  | AT; SHARP; x=SYM;                         { Focus (Id x) }
-  | AT; g=delimited_raw_galaxy;               { Focus (Raw g) }
-  | ~=galaxy_content; ~=bracks(substitution); <Subst>
+  | ~=pars(galaxy_content);             <>
+  | SHARP; ~=SYM;                       <Id>
+  | ~=delimited_raw_galaxy;             <Raw>
+  | g=galaxy_content; h=galaxy_content; { Union (g, h) }
+  | ~=galaxy_content; RARROW; ~=SYM;    <Access>
+  | AT; SHARP; x=SYM;                   { Focus (Id x) }
+  | AT; g=delimited_raw_galaxy;         { Focus (Raw g) }
+  | ~=galaxy_content; ~=bracks(substitution);             <Subst>
+  | EXEC; EOL*; ~=galaxy_content; EOL*; END; EXEC?;       <Exec>
+  | LINEXEC; EOL*; ~=galaxy_content; EOL*; END; LINEXEC?; <LinExec>
+  | EXEC; EOL*; mcs=marked_constellation; EOL*; END; EXEC?;
+    { Exec (Raw (Const mcs)) }
+  | LINEXEC; EOL*; mcs=marked_constellation; EOL*; END; LINEXEC?;
+    { LinExec (Raw (Const mcs)) }
 
 let substitution :=
   | DRARROW; ~=symbol;                    <Extend>
@@ -86,22 +92,14 @@ let galaxy_item :=
     { GLabelDef (x, Raw (Const mcs)) }
   | x=SYM; EQ; EOL*; g=undelimited_raw_galaxy; EOL*; DOT; EOL*;
     { GLabelDef (x, Raw g) }
-  | ~=SYM; EQ; EOL*; ~=galaxy_block; EOL*;   <GLabelDef>
+  | ~=SYM; EQ; EOL*; ~=process; EOL*;             <GLabelDef>
   | ~=type_declaration; EOL*;                     <GTypeDef>
 
-let galaxy_block :=
+let process :=
   | PROCESS; EOL*; END; PROCESS?;
     { Process [] }
   | PROCESS; EOL*; ~=process_item+; END; PROCESS?;
     <Process>
-  | EXEC; EOL*; ~=galaxy_content; END; EXEC?;
-    <Exec>
-  | EXEC; EOL*; mcs=marked_constellation; END; EXEC?;
-    { Exec (Raw (Const mcs)) }
-  | LINEXEC; EOL*; ~=galaxy_content; END; LINEXEC?;
-    <LinExec>
-  | LINEXEC; EOL*; mcs=marked_constellation; END; LINEXEC?;
-    { LinExec (Raw (Const mcs)) }
 
 let process_item :=
   | ~=galaxy_content; DOT; EOL*;    <>
