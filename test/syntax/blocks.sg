@@ -1,0 +1,8 @@
+x = exec 0 end.
+x = linear-exec 0 end.
+x = exec exec 0 end end.
+x = linear-exec linear-exec 0 end end.
+x = exec linear-exec 0 end end.
+x = linear-exec exec 0 end end.
+x = exec linear-exec 0 end linear-exec end exec.
+x = linear-exec exec 0 end exec end linear-exec.

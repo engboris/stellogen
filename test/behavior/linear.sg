@@ -5,10 +5,10 @@
 nat = -nat(s(X)) +nat(X).
 
 tested :=: +nat(0).
-tested = linear-exec #1 #nat end
+tested = linear-exec #1 #nat end.
 
 tested :=: +nat(s(0)).
-tested = linear-exec #2 #nat end
+tested = linear-exec #2 #nat end.
 
 tested :=: +nat(s(s(0))).
-tested = linear-exec #3 #nat end
+tested = linear-exec #3 #nat end.
