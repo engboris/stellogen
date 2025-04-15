@@ -84,6 +84,8 @@ let galaxy_item :=
   | ~=SYM; EQ; EOL*; ~=galaxy_content; DOT; EOL*; <GLabelDef>
   | x=SYM; EQ; EOL*; mcs=marked_constellation; EOL*; DOT; EOL*;
     { GLabelDef (x, Raw (Const mcs)) }
+  | x=SYM; EQ; EOL*; g=undelimited_raw_galaxy; EOL*; DOT; EOL*;
+    { GLabelDef (x, Raw g) }
   | ~=SYM; EQ; EOL*; ~=galaxy_block; EOL*;   <GLabelDef>
   | ~=type_declaration; EOL*;                     <GTypeDef>
 

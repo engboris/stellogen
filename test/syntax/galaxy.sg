@@ -1,0 +1,37 @@
+g = galaxy end
+g = galaxy end galaxy
+
+g = galaxy
+end
+
+g = galaxy
+  test1 = 1.
+  test2 = 2.
+end
+
+g = galaxy
+  test1 = 1.
+  test2 = 2.
+end galaxy
+
+g = galaxy
+  test1 = galaxy
+    test2 = galaxy
+    end.
+  end.
+end
+
+g = galaxy
+  test1 = galaxy
+    test11 = 11.
+    test12 = 12.
+  end.
+  test2 = galaxy
+    test21 = 21.
+    test22 = 22.
+  end.
+end
+
+x = #g->test1.
+x = #g->test1->test11.
+x = #g->test1->test11->test111.

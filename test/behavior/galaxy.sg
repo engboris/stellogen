@@ -1,0 +1,18 @@
+g = galaxy
+  test1 = 1.
+  test2 = galaxy
+    test21 = 2.
+    test22 = galaxy
+      test3 = 3.
+    end.
+  end.
+end
+
+x :=: 1.
+x = #g->test1.
+
+x :=: 2.
+x = #g->test2->test21.
+
+x :=: 3.
+x = #g->test2->test22->test3.

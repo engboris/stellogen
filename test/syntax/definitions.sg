@@ -43,8 +43,29 @@ x = { @a b; -c d }.
 x = { a b; @-c d }.
 x = { @a b; @-c d }.
 
+'ineq
+x = +f(X); +f(Y) | X!=Y Y!=X X!=g(Y) g(X)!=Y.
+x = +f(X) | X!=Y Y!=X X!=g(Y) g(X)!=Y; +f(Y).
+x = +f(X) | X!=Y Y!=X X!=g(Y) g(X)!=Y.
+x = +f(X) | X!=Y Y!=X X!=g(Y) g(X)!=Y.
+x = +f(X) | X != Y Y != X X != g(Y) g(X) != Y.
+x = +f(X) |
+  X!=Y Y!=X X!=g(Y) g(X)!=Y.
+x = +f(X) |
+  X!=Y
+  Y!=X
+  X!=g(Y)
+  g(X)!=Y.
+x = +f(X) |
+  X!=Y Y!=X
+  X!=g(Y) g(X)!=Y.
+'''FIXME
+  x = +f(X)
+  | X!=Y Y!=X X!=g(Y) g(X)!=Y.
+'''
+
 'with EOL
-'''FIX ME: it should work
+'''FIX ME
 x
 =
 +a
