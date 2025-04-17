@@ -102,3 +102,15 @@ g_pair = galaxy
   n = +nat(0).
   m = +nat(0).
 end
+
+'proof
+theorem x : nat =
+proof
+  0.
+end
+
+'proof with #, lemma and end proof
+lemma y : nat =
+proof
+  #0.
+end proof

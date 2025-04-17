@@ -15,6 +15,10 @@ open Sgen_ast
 %token RARROW DRARROW
 %token EQ
 %token END
+%token PROOF
+%token LEMMA
+%token THEOREM
+%token END_PROOF
 
 %start <Sgen_ast.program> program
 
@@ -38,11 +42,17 @@ let declaration :=
   | TRACE; EOL*; ~=galaxy_expr;    <Trace>
   | RUN; EOL*; ~=galaxy_expr;      <Run>
   | ~=type_declaration;            <TypeDef>
+  | proof_spec; x=SYM; CONS; ts=separated_list(COMMA, SYM);
+    EOL*; ck=bracks(SYM)?; EOL*; EQ; EOL*; g=galaxy_expr;       { ProofDef (x, ts, ck, g) }
 
-let type_declaration :=
-  | x=SYM; CONS; CONS; ts=separated_list(COMMA, SYM);
-    EOL*; ck=bracks(SYM)?; EOL*; DOT;                 { TDef (x, ts, ck) }
-  | x=SYM; CONS; EQ; CONS; EOL*; g=galaxy_expr;       { TExp (x, g) }
+  let proof_spec := 
+    | THEOREM; EOL*; <>
+    | LEMMA; EOL*; <>
+
+  let type_declaration :=
+    | x=SYM; CONS; CONS; ts=separated_list(COMMA, SYM);
+      EOL*; ck=bracks(SYM)?; EOL*; DOT;                 { TDef (x, ts, ck) }
+    | x=SYM; CONS; EQ; CONS; EOL*; g=galaxy_expr;       { TExp (x, g) }
 
 let galaxy_expr :=
   | ~=galaxy_content; EOL*; DOT; <>
@@ -90,7 +100,11 @@ let galaxy_item :=
 let galaxy_block :=
   | PROCESS; EOL*; END; PROCESS?;
     { Process [] }
+  | PROOF; EOL*; proof_end; PROOF?;
+    { Process [] }
   | PROCESS; EOL*; ~=process_item+; END; PROCESS?;
+    <Process>
+  | PROOF; EOL*; ~=proof_item+; proof_end; PROOF?;
     <Process>
   | EXEC; EOL*; ~=galaxy_content; END; EXEC?;
     <Exec>
@@ -104,3 +118,11 @@ let galaxy_block :=
 let process_item :=
   | ~=galaxy_content; DOT; EOL*;    <>
   | ~=undelimited_raw_galaxy; EOL*; <Raw>
+
+let proof_item := 
+  | ~=SYM; DOT; EOL*; <Id>
+  | ~=galaxy_content; DOT; EOL*; <>
+
+let proof_end := 
+  | EOL*; END_PROOF; <>
+  | EOL*; END; <>

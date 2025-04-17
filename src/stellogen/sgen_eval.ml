@@ -461,6 +461,11 @@ let rec eval_decl ~typecheckonly ~notyping env :
       { objs = add_obj env "^expect" (expect mcs)
       ; types = add_type env x ([ "^empty" ], Some "^expect")
       }
+  | ProofDef (x, ts, ck, g) ->
+    eval_decl ~typecheckonly ~notyping 
+      { objs = add_obj env x g
+      ; types = add_type env x (ts, ck)
+      } (Def (x, g))
 
 let eval_program ~typecheckonly ~notyping p =
   match
