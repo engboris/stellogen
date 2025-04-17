@@ -1,14 +1,17 @@
 'fill the 'your_answer' holes to replace #1 in the constellations
 'below such that the result of execution is { ok }
 
-x :=: ok.
+x1 :=: ok.
+x1 = (@(-1 ok) #1)[#1=>+1].
 
-x = ((-1 ok) #1)[#1=>+1].
+x2 :=: ok.
+x2 = ((@-1; +2) #1)[#1=>+1 -2 ok].
 
-x = ((-1; +2) #1)[#1=>+1 -2 ok].
+x3 :=: ok.
+x3 = ((@-1 ok; -2 +3) #1)[#1=>+1 +2; -3].
 
-x = ((-1 ok; -2 +3) #1)[#1=>+1 +2; -3].
+x4 :=: ok.
+x4 = ((@-f(+g(X)) ok) #1)[#1=>+f(-g(X))].
 
-x = ((-f(+g(X)) ok) #1)[#1=>+f(-g(X))].
-
-x = ((+f(a) +f(b); +g(a); @+g(b) ok) #1)[#1=>-f(a); -f(b) -g(a) -g(b)].
+x5 :=: ok.
+x5 = ((+f(a) +f(b); +g(a); @+g(b) ok) #1)[#1=>-f(a); -f(b) -g(a) -g(b)].

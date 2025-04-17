@@ -1,11 +1,16 @@
 'fill the #your_answer hole by following the specifications
 
+checker = galaxy
+  interaction = #tested #test.
+  expect = ok.
+end
+
 not_spec = galaxy
   test0 = @-not(0 1) ok.
   test1 = @-not(1 0) ok.
 end
 
-not :: not_spec.
+not :: not_spec [checker].
 not = +not(0 1); +not(1 0).
 
 'how to print the truth table of NOT ?
@@ -19,10 +24,10 @@ and_spec = galaxy
   test11 = @-and(1 1 1) ok.
 end
 
-and :: and_spec.
+and :: and_spec [checker].
 and = +and(0 0 0); +and(0 1 0); +and(1 0 0); +and(1 1 1).
 
-and2 :: and_spec.
+and2 :: and_spec [checker].
 and2 = +and(0 X 0); +and(1 X X).
 
 or_spec = galaxy
@@ -32,10 +37,10 @@ or_spec = galaxy
   test11 = @-or(1 1 1) ok.
 end
 
-or :: or_spec.
+or :: or_spec [checker].
 or = +or(0 0 0); +or(0 1 1); +or(1 0 1); +or(1 1 1).
 
-or2 :: or_spec.
+or2 :: or_spec [checker].
 or2 = +or(0 X X); +or(1 X 1).
 
 impl_spec = galaxy
@@ -45,11 +50,11 @@ impl_spec = galaxy
   test11 = @-impl(1 1 1) ok.
 end
 
-impl :: impl_spec.
-impl = #not #or @{-not(X Y) -or(Y Z R) +impl(X Z R)}.
+impl :: impl_spec [checker].
+impl = exec #not #or @{-not(X Y) -or(Y Z R) +impl(X Z R)} end.
 
-impl2 :: impl_spec.
-impl2 = #not #or @{-not(X Y) -or(Y Z R) +impl(X Z R)}.
+impl2 :: impl_spec [checker].
+impl2 = exec #not #or @{-not(X Y) -or(Y Z R) +impl(X Z R)} end.
 
 ex :=: +ex(1 1); +ex(0 1).
 ex = #not #or @{-not(X R1) -or(R1 X R2) +ex(X R2)}.

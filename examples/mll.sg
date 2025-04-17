@@ -22,7 +22,12 @@ spec "a -o a" = galaxy
     @-7(X) ok.
 end
 
-id :: "a -o a".
+checker = galaxy
+  interaction = #tested #test.
+  expect = ok.
+end
+
+id :: "a -o a" [checker].
 id =
   -5(l:X) +1(X);
   -5(r:X) +2(X);
