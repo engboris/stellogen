@@ -17,7 +17,7 @@ show a; b; c.
 
 'print result of execution
 show-exec a; b; c.
-show exec a; b; c end
+show exec a; b; c end.
 
 'inequality constraints
 ineq = +f(a); +f(b); @-f(X) -f(Y) r(X Y) | X!=Y.

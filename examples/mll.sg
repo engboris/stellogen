@@ -44,7 +44,7 @@ spec "a * b" =
   @-3(g:X) ok.
 
 linear = galaxy
-  interaction = linear-exec #tested #test end
+  interaction = linear-exec #tested #test end.
   expect = ok.
 end
 
