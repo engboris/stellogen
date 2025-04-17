@@ -23,5 +23,10 @@ end
 
 adapter = -id(l:X) +x(X); -id(r:X) +y(X).
 
-vehicle :: "a -o a".
+checker = galaxy
+  interaction = #tested #test.
+  expect = ok.
+end
+
+vehicle :: "a -o a" [checker].
 vehicle = #id #adapter.

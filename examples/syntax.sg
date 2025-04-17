@@ -60,7 +60,7 @@ show-exec (#1 #2)[#1=>+f(X) X][#2=>-f(a)].
 
 'checkers & typechecking
 checker = galaxy
-  interaction = #tested #test.
+  interaction = (@#tested) #test.
   expect = ok.
 end
 

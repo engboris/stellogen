@@ -16,6 +16,9 @@ open Sgen_ast
 %token EQ
 %token END
 
+%left RARROW
+%nonassoc AT
+
 %start <Sgen_ast.program> program
 
 %%
@@ -62,20 +65,35 @@ let delimited_raw_galaxy :=
   | ~=braces(marked_constellation); <Const>
 
 let galaxy_content :=
-  | ~=pars(galaxy_content);             <>
-  | SHARP; ~=SYM;                       <Id>
-  | ~=delimited_raw_galaxy;             <Raw>
-  | g=galaxy_content; h=galaxy_content; { Union (g, h) }
-  | ~=galaxy_content; RARROW; ~=SYM;    <Access>
-  | AT; SHARP; x=SYM;                   { Focus (Id x) }
-  | AT; g=delimited_raw_galaxy;         { Focus (Raw g) }
-  | ~=galaxy_content; ~=bracks(substitution);             <Subst>
-  | EXEC; EOL*; ~=galaxy_content; EOL*; END; EXEC?;       <Exec>
-  | LINEXEC; EOL*; ~=galaxy_content; EOL*; END; LINEXEC?; <LinExec>
+  | ~=pars(galaxy_content);                   <>
+  | SHARP; ~=SYM;                             <Id>
+  | ~=delimited_raw_galaxy;                   <Raw>
+  | g=galaxy_content; h=galaxy_content;       { Union (g, h) }
+  | ~=galaxy_access;                          <>
+  | AT; ~=focussed_galaxy_content;            <Focus>
+  | ~=galaxy_content; ~=bracks(substitution); <Subst>
+  | ~=galaxy_block;                           <>
+
+let focussed_galaxy_content :=
+  | ~=pars(galaxy_content); <>
+  | ~=galaxy_access;        <>
+  | SHARP; ~=SYM;           <Id>
+  | ~=delimited_raw_galaxy; <Raw>
+  | ~=galaxy_block;         <>
+
+let galaxy_block :=
+  | EXEC; EOL*; ~=galaxy_content; EOL*; END; EXEC?;
+    <Exec>
+  | LINEXEC; EOL*; ~=galaxy_content; EOL*; END; LINEXEC?;
+    <LinExec>
   | EXEC; EOL*; mcs=marked_constellation; EOL*; END; EXEC?;
     { Exec (Raw (Const mcs)) }
   | LINEXEC; EOL*; mcs=marked_constellation; EOL*; END; LINEXEC?;
     { LinExec (Raw (Const mcs)) }
+
+let galaxy_access :=
+  | SHARP; x=SYM; RARROW; y=SYM;    { Access (Id x, y) }
+  | ~=galaxy_access; RARROW; y=SYM; <Access>
 
 let substitution :=
   | DRARROW; ~=symbol;                    <Extend>
