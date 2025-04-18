@@ -102,3 +102,6 @@ g_pair = galaxy
   n = +nat(0).
   m = +nat(0).
 end
+
+'import file
+'use examples->automata.

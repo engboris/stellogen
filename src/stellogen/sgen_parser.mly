@@ -3,13 +3,13 @@ open Sgen_ast
 %}
 
 %token SHOW SHOWEXEC
-%token EXEC
 %token INTERFACE
+%token USE
 %token RUN
 %token SPEC
 %token TRACE
 %token SHARP
-%token LINEXEC
+%token EXEC LINEXEC
 %token PROCESS
 %token GALAXY
 %token RARROW DRARROW
@@ -30,17 +30,18 @@ let program :=
 
 let declaration :=
   | SPEC; ~=SYM; EOL*; EQ; EOL*;
-    ~=galaxy_expr;                 <Def>
+    ~=galaxy_expr;                           <Def>
   | ~=SYM; EOL*; EQ; EOL*;
-    ~=galaxy_expr;                 <Def>
+    ~=galaxy_expr;                           <Def>
   | INTERFACE; EOL*; x=SYM; EOL*;
     i=interface_item*;
-    END; INTERFACE?;               { Def (x, Raw (Interface i)) }
-  | SHOW; EOL*; ~=galaxy_expr;     <Show>
-  | SHOWEXEC; EOL*; ~=galaxy_expr; <ShowExec>
-  | TRACE; EOL*; ~=galaxy_expr;    <Trace>
-  | RUN; EOL*; ~=galaxy_expr;      <Run>
-  | ~=type_declaration;            <TypeDef>
+    END; INTERFACE?;                         { Def (x, Raw (Interface i)) }
+  | SHOW; EOL*; ~=galaxy_expr;               <Show>
+  | SHOWEXEC; EOL*; ~=galaxy_expr;           <ShowExec>
+  | TRACE; EOL*; ~=galaxy_expr;              <Trace>
+  | RUN; EOL*; ~=galaxy_expr;                <Run>
+  | ~=type_declaration;                      <TypeDef>
+  | USE; l=separated_list(RARROW, SYM); DOT; <Use>
 
 let type_declaration :=
   | x=SYM; CONS; CONS; ts=separated_list(COMMA, SYM);

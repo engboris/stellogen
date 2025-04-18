@@ -462,8 +462,16 @@ let rec eval_decl ~typecheckonly ~notyping env :
       { objs = add_obj env "^expect" (expect mcs)
       ; types = add_type env x ([ "^empty" ], Some "^expect")
       }
+  | Use path ->
+    let formatted_filename = String.concat ~sep:"/" path ^ ".sg" in
+    let lexbuf = Lexing.from_channel (Stdlib.open_in formatted_filename) in
+    lexbuf.lex_curr_p <-
+      { lexbuf.lex_curr_p with pos_fname = formatted_filename };
+    let p = Sgen_parsing.parse_with_error lexbuf in
+    let* env = eval_program ~typecheckonly ~notyping p in
+    Ok env
 
-let eval_program ~typecheckonly ~notyping p =
+and eval_program ~typecheckonly ~notyping p =
   match
     List.fold_left
       ~f:(fun acc x ->
@@ -471,7 +479,7 @@ let eval_program ~typecheckonly ~notyping p =
         eval_decl ~typecheckonly ~notyping acc x )
       ~init:(Ok initial_env) p
   with
-  | Ok _ -> Ok ()
+  | Ok env -> Ok env
   | Error e ->
     let* pp = pp_err ~notyping e in
     output_string stderr pp;
