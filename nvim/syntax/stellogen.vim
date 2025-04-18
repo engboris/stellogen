@@ -1,6 +1,6 @@
 syn clear
 
-syn keyword sgKeyword show exec spec linear trace process end galaxy run interface
+syn keyword sgKeyword show use exec spec linear trace process end galaxy run interface
 syn match sgComment "\s*'[^'].*$"
 syn match sgId "#\%(\l\|\d\)\w*"
 syn match sgIdDef "\zs\%(\l\|\d\)\w*\ze\s*="

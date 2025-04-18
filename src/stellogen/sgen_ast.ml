@@ -65,5 +65,6 @@ type declaration =
   | Trace of galaxy_expr
   | Run of galaxy_expr
   | TypeDef of type_declaration
+  | Use of ident list
 
 type program = declaration list
