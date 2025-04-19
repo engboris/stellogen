@@ -109,8 +109,8 @@ proof
   0.
 end
 
-'proof with #, lemma and end proof
+'proof lemma and end proof
 lemma y : nat =
 proof
-  #0.
+  0.
 end proof

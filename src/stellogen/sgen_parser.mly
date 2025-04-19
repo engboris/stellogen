@@ -15,10 +15,7 @@ open Sgen_ast
 %token RARROW DRARROW
 %token EQ
 %token END
-%token PROOF
-%token LEMMA
-%token THEOREM
-%token END_PROOF
+%token PROOF LEMMA THEOREM
 
 %start <Sgen_ast.program> program
 
@@ -71,21 +68,24 @@ let delimited_raw_galaxy :=
   | braces(EOL*);                   { Const [] }
   | ~=braces(marked_constellation); <Const>
 
-let galaxy_content :=
-  | ~=pars(galaxy_content);             <>
-  | SHARP; ~=SYM;                       <Id>
+let process_content (x) :=
+  | ~=pars(x);             <>
   | ~=delimited_raw_galaxy;             <Raw>
-  | g=galaxy_content; h=galaxy_content; { Union (g, h) }
-  | ~=galaxy_content; RARROW; ~=SYM;    <Access>
+  | g=x; h=x; { Union (g, h) }
+  | ~=x; RARROW; ~=SYM;    <Access>
   | AT; SHARP; x=SYM;                   { Focus (Id x) }
   | AT; g=delimited_raw_galaxy;         { Focus (Raw g) }
-  | ~=galaxy_content; ~=bracks(substitution);             <Subst>
-  | EXEC; EOL*; ~=galaxy_content; EOL*; END; EXEC?;       <Exec>
-  | LINEXEC; EOL*; ~=galaxy_content; EOL*; END; LINEXEC?; <LinExec>
+  | ~=x; ~=bracks(substitution);             <Subst>
+  | EXEC; EOL*; ~=x; EOL*; END; EXEC?;       <Exec>
+  | LINEXEC; EOL*; ~=x; EOL*; END; LINEXEC?; <LinExec>
   | EXEC; EOL*; mcs=marked_constellation; EOL*; END; EXEC?;
     { Exec (Raw (Const mcs)) }
   | LINEXEC; EOL*; mcs=marked_constellation; EOL*; END; LINEXEC?;
     { LinExec (Raw (Const mcs)) }
+
+let galaxy_content := 
+  | SHARP; ~=SYM;                       <Id>
+  | ~=process_content(galaxy_content); <>
 
 let substitution :=
   | DRARROW; ~=symbol;                    <Extend>
@@ -108,21 +108,17 @@ let galaxy_item :=
 let process :=
   | PROCESS; EOL*; END; PROCESS?;
     { Process [] }
-  | PROOF; EOL*; proof_end; PROOF?;
+  | PROOF; EOL*; END; PROOF?;
     { Process [] }
   | PROCESS; EOL*; ~=process_item+; END; PROCESS?;
     <Process>
-  | PROOF; EOL*; ~=proof_item+; proof_end; PROOF?;
+  | PROOF; EOL*; ~=proof_content+; END; PROOF?;
     <Process>
 
 let process_item :=
   | ~=galaxy_content; DOT; EOL*;    <>
   | ~=undelimited_raw_galaxy; EOL*; <Raw>
 
-let proof_item := 
+let proof_content := 
   | ~=SYM; DOT; EOL*; <Id>
-  | ~=galaxy_content; DOT; EOL*; <>
-
-let proof_end := 
-  | EOL*; END_PROOF; <>
-  | EOL*; END; <>
+  | ~=process_content(proof_content); DOT; EOL*; <>

@@ -29,7 +29,6 @@ rule read = parse
   | "proof"       { PROOF }
   | "theorem"     { THEOREM }
   | "lemma"       { LEMMA }
-  | "end proof"   { END_PROOF }
   | "->"          { RARROW }
   | "=>"          { DRARROW }
   | "."           { DOT }
