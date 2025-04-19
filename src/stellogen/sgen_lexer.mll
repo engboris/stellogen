@@ -21,6 +21,7 @@ rule read = parse
   | "interface"   { INTERFACE }
   | "show"        { SHOW }
   | "spec"        { SPEC }
+  | "use"         { USE }
   | "trace"       { TRACE }
   | "linear-exec" { LINEXEC }
   | "show-exec"   { SHOWEXEC }

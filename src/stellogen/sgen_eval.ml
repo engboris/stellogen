@@ -207,7 +207,7 @@ and eval_galaxy_expr ~notyping (env : env) :
     let* mcs = galaxy_to_constellation ~notyping env eval_e in
     begin
       match exec ~linear:false ~showtrace:false mcs with
-      | Ok mcs -> Ok (Const (unmark_all mcs))
+      | Ok res -> Ok (Const (unmark_all res))
       | Error e -> Error (LscError e)
     end
   | LinExec e ->
@@ -237,7 +237,8 @@ and eval_galaxy_expr ~notyping (env : env) :
         | _ ->
           let origin = acc |> remove_mark_all |> focus in
           let* ev =
-            eval_galaxy_expr ~notyping env (Exec (Union (x, Raw (Const origin))))
+            eval_galaxy_expr ~notyping env
+              (Focus (Exec (Union (x, Raw (Const origin)))))
           in
           galaxy_to_constellation ~notyping env ev )
     in
@@ -332,7 +333,7 @@ and typecheck ~notyping env x t (ck : galaxy_expr) : (unit, err) Result.t =
               , Exec
                   (Subst
                      ( Subst (format, SGal ("test", test))
-                     , SGal ("tested", Exec obj_x) ) )
+                     , SGal ("tested", obj_x) ) )
                 |> eval_galaxy_expr ~notyping env )
         end
       | _ -> Error IllFormedChecker )
@@ -347,7 +348,7 @@ and typecheck ~notyping env x t (ck : galaxy_expr) : (unit, err) Result.t =
     | Error e -> Error e )
   |> Result.all_unit
 
-and default_interaction = Union (Id "tested", Id "test")
+and default_interaction = Union (Focus (Id "tested"), Id "test")
 
 and default_expect =
   Raw (Const [ Unmarked { content = [ func "ok" [] ]; bans = [] } ])
@@ -465,8 +466,16 @@ let rec eval_decl ~typecheckonly ~notyping env :
     eval_decl ~typecheckonly ~notyping
       { objs = add_obj env x g; types = add_type env x (ts, ck) }
       (Def (x, g))
+  | Use path ->
+    let formatted_filename = String.concat ~sep:"/" path ^ ".sg" in
+    let lexbuf = Lexing.from_channel (Stdlib.open_in formatted_filename) in
+    lexbuf.lex_curr_p <-
+      { lexbuf.lex_curr_p with pos_fname = formatted_filename };
+    let p = Sgen_parsing.parse_with_error lexbuf in
+    let* env = eval_program ~typecheckonly ~notyping p in
+    Ok env
 
-let eval_program ~typecheckonly ~notyping p =
+and eval_program ~typecheckonly ~notyping p =
   match
     List.fold_left
       ~f:(fun acc x ->
@@ -474,7 +483,7 @@ let eval_program ~typecheckonly ~notyping p =
         eval_decl ~typecheckonly ~notyping acc x )
       ~init:(Ok initial_env) p
   with
-  | Ok _ -> Ok ()
+  | Ok env -> Ok env
   | Error e ->
     let* pp = pp_err ~notyping e in
     output_string stderr pp;

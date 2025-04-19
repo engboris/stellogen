@@ -3,18 +3,21 @@ open Sgen_ast
 %}
 
 %token SHOW SHOWEXEC
-%token EXEC
 %token INTERFACE
+%token USE
 %token RUN
 %token SPEC
 %token TRACE
 %token SHARP
-%token LINEXEC
+%token EXEC LINEXEC
 %token PROCESS
 %token GALAXY
 %token RARROW DRARROW
 %token EQ
 %token END
+
+%left RARROW
+%nonassoc AT
 %token PROOF LEMMA THEOREM
 
 %start <Sgen_ast.program> program
@@ -28,17 +31,18 @@ let program :=
 
 let declaration :=
   | SPEC; ~=SYM; EOL*; EQ; EOL*;
-    ~=galaxy_expr;                 <Def>
+    ~=galaxy_expr;                           <Def>
   | ~=SYM; EOL*; EQ; EOL*;
-    ~=galaxy_expr;                 <Def>
+    ~=galaxy_expr;                           <Def>
   | INTERFACE; EOL*; x=SYM; EOL*;
     i=interface_item*;
-    END; INTERFACE?;               { Def (x, Raw (Interface i)) }
-  | SHOW; EOL*; ~=galaxy_expr;     <Show>
-  | SHOWEXEC; EOL*; ~=galaxy_expr; <ShowExec>
-  | TRACE; EOL*; ~=galaxy_expr;    <Trace>
-  | RUN; EOL*; ~=galaxy_expr;      <Run>
-  | ~=type_declaration;            <TypeDef>
+    END; INTERFACE?;                         { Def (x, Raw (Interface i)) }
+  | SHOW; EOL*; ~=galaxy_expr;               <Show>
+  | SHOWEXEC; EOL*; ~=galaxy_expr;           <ShowExec>
+  | TRACE; EOL*; ~=galaxy_expr;              <Trace>
+  | RUN; EOL*; ~=galaxy_expr;                <Run>
+  | ~=type_declaration;                      <TypeDef>
+  | USE; l=separated_list(RARROW, SYM); DOT; <Use>
   | proof_spec; x=SYM; CONS; ts=separated_list(COMMA, SYM);
     EOL*; ck=bracks(SYM)?; EOL*; EQ; EOL*; g=galaxy_expr;       { ProofDef (x, ts, ck, g) }
 
@@ -68,20 +72,35 @@ let delimited_raw_galaxy :=
   | braces(EOL*);                   { Const [] }
   | ~=braces(marked_constellation); <Const>
 
-let process_content (x) :=
-  | ~=pars(x);             <>
-  | ~=delimited_raw_galaxy;             <Raw>
-  | g=x; h=x; { Union (g, h) }
-  | ~=x; RARROW; ~=SYM;    <Access>
-  | AT; SHARP; x=SYM;                   { Focus (Id x) }
-  | AT; g=delimited_raw_galaxy;         { Focus (Raw g) }
-  | ~=x; ~=bracks(substitution);             <Subst>
-  | EXEC; EOL*; ~=x; EOL*; END; EXEC?;       <Exec>
-  | LINEXEC; EOL*; ~=x; EOL*; END; LINEXEC?; <LinExec>
+let process_content(x) :=
+  | ~=pars(x);                   <>
+  | ~=delimited_raw_galaxy;                   <Raw>
+  | g=x; h=x;       { Union (g, h) }
+  | ~=galaxy_access;                          <>
+  | AT; ~=focussed_process_content(x);            <Focus>
+  | ~=x; ~=bracks(substitution); <Subst>
+  | ~=galaxy_block;                           <>
+
+let focussed_process_content(x) :=
+  | ~=pars(x); <>
+  | ~=galaxy_access;        <>
+  | SHARP; ~=SYM;           <Id>
+  | ~=delimited_raw_galaxy; <Raw>
+  | ~=galaxy_block;         <>
+
+let galaxy_block :=
+  | EXEC; EOL*; ~=galaxy_content; EOL*; END; EXEC?;
+    <Exec>
+  | LINEXEC; EOL*; ~=galaxy_content; EOL*; END; LINEXEC?;
+    <LinExec>
   | EXEC; EOL*; mcs=marked_constellation; EOL*; END; EXEC?;
     { Exec (Raw (Const mcs)) }
   | LINEXEC; EOL*; mcs=marked_constellation; EOL*; END; LINEXEC?;
     { LinExec (Raw (Const mcs)) }
+
+let galaxy_access :=
+  | SHARP; x=SYM; RARROW; y=SYM;    { Access (Id x, y) }
+  | ~=galaxy_access; RARROW; y=SYM; <Access>
 
 let galaxy_content := 
   | SHARP; ~=SYM;                       <Id>

@@ -294,22 +294,19 @@ let cc_representatives from cs =
   in
   selection [] from cs
 
-let extract_intspace (mcs : marked_constellation) =
-  let rec sort (cs, space) = function
+let classify =
+  let rec aux (cs, space) = function
     | [] -> (List.rev cs, List.rev space)
-    | Marked s :: t -> sort (cs, s :: space) t
-    | Unmarked s :: t -> sort (s :: cs, space) t
+    | Marked s :: t -> aux (cs, s :: space) t
+    | Unmarked s :: t -> aux (s :: cs, space) t
   in
-  match sort ([], []) mcs with
-  (* marks are selected for you in each connected component *)
-  | unmarked, [] ->
-    let cs, marked = cc_representatives [] unmarked in
-    ident_counter := 0;
-    (cs, marked)
-  (* user selects marks *)
-  | unmarked, marked ->
-    ident_counter := 0;
-    (unmarked, marked)
+  aux ([], [])
+
+let extract_intspace (mcs : marked_constellation) =
+  (* auto-selection *)
+  (* let cs, marked = cc_representatives [] unmarked in *)
+  ident_counter := 0;
+  classify mcs
 
 (* ---------------------------------------
    Execution

@@ -60,7 +60,7 @@ show-exec (#1 #2)[#1=>+f(X) X][#2=>-f(a)].
 
 'checkers & typechecking
 checker = galaxy
-  interaction = #tested #test.
+  interaction = (@#tested) #test.
   expect = ok.
 end
 
@@ -102,6 +102,9 @@ g_pair = galaxy
   n = +nat(0).
   m = +nat(0).
 end
+
+'import file
+'use examples->automata.
 
 'proof
 theorem x : nat =
