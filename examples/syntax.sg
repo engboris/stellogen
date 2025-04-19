@@ -105,3 +105,15 @@ end
 
 'import file
 'use examples->automata.
+
+'proof
+theorem x : nat =
+proof
+  0.
+end
+
+'proof lemma and end proof
+lemma y : nat =
+proof
+  0.
+end proof

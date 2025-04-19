@@ -27,6 +27,9 @@ rule read = parse
   | "show-exec"   { SHOWEXEC }
   | "galaxy"      { GALAXY }
   | "process"     { PROCESS }
+  | "proof"       { PROOF }
+  | "theorem"     { THEOREM }
+  | "lemma"       { LEMMA }
   | "->"          { RARROW }
   | "=>"          { DRARROW }
   | "."           { DOT }

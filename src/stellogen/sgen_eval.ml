@@ -462,6 +462,10 @@ let rec eval_decl ~typecheckonly ~notyping env :
       { objs = add_obj env "^expect" (expect mcs)
       ; types = add_type env x ([ "^empty" ], Some "^expect")
       }
+  | ProofDef (x, ts, ck, g) ->
+    eval_decl ~typecheckonly ~notyping
+      { objs = add_obj env x g; types = add_type env x (ts, ck) }
+      (Def (x, g))
   | Use path ->
     let formatted_filename = String.concat ~sep:"/" path ^ ".sg" in
     let lexbuf = Lexing.from_channel (Stdlib.open_in formatted_filename) in

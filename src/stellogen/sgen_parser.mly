@@ -18,6 +18,7 @@ open Sgen_ast
 
 %left RARROW
 %nonassoc AT
+%token PROOF LEMMA THEOREM
 
 %start <Sgen_ast.program> program
 
@@ -42,11 +43,17 @@ let declaration :=
   | RUN; EOL*; ~=galaxy_expr;                <Run>
   | ~=type_declaration;                      <TypeDef>
   | USE; l=separated_list(RARROW, SYM); DOT; <Use>
+  | proof_spec; x=SYM; CONS; ts=separated_list(COMMA, SYM);
+    EOL*; ck=bracks(SYM)?; EOL*; EQ; EOL*; g=galaxy_expr;       { ProofDef (x, ts, ck, g) }
 
-let type_declaration :=
-  | x=SYM; CONS; CONS; ts=separated_list(COMMA, SYM);
-    EOL*; ck=bracks(SYM)?; EOL*; DOT;                 { TDef (x, ts, ck) }
-  | x=SYM; CONS; EQ; CONS; EOL*; g=galaxy_expr;       { TExp (x, g) }
+  let proof_spec := 
+    | THEOREM; EOL*; <>
+    | LEMMA; EOL*; <>
+
+  let type_declaration :=
+    | x=SYM; CONS; CONS; ts=separated_list(COMMA, SYM);
+      EOL*; ck=bracks(SYM)?; EOL*; DOT;                 { TDef (x, ts, ck) }
+    | x=SYM; CONS; EQ; CONS; EOL*; g=galaxy_expr;       { TExp (x, g) }
 
 let galaxy_expr :=
   | ~=galaxy_content; EOL*; DOT; <>
@@ -65,18 +72,17 @@ let delimited_raw_galaxy :=
   | braces(EOL*);                   { Const [] }
   | ~=braces(marked_constellation); <Const>
 
-let galaxy_content :=
-  | ~=pars(galaxy_content);                   <>
-  | SHARP; ~=SYM;                             <Id>
+let process_content(x) :=
+  | ~=pars(x);                   <>
   | ~=delimited_raw_galaxy;                   <Raw>
-  | g=galaxy_content; h=galaxy_content;       { Union (g, h) }
+  | g=x; h=x;       { Union (g, h) }
   | ~=galaxy_access;                          <>
-  | AT; ~=focussed_galaxy_content;            <Focus>
-  | ~=galaxy_content; ~=bracks(substitution); <Subst>
+  | AT; ~=focussed_process_content(x);            <Focus>
+  | ~=x; ~=bracks(substitution); <Subst>
   | ~=galaxy_block;                           <>
 
-let focussed_galaxy_content :=
-  | ~=pars(galaxy_content); <>
+let focussed_process_content(x) :=
+  | ~=pars(x); <>
   | ~=galaxy_access;        <>
   | SHARP; ~=SYM;           <Id>
   | ~=delimited_raw_galaxy; <Raw>
@@ -95,6 +101,10 @@ let galaxy_block :=
 let galaxy_access :=
   | SHARP; x=SYM; RARROW; y=SYM;    { Access (Id x, y) }
   | ~=galaxy_access; RARROW; y=SYM; <Access>
+
+let galaxy_content := 
+  | SHARP; ~=SYM;                       <Id>
+  | ~=process_content(galaxy_content); <>
 
 let substitution :=
   | DRARROW; ~=symbol;                    <Extend>
@@ -117,9 +127,17 @@ let galaxy_item :=
 let process :=
   | PROCESS; EOL*; END; PROCESS?;
     { Process [] }
+  | PROOF; EOL*; END; PROOF?;
+    { Process [] }
   | PROCESS; EOL*; ~=process_item+; END; PROCESS?;
+    <Process>
+  | PROOF; EOL*; ~=proof_content+; END; PROOF?;
     <Process>
 
 let process_item :=
   | ~=galaxy_content; DOT; EOL*;    <>
   | ~=undelimited_raw_galaxy; EOL*; <Raw>
+
+let proof_content := 
+  | ~=SYM; DOT; EOL*; <Id>
+  | ~=process_content(proof_content); DOT; EOL*; <>
