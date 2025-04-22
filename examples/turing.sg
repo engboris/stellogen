@@ -1,3 +1,6 @@
+'''
+Turing machine accepting words with as many 'a' as 'b'
+'''
 mt = galaxy
   initial =
     -i(C:W) +m(q0 e:e C W);

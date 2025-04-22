@@ -16,6 +16,9 @@ e = +i(e).
 110 :: binary.
 110 = +i(1:1:0:e).
 
+'''
+automaton accepting words ending with 00
+'''
 a1 = galaxy
   initial =
     -i(W) +a(W q0).
