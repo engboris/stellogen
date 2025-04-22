@@ -1,0 +1,39 @@
+mt = galaxy
+  initial =
+    -i(C:W) +m(e:e q0 C W);
+    -i(e) +m(e q0 e e).
+  accept =
+    -m(L q0 e R) +m(L qa e R);
+    -m(L qa e R) accept.
+  initial_skip =
+    -m(L q0 sep C:R) +m(sep:L q0 C R).
+  mark =
+    -m(L q0 a C:R) +m(sep:L q2 C R);
+    -m(L q0 b C:R) +m(sep:L q2 C R).
+  skip =
+    -m(L q2 a C:R) +m(a:L q2 C R);
+    -m(L q2 sep C:R) +m(sep:L q2 C R);
+    -m(L q3 b C:R) +m(b:L q3 C R);
+    -m(L q3 sep C:R) +m(sep:L q3 C R).
+  join =
+    -m(C:L q2 b R) +m(L q1 C sep:R);
+    -m(C:L q3 b R) +m(L q1 C sep:R).
+  return =
+    -m(C:L q1 a R) +m(L q1 C a:R);
+    -m(C:L q1 b R) +m(L q1 C b:R);
+    -m(C:L q1 sep R) +m(L q1 C sep:R);
+    -m(L q1 e C:R) +m(e:L q0 C R).
+  reject =
+    -m(L q2 e R) +m(L qr e R);
+    -m(L q3 e R) +m(L qr e R);
+    -m(L qr C R) reject.
+end
+
+show process +i(a:e:e). #mt. end
+show process +i(b:e:e). #mt. end
+show process +i(a:b:b:e:e). #mt. end
+show process +i(e:e). #mt. end
+show process +i(a:b:e:e). #mt. end
+show process +i(a:a:b:b:e:e). #mt. end
+show process +i(a:b:b:a:e:e). #mt. end
+show process +i(a:b:a:b:e:e). #mt. end
