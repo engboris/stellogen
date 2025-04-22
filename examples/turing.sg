@@ -1,0 +1,42 @@
+'''
+Turing machine accepting words with as many 'a' as 'b'
+'''
+mt = galaxy
+  initial =
+    -i(C:W) +m(q0 e:e C W);
+    -i(e) +m(q0 e e e).
+  accept =
+    -m(q0 L e R) +m(qa L e R);
+    -m(qa L e R) accept.
+  initial_skip =
+    -m(q0 L sep C:R) +m(q0 sep:L C R).
+  mark =
+    -m(q0 L a C:R) +m(q2 sep:L C R);
+    -m(q0 L b C:R) +m(q3 sep:L C R).
+  skip =
+    -m(q2 L a C:R)   +m(q2 a:L C R);
+    -m(q2 L sep C:R) +m(q2 sep:L C R);
+    -m(q3 L b C:R)   +m(q3 b:L C R);
+    -m(q3 L sep C:R) +m(q3 sep:L C R).
+  join =
+    -m(q2 C:L b R) +m(q1 L C sep:R);
+    -m(q3 C:L a R) +m(q1 L C sep:R).
+  return =
+    -m(q1 C:L a R)   +m(q1 L C a:R);
+    -m(q1 C:L b R)   +m(q1 L C b:R);
+    -m(q1 C:L sep R) +m(q1 L C sep:R);
+    -m(q1 L e C:R)   +m(q0 e:L C R).
+  reject =
+    -m(q2 L e R) +m(qr L e R);
+    -m(q3 L e R) +m(qr L e R);
+    -m(qr L C R) reject.
+end
+
+show process +i(a:e:e).       #mt. #kill. end
+show process +i(b:e:e).       #mt. #kill. end
+show process +i(a:b:b:e:e).   #mt. #kill. end
+show process +i(e:e).         #mt. #kill. end
+show process +i(a:b:e:e).     #mt. #kill. end
+show process +i(a:a:b:b:e:e). #mt. #kill. end
+show process +i(a:b:b:a:e:e). #mt. #kill. end
+show process +i(a:b:a:b:e:e). #mt. #kill. end
