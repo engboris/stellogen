@@ -1,7 +1,7 @@
 open Base
 open Lsc_ast
 
-type ident = string
+type ident = StellarRays.term
 
 type idvar = string * int option
 
@@ -36,13 +36,13 @@ and galaxy_expr =
 and substitution =
   | Extend of ray_prefix
   | Reduce of ray_prefix
-  | SVar of ident * StellarRays.term
+  | SVar of string * StellarRays.term
   | SFunc of (StellarRays.fmark * idfunc) * (StellarRays.fmark * idfunc)
   | SGal of ident * galaxy_expr
 
-let reserved_words = [ "clean"; "kill" ]
+let reserved_words = [ const "clean"; const "kill" ]
 
-let is_reserved = List.mem reserved_words ~equal:equal_string
+let is_reserved = List.mem reserved_words ~equal:equal_ray
 
 type env =
   { objs : (ident * galaxy_expr) list
@@ -51,11 +51,11 @@ type env =
 
 let expect (g : galaxy_expr) : galaxy_expr =
   Raw
-    (Galaxy [ GLabelDef ("interaction", Id "tested"); GLabelDef ("expect", g) ])
+    (Galaxy [ GLabelDef (const "interaction", Id (const "tested")); GLabelDef (const "expect", g) ])
 
 let initial_env =
-  { objs = [ ("^empty", Raw (Const [])) ]
-  ; types = [ ("^empty", ([ "^empty" ], None)) ]
+  { objs = [ (const "^empty", Raw (Const [])) ]
+  ; types = [ (const "^empty", ([ const "^empty" ], None)) ]
   }
 
 type declaration =
