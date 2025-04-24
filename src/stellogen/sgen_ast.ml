@@ -51,7 +51,10 @@ type env =
 
 let expect (g : galaxy_expr) : galaxy_expr =
   Raw
-    (Galaxy [ GLabelDef (const "interaction", Id (const "tested")); GLabelDef (const "expect", g) ])
+    (Galaxy
+       [ GLabelDef (const "interaction", Id (const "tested"))
+       ; GLabelDef (const "expect", g)
+       ] )
 
 let initial_env =
   { objs = [ (const "^empty", Raw (Const [])) ]

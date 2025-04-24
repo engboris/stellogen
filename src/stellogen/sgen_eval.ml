@@ -113,10 +113,13 @@ let subst_vars env _from _to =
 let subst_funcs env _from _to =
   map_galaxy_expr env ~f:(subst_all_funcs [ (_from, _to) ])
 
-let group_galaxy : galaxy_declaration list -> type_declaration list * (StellarRays.term * galaxy_expr) list =
-  List.fold_left ~init:([], []) ~f:(function types, fields -> function
+let group_galaxy :
+     galaxy_declaration list
+  -> type_declaration list * (StellarRays.term * galaxy_expr) list =
+  List.fold_left ~init:([], []) ~f:(function types, fields ->
+    (function
     | GTypeDef d -> (d :: types, fields)
-    | GLabelDef (x, g') -> (types, (x, g') :: fields) )
+    | GLabelDef (x, g') -> (types, (x, g') :: fields) ) )
 
 let rec typecheck_galaxy ~notyping env (g : galaxy_declaration list) :
   (unit, err) Result.t =
@@ -230,7 +233,8 @@ and eval_galaxy_expr ~notyping (env : env) :
       List.fold_left t ~init:(Ok init) ~f:(fun acc x ->
         let* acc = acc in
         match x with
-        | Id (Func ((Muted, (Null, "kill")), [])) -> acc |> remove_mark_all |> kill |> focus |> Result.return
+        | Id (Func ((Muted, (Null, "kill")), [])) ->
+          acc |> remove_mark_all |> kill |> focus |> Result.return
         | Id (Func ((Muted, (Null, "clean")), [])) ->
           acc |> remove_mark_all |> clean |> focus |> Result.return
         | _ ->
@@ -298,7 +302,8 @@ and check_interface ~notyping env x i =
   let type_decls = List.map i ~f:(fun t -> GTypeDef t) in
   typecheck_galaxy ~notyping env (type_decls @ g)
 
-and typecheck ~notyping env x (t : StellarRays.term) (ck : galaxy_expr) : (unit, err) Result.t =
+and typecheck ~notyping env x (t : StellarRays.term) (ck : galaxy_expr) :
+  (unit, err) Result.t =
   let* gtests : (StellarRays.term * galaxy_expr) list =
     match get_obj env t with
     | Some (Raw (Const mcs)) -> Ok [ (const "_", Raw (Const mcs)) ]
@@ -343,7 +348,15 @@ and typecheck ~notyping env x (t : StellarRays.term) (ck : galaxy_expr) : (unit,
     | Ok (idtest, got) ->
       let* got = got in
       let* eq = equal_galaxy ~notyping env got eval_exp in
-      if not eq then Error (TestFailed (string_of_ray x, string_of_ray t, string_of_ray idtest, got, eval_exp)) else Ok ()
+      if not eq then
+        Error
+          (TestFailed
+             ( string_of_ray x
+             , string_of_ray t
+             , string_of_ray idtest
+             , got
+             , eval_exp ) )
+      else Ok ()
     | Error e -> Error e )
   |> Result.all_unit
 
@@ -368,7 +381,9 @@ and string_of_type_declaration ~notyping env = function
     let str_x = string_of_ray x in
     let str_xck = string_of_ray xck in
     let str_ts = List.map ts ~f:string_of_ray in
-    Printf.sprintf "  %s :: %s [%s].\n" str_x (string_of_list Fn.id "," str_ts) str_xck
+    Printf.sprintf "  %s :: %s [%s].\n" str_x
+      (string_of_list Fn.id "," str_ts)
+      str_xck
   | TExp (x, g) -> (
     match eval_galaxy_expr ~notyping env g with
     | Error _ -> failwith "Error: string_of_type_declaration"
