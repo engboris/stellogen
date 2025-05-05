@@ -117,3 +117,7 @@ lemma y : nat =
 proof
   0.
 end proof
+
+'complex identifiers
+f(a b) = function(a b).
+show #f(a b).
