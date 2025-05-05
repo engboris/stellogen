@@ -3,18 +3,19 @@ open Sgen_ast
 %}
 
 %token SHOW SHOWEXEC
-%token EXEC
 %token INTERFACE
+%token USE
 %token RUN
 %token SPEC
 %token TRACE
 %token SHARP
-%token LINEXEC
+%token EXEC LINEXEC
 %token PROCESS
 %token GALAXY
 %token RARROW DRARROW
 %token EQ
 %token END
+%token PROOF LEMMA THEOREM
 
 %start <Sgen_ast.program> program
 
@@ -25,27 +26,31 @@ let program :=
   | EOL*; d=declaration; EOL+; p=program; { d::p }
   | EOL*; d=declaration; EOF;             { [d] }
 
-let ident :=
-  | ~=ray; <>
+let ident := ~=ray; <>
 
 let declaration :=
-  | SPEC; ~=ident; EOL*; EQ; EOL*;
-    ~=galaxy_expr;                 <Def>
-  | ~=ident; EOL*; EQ; EOL*;
-    ~=galaxy_expr;                 <Def>
-  | INTERFACE; EOL*; x=ident; EOL*;
-    i=interface_item*;
-    END; INTERFACE?;               { Def (x, Raw (Interface i)) }
-  | SHOW; EOL*; ~=galaxy_expr;     <Show>
-  | SHOWEXEC; EOL*; ~=galaxy_expr; <ShowExec>
-  | TRACE; EOL*; ~=galaxy_expr;    <Trace>
-  | RUN; EOL*; ~=galaxy_expr;      <Run>
-  | ~=type_declaration;            <TypeDef>
+  | SPEC; ~=ident; EOL*; EQ; EOL*; ~=galaxy_expr; <Def>
+  | ~=ident; EOL*; EQ; EOL*; ~=galaxy_expr;       <Def>
+  | SHOW; EOL*; ~=galaxy_expr;                    <Show>
+  | SHOWEXEC; EOL*; ~=galaxy_expr;                <ShowExec>
+  | TRACE; EOL*; ~=galaxy_expr;                   <Trace>
+  | RUN; EOL*; ~=galaxy_expr;                     <Run>
+  | ~=type_declaration;                           <TypeDef>
+  | USE; ~=separated_list(RARROW, ident); DOT;    <Use>
+  | proof_spec; x=ident; CONS; ts=separated_list(COMMA, ident);
+    EOL*; ck=bracks(ident)?; EOL*; EQ; EOL*; g=galaxy_expr;
+    { ProofDef (x, ts, ck, g) }
+  | INTERFACE; EOL*; x=ident; EOL*; i=interface_item*; END; INTERFACE?;
+    { Def (x, Raw (Interface i)) }
+
+let proof_spec :=
+  | THEOREM; EOL*; <>
+  | LEMMA; EOL*; <>
 
 let type_declaration :=
   | x=ident; CONS; CONS; ts=separated_list(COMMA, ident);
-    EOL*; ck=bracks(ident)?; EOL*; DOT;                 { TDef (x, ts, ck) }
-  | x=ident; CONS; EQ; CONS; EOL*; g=galaxy_expr;       { TExp (x, g) }
+    EOL*; ck=bracks(ident)?; EOL*; DOT;                   { TDef (x, ts, ck) }
+  | x=ident; CONS; EQ; CONS; EOL*; g=galaxy_expr;         { TExp (x, g) }
 
 let galaxy_expr :=
   | ~=galaxy_content; EOL*; DOT; <>
@@ -60,26 +65,30 @@ let undelimited_raw_galaxy :=
   | GALAXY; EOL*; ~=galaxy_item*; EOL*; END; GALAXY?; <Galaxy>
 
 let delimited_raw_galaxy :=
-  | ~=pars(marked_constellation);   <Const>
   | braces(EOL*);                   { Const [] }
+  | ~=pars(marked_constellation);   <Const>
   | ~=braces(marked_constellation); <Const>
 
+let prefixed_id := SHARP; ~=ident; <Id>
+
+let naked_id := ~=ident; <Id>
+
 let galaxy_content :=
-  | ~=pars(galaxy_content);                   <>
-  | SHARP; ~=ident;                           <Id>
-  | ~=delimited_raw_galaxy;                   <Raw>
-  | g=galaxy_content; h=galaxy_content;       { Union (g, h) }
-  | ~=galaxy_access;                          <>
-  | AT; ~=focussed_galaxy_content;            <Focus>
-  | ~=galaxy_content; ~=bracks(substitution); <Subst>
-  | ~=galaxy_block;                           <>
+  | ~=pars(galaxy_content);                    <>
+  | ~=delimited_raw_galaxy;                    <Raw>
+  | g=galaxy_content; h=galaxy_content;        { Union (g, h) }
+  | ~=galaxy_access;                           <>
+  | AT; ~=focussed_galaxy_content;             <Focus>
+  | ~=galaxy_content; ~=bracks(substitution);  <Subst>
+  | ~=galaxy_block;                            <>
+  | ~=prefixed_id;                             <>
 
 let focussed_galaxy_content :=
-  | ~=pars(galaxy_content); <>
-  | ~=galaxy_access;        <>
-  | SHARP; ~=ident;         <Id>
-  | ~=delimited_raw_galaxy; <Raw>
-  | ~=galaxy_block;         <>
+  | ~=pars(galaxy_content);  <>
+  | ~=galaxy_access;         <>
+  | ~=delimited_raw_galaxy;  <Raw>
+  | ~=galaxy_block;          <>
+  | ~=prefixed_id;           <>
 
 let galaxy_block :=
   | EXEC; EOL*; ~=galaxy_content; EOL*; END; EXEC?;
@@ -105,20 +114,25 @@ let substitution :=
     h=marked_constellation;                 { SGal (x, Raw (Const h)) }
 
 let galaxy_item :=
-  | ~=ident; EQ; EOL*; ~=galaxy_content; DOT; EOL*; <GLabelDef>
+  | ~=ident; EQ; EOL*; ~=galaxy_content; DOT; EOL*;
+    <GLabelDef>
   | x=ident; EQ; EOL*; mcs=marked_constellation; EOL*; DOT; EOL*;
     { GLabelDef (x, Raw (Const mcs)) }
   | x=ident; EQ; EOL*; g=undelimited_raw_galaxy; EOL*; DOT; EOL*;
     { GLabelDef (x, Raw g) }
-  | ~=ident; EQ; EOL*; ~=process; EOL*;           <GLabelDef>
-  | ~=type_declaration; EOL*;                     <GTypeDef>
+  | ~=ident; EQ; EOL*; ~=process; EOL*;  <GLabelDef>
+  | ~=type_declaration; EOL*;            <GTypeDef>
 
 let process :=
-  | PROCESS; EOL*; END; PROCESS?;
-    { Process [] }
-  | PROCESS; EOL*; ~=process_item+; END; PROCESS?;
-    <Process>
+  | PROCESS; EOL*; END; PROCESS?;                   { Process [] }
+  | PROOF; EOL*; END; PROOF?;                       { Process [] }
+  | PROCESS; EOL*; ~=process_item+; END; PROCESS?;  <Process>
+  | PROOF; EOL*; ~=proof_content+; END; PROOF?;     <Process>
 
 let process_item :=
-  | ~=galaxy_content; DOT; EOL*;    <>
-  | ~=undelimited_raw_galaxy; EOL*; <Raw>
+  | ~=galaxy_content; DOT; EOL*;     <>
+  | ~=undelimited_raw_galaxy; EOL*;  <Raw>
+
+let proof_content :=
+  | ~=delimited_raw_galaxy; DOT; EOL*; <Raw>
+  | ~=naked_id; DOT; EOL*;             <>
