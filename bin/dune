@@ -1,6 +1,6 @@
 (executables
- (public_names lsc sgen)
- (names lscrun sgen)
+ (public_names lsc sgen isgen)
+ (names lscrun sgen isgen)
  (libraries lsc stellogen base))
 
 (env
