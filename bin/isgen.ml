@@ -12,7 +12,8 @@ let rec loop env =
     let ( let* ) x f = Result.bind x ~f in
     let* pp = Stellogen.Sgen_eval.pp_err ~notyping:false e in
     Stdlib.output_string Stdlib.stderr pp;
-    Error e
+    Stdlib.flush Stdlib.stderr;
+    loop env
 
 let () =
   let _ = loop Stellogen.Sgen_ast.initial_env in
