@@ -18,6 +18,7 @@ open Sgen_ast
 %token PROOF LEMMA THEOREM
 
 %start <Sgen_ast.program> program
+%start <Sgen_ast.declaration> declaration
 
 %%
 
