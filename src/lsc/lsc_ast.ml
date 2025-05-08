@@ -360,14 +360,14 @@ let pause () =
 
 let group_bans =
   List.fold_left ~init:([], []) ~f:(function ineq, incomp ->
-  (function
-  | Ineq (b1, b2) -> ((b1, b2) :: ineq, incomp)
-  | Incomp b -> (ineq, b :: incomp) ) )
+    (function
+    | Ineq (b1, b2) -> ((b1, b2) :: ineq, incomp)
+    | Incomp b -> (ineq, b :: incomp) ) )
 
 let coherent_bans bans =
-  let (ineq, incomp) = group_bans bans in
+  let ineq, incomp = group_bans bans in
   List.for_all ineq ~f:(fun (b1, b2) -> not @@ equal_ray b1 b2)
-  && not @@ List.contains_dup incomp ~compare:compare_ray
+  && (not @@ List.contains_dup incomp ~compare:compare_ray)
 
 (* interaction between one selected ray and one selected action *)
 let rec interaction ~showtrace ~queue repl1 repl2
