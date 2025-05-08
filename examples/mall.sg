@@ -1,5 +1,5 @@
-left = +5(l:l:X) +5(l:r:X)  | !with5.
-right = +5(r:l:X) +5(r:r:X) | !with5.
+left = +5(l:l:X) +5(l:r:X)  | c:a.
+right = +5(r:l:X) +5(r:r:X) | c:b.
 
 with = #left #right.
 plus = +3(l:l:X) c(X); +3(l:r:X) d(X).

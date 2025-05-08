@@ -42,8 +42,8 @@ let star_content :=
   | EOL*; BAR; EOL*; ~=separated_nonempty_list(COMMA?, ban); EOL*; <>
 
 let ban :=
-  | r1=ray; NEQ; r2=ray; EOL*; { Ineq (r1, r2) }
-  | BANG; r=ray; <Incomp>
+  | r1=ray; NEQ; r2=ray; EOL*;   { Ineq (r1, r2) }
+  | r1=ray; CONS; r2=ray;  { Incomp (r1, r2) }
 
 %public let symbol :=
   | p=polarity; PERCENT; f = SYM; { noisy (p, f) }
