@@ -44,6 +44,7 @@ rule read = parse
   | ']'     { RBRACK }
   | '('     { LPAR }
   | ')'     { RPAR }
+  | '!'     { BANG }
   | ','     { COMMA }
   | '@'     { AT }
   | '+'     { PLUS }
