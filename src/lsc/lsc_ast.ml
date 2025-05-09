@@ -52,7 +52,9 @@ let fresh_placeholder () =
 
 type ray = term
 
-type ban = ray * ray
+type ban =
+  | Ineq of ray * ray
+  | Incomp of ray * ray
 
 type star =
   { content : ray list
@@ -162,8 +164,11 @@ let string_of_subst sub =
     string_of_var x ^ "->" ^ string_of_ray r )
   |> surround "{" "}"
 
-let string_of_ban (b1, b2) =
-  Printf.sprintf "%s!=%s" (string_of_ray b1) (string_of_ray b2)
+let string_of_ban = function
+  | Ineq (b1, b2) ->
+    Printf.sprintf "%s!=%s" (string_of_ray b1) (string_of_ray b2)
+  | Incomp (b1, b2) ->
+    Printf.sprintf "%s:%s" (string_of_ray b1) (string_of_ray b2)
 
 let string_of_raylist : ray list -> string = string_of_list string_of_ray " "
 
@@ -321,15 +326,17 @@ let kill : constellation -> constellation = List.filter ~f:unpolarized_star
 let clean : constellation -> constellation =
   List.filter ~f:(fun s -> List.is_empty s.content)
 
+let fmap_ban ~f = function
+  | Ineq (b1, b2) -> Ineq (f b1, f b2)
+  | Incomp (b1, b2) -> Incomp (f b1, f b2)
+
 let fusion repl1 repl2 s1 s2 bans1 bans2 theta : star =
   let new1 = List.map s1 ~f:repl1 in
   let new2 = List.map s2 ~f:repl2 in
-  let nbans1 = List.map bans1 ~f:(fun (x, y) -> (repl1 x, repl1 y)) in
-  let nbans2 = List.map bans2 ~f:(fun (x, y) -> (repl2 x, repl2 y)) in
+  let nbans1 = List.map bans1 ~f:(fmap_ban ~f:repl1) in
+  let nbans2 = List.map bans2 ~f:(fmap_ban ~f:repl2) in
   { content = List.map (new1 @ new2) ~f:(subst theta)
-  ; bans =
-      List.map (nbans1 @ nbans2) ~f:(fun (x, y) ->
-        (subst theta x, subst theta y) )
+  ; bans = List.map (nbans1 @ nbans2) ~f:(fmap_ban ~f:(subst theta))
   }
 
 let apply_effect r theta : (unit, err_effect) Result.t =
@@ -351,6 +358,28 @@ let pause () =
   flush stdout;
   let _ = input_line stdin in
   ()
+
+let group_bans =
+  List.fold_left ~init:([], []) ~f:(function ineq, incomp ->
+    (function
+    | Ineq (b1, b2) -> ((b1, b2) :: ineq, incomp)
+    | Incomp (b1, b2) -> (ineq, (b1, b2) :: incomp) ) )
+
+let exists_incomp_pair (box, slice) =
+  List.exists ~f:(fun (box', slice') ->
+    equal_ray box box' && (not @@ equal_ray slice slice') )
+
+let coherent_incomp incomp =
+  let aux others res = function
+    | [] -> res
+    | h :: t -> res && (not @@ exists_incomp_pair h (others @ t))
+  in
+  aux [] true incomp
+
+let coherent_bans bans =
+  let ineq, incomp = group_bans bans in
+  List.for_all ineq ~f:(fun (b1, b2) -> not @@ equal_ray b1 b2)
+  && coherent_incomp incomp
 
 (* interaction between one selected ray and one selected action *)
 let rec interaction ~showtrace ~queue repl1 repl2
@@ -394,11 +423,8 @@ let rec interaction ~showtrace ~queue repl1 repl2
         fusion repl1 repl2 other_rays other_rays' bans selected_action.bans
           theta
       in
-      let all_coherent =
-        List.for_all ~f:(fun (b1, b2) -> not @@ equal_ray b1 b2)
-      in
       let* res =
-        if all_coherent after_fusion.bans then begin
+        if coherent_bans after_fusion.bans then begin
           let _ =
             if showtrace then
               output_string stdout

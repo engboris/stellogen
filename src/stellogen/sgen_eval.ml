@@ -315,7 +315,7 @@ and typecheck ~notyping env x (t : StellarRays.term) (ck : galaxy_expr) :
       let* eval_e = eval_galaxy_expr ~notyping env e in
       let* mcs = galaxy_to_constellation ~notyping env eval_e in
       [ (const "test", Raw (Const mcs)) ] |> Result.return
-    | None -> Error (UnknownID (string_of_ray x))
+    | None -> Error (UnknownID (string_of_ray t))
   in
   let testing =
     List.map gtests ~f:(fun (idtest, test) ->
