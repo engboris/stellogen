@@ -483,10 +483,6 @@ let rec eval_decl ~typecheckonly ~notyping env :
       { objs = add_obj env (const "^expect") (expect mcs)
       ; types = add_type env x ([ const "^empty" ], Some (const "^expect"))
       }
-  | ProofDef (x, ts, ck, g) ->
-    eval_decl ~typecheckonly ~notyping
-      { objs = add_obj env x g; types = add_type env x (ts, ck) }
-      (Def (x, g))
   | Use path ->
     let path = List.map path ~f:string_of_ray in
     let formatted_filename = String.concat ~sep:"/" path ^ ".sg" in

@@ -15,7 +15,6 @@ open Sgen_ast
 %token RARROW DRARROW
 %token EQ
 %token END
-%token PROOF LEMMA THEOREM
 
 %start <Sgen_ast.program> program
 %start <Sgen_ast.declaration> declaration
@@ -38,15 +37,8 @@ let declaration :=
   | RUN; EOL*; ~=galaxy_expr;                     <Run>
   | ~=type_declaration;                           <TypeDef>
   | USE; ~=separated_list(RARROW, ident); DOT;    <Use>
-  | proof_spec; x=ident; CONS; ts=separated_list(COMMA, ident);
-    EOL*; ck=bracks(ident)?; EOL*; EQ; EOL*; g=galaxy_expr;
-    { ProofDef (x, ts, ck, g) }
   | INTERFACE; EOL*; x=ident; EOL*; i=interface_item*; END; INTERFACE?;
     { Def (x, Raw (Interface i)) }
-
-let proof_spec :=
-  | THEOREM; EOL*; <>
-  | LEMMA; EOL*; <>
 
 let type_declaration :=
   | x=ident; CONS; CONS; ts=separated_list(COMMA, ident);
@@ -71,8 +63,6 @@ let delimited_raw_galaxy :=
   | ~=braces(marked_constellation); <Const>
 
 let prefixed_id := SHARP; ~=ident; <Id>
-
-let naked_id := ~=ident; <Id>
 
 let galaxy_content :=
   | ~=pars(galaxy_content);                    <>
@@ -126,14 +116,8 @@ let galaxy_item :=
 
 let process :=
   | PROCESS; EOL*; END; PROCESS?;                   { Process [] }
-  | PROOF; EOL*; END; PROOF?;                       { Process [] }
   | PROCESS; EOL*; ~=process_item+; END; PROCESS?;  <Process>
-  | PROOF; EOL*; ~=proof_content+; END; PROOF?;     <Process>
 
 let process_item :=
   | ~=galaxy_content; DOT; EOL*;     <>
   | ~=undelimited_raw_galaxy; EOL*;  <Raw>
-
-let proof_content :=
-  | ~=delimited_raw_galaxy; DOT; EOL*; <Raw>
-  | ~=naked_id; DOT; EOL*;             <>
