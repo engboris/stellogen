@@ -4,7 +4,6 @@ open Lsc_ast
 
 %token BAR
 %token NEQ
-%token BANG
 %token COMMA
 %token <string> VAR
 %token <string> SYM

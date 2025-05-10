@@ -64,6 +64,11 @@ x = +f(X) |
   | X!=Y Y!=X X!=g(Y) g(X)!=Y.
 '''
 
+'incomp
+x = +f(X) | a:b; +f(Y) | a:c.
+x = +f(X) | X!=Y a:b X!=Y; +f(Y) | X!=Y a:c X!=Y.
+x = +f(X) | a:b a:b a:b; +f(Y) | a:c a:c a:c.
+
 'with EOL
 '''FIX ME
 x

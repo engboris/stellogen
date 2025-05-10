@@ -27,9 +27,6 @@ rule read = parse
   | "show-exec"   { SHOWEXEC }
   | "galaxy"      { GALAXY }
   | "process"     { PROCESS }
-  | "proof"       { PROOF }
-  | "theorem"     { THEOREM }
-  | "lemma"       { LEMMA }
   | "->"          { RARROW }
   | "=>"          { DRARROW }
   | "."           { DOT }
@@ -44,7 +41,6 @@ rule read = parse
   | ']'     { RBRACK }
   | '('     { LPAR }
   | ')'     { RPAR }
-  | '!'     { BANG }
   | ','     { COMMA }
   | '@'     { AT }
   | '+'     { PLUS }
