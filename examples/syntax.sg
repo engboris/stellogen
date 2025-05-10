@@ -81,7 +81,7 @@ nat2 = -nat(X) ok.
 2 :: nat.
 2 :: nat2.
 2 = +nat(s(s(0))).
-3 :: nat, nat2.
+3 :: nat; nat2.
 3 = +nat(s(s(s(0)))).
 
 'galaxy with type declarations

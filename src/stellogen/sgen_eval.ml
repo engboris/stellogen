@@ -129,18 +129,19 @@ let rec typecheck_galaxy ~notyping env (g : galaxy_declaration list) :
       let checker = expect g in
       let new_env = { types = env.types; objs = fields @ env.objs } in
       typecheck ~notyping new_env x (const "^empty") checker
-    | TDef (x, ts, ck) ->
-      let* checker =
-        match ck with
-        | None -> Ok default_checker
-        | Some xck -> begin
-          match get_obj env xck with
-          | None -> Error (UnknownID (string_of_ray xck))
-          | Some g -> Ok g
-        end
-      in
-      let new_env = { types = env.types; objs = fields @ env.objs } in
-      List.map ts ~f:(fun t -> typecheck ~notyping new_env x t checker)
+    | TDef (x, ts) ->
+      List.map ts ~f:(fun (t, ck) ->
+        let* checker =
+          match ck with
+          | None -> Ok default_checker
+          | Some xck -> begin
+            match get_obj env xck with
+            | None -> Error (UnknownID (string_of_ray xck))
+            | Some g -> Ok g
+          end
+        in
+        let new_env = { types = env.types; objs = fields @ env.objs } in
+        typecheck ~notyping new_env x t checker )
       |> Result.all_unit )
   |> Result.all_unit
 
@@ -372,18 +373,16 @@ and default_checker : galaxy_expr =
        ; GLabelDef (const "expect", default_expect)
        ] )
 
+and string_of_type_expr (t, ck) =
+  match ck with
+  | None -> Printf.sprintf "%s" (string_of_ray t)
+  | Some xck -> Printf.sprintf "%s [%s]" (string_of_ray t) (string_of_ray xck)
+
 and string_of_type_declaration ~notyping env = function
-  | TDef (x, ts, None) ->
+  | TDef (x, ts) ->
     let str_x = string_of_ray x in
-    let str_ts = List.map ts ~f:string_of_ray in
-    Printf.sprintf "  %s :: %s.\n" str_x (string_of_list Fn.id "," str_ts)
-  | TDef (x, ts, Some xck) ->
-    let str_x = string_of_ray x in
-    let str_xck = string_of_ray xck in
-    let str_ts = List.map ts ~f:string_of_ray in
-    Printf.sprintf "  %s :: %s [%s].\n" str_x
-      (string_of_list Fn.id "," str_ts)
-      str_xck
+    let str_ts = List.map ts ~f:string_of_type_expr in
+    Printf.sprintf "  %s :: %s.\n" str_x (string_of_list Fn.id ";" str_ts)
   | TExp (x, g) -> (
     match eval_galaxy_expr ~notyping env g with
     | Error _ -> failwith "Error: string_of_type_declaration"
@@ -421,20 +420,16 @@ let rec eval_decl ~typecheckonly ~notyping env :
       if notyping then Ok ()
       else
         List.filter env.types ~f:(fun (y, _) -> equal_ray x y)
-        |> List.map ~f:(fun (_, (ts, ck)) ->
-             match ck with
-             | None ->
-               List.map ts ~f:(fun t ->
-                 typecheck ~notyping env x t default_checker )
-               |> Result.all_unit
-             | Some xck -> begin
-               match get_obj env xck with
-               | None -> Error (UnknownID (string_of_ray xck))
-               | Some obj_xck ->
-                 List.map ts ~f:(fun t -> typecheck ~notyping env x t obj_xck)
-                 |> Result.all_unit
-             end )
-        |> Result.all_unit
+        |> List.map ~f:(fun (_, ts) ->
+             List.map ts ~f:(fun (t, ck) ->
+               match ck with
+               | None -> typecheck ~notyping env x t default_checker
+               | Some xck -> begin
+                 match get_obj env xck with
+                 | None -> Error (UnknownID (string_of_ray xck))
+                 | Some obj_xck -> typecheck ~notyping env x t obj_xck
+               end ) )
+        |> List.concat |> Result.all_unit
     in
     Ok env
   | Show _ when typecheckonly -> Ok env
@@ -476,12 +471,11 @@ let rec eval_decl ~typecheckonly ~notyping env :
     let _ = eval_galaxy_expr ~notyping env (Exec e) in
     Ok env
   | TypeDef _ when notyping -> Ok env
-  | TypeDef (TDef (x, ts, ck)) ->
-    Ok { objs = env.objs; types = add_type env x (ts, ck) }
+  | TypeDef (TDef (x, ts)) -> Ok { objs = env.objs; types = add_type env x ts }
   | TypeDef (TExp (x, mcs)) ->
     Ok
       { objs = add_obj env (const "^expect") (expect mcs)
-      ; types = add_type env x ([ const "^empty" ], Some (const "^expect"))
+      ; types = add_type env x [ (const "^empty", Some (const "^expect")) ]
       }
   | Use path ->
     let path = List.map path ~f:string_of_ray in

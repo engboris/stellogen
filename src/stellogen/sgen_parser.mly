@@ -41,17 +41,19 @@ let declaration :=
     { Def (x, Raw (Interface i)) }
 
 let type_declaration :=
-  | x=ident; CONS; CONS; ts=separated_list(COMMA, ident);
-    EOL*; ck=bracks(ident)?; EOL*; DOT;                   { TDef (x, ts, ck) }
-  | x=ident; CONS; EQ; CONS; EOL*; g=galaxy_expr;         { TExp (x, g) }
+  | x=ident; CONS; CONS; ts=separated_list(SEMICOLON, type_expr); EOL*; DOT;
+    { TDef (x, ts) }
+  | x=ident; CONS; EQ; CONS; EOL*; g=galaxy_expr;
+    { TExp (x, g) }
+
+let type_expr := ~=ident; ~=bracks(ident)?; EOL*; <>
 
 let galaxy_expr :=
   | ~=galaxy_content; EOL*; DOT; <>
   | ~=process;                   <>
   | ~=undelimited_raw_galaxy;    <Raw>
 
-let interface_item :=
-  | ~=type_declaration; EOL*; <>
+let interface_item := ~=type_declaration; EOL*; <>
 
 let undelimited_raw_galaxy :=
   | ~=marked_constellation; EOL*; DOT;                <Const>
