@@ -21,7 +21,7 @@ show-exec process
   'output
     -c4(R) R.
     #semantics.
-    'kill.
+  '&kill.
 end
 
 show-exec process
@@ -37,5 +37,5 @@ show-exec process
     -c4(R) R.
   'apply semantics
     #semantics.
-    'kill.
+  '&kill.
 end

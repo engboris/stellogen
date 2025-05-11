@@ -25,5 +25,5 @@ query =
 show-exec process
   #query.
   #graph #composition.
-  #kill.
+  &kill.
 end

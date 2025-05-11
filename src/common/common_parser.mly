@@ -2,8 +2,8 @@
 %token EOF
 %token AT
 %token DOT
-%token PERCENT
 %token EOL
+%token AMP
 %token LBRACK RBRACK
 %token LBRACE RBRACE
 %token LPAR RPAR

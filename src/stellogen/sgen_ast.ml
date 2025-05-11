@@ -31,6 +31,8 @@ and galaxy_expr =
   | Union of galaxy_expr * galaxy_expr
   | Subst of galaxy_expr * substitution
   | Focus of galaxy_expr
+  | Clean of galaxy_expr
+  | Kill of galaxy_expr
   | Process of galaxy_expr list
 
 and substitution =

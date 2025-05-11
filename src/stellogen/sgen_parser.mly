@@ -9,6 +9,7 @@ open Sgen_ast
 %token SPEC
 %token TRACE
 %token SHARP
+%token KILL CLEAN
 %token EXEC LINEXEC
 %token PROCESS
 %token GALAXY
@@ -88,10 +89,18 @@ let galaxy_block :=
     <Exec>
   | LINEXEC; EOL*; ~=galaxy_content; EOL*; END; LINEXEC?;
     <LinExec>
+  | KILL; EOL*; ~=galaxy_content; EOL*; END; KILL?;
+    <Kill>
+  | CLEAN; EOL*; ~=galaxy_content; EOL*; END; CLEAN?;
+    <Clean>
   | EXEC; EOL*; mcs=marked_constellation; EOL*; END; EXEC?;
     { Exec (Raw (Const mcs)) }
   | LINEXEC; EOL*; mcs=marked_constellation; EOL*; END; LINEXEC?;
     { LinExec (Raw (Const mcs)) }
+  | KILL; EOL*; mcs=marked_constellation; EOL*; END; KILL?;
+    { Kill (Raw (Const mcs)) }
+  | CLEAN; EOL*; mcs=marked_constellation; EOL*; END; CLEAN?;
+    { Clean (Raw (Const mcs)) }
 
 let galaxy_access :=
   | SHARP; x=ident; RARROW; y=ident;  { Access (Id x, y) }
@@ -123,3 +132,5 @@ let process :=
 let process_item :=
   | ~=galaxy_content; DOT; EOL*;     <>
   | ~=undelimited_raw_galaxy; EOL*;  <Raw>
+  | AMP; KILL; DOT; EOL*;            { Id (const "kill") }
+  | AMP; CLEAN; DOT; EOL*;           { Id (const "clean") }

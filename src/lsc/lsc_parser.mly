@@ -45,10 +45,10 @@ let ban :=
   | r1=ray; CONS; r2=ray;  { Incomp (r1, r2) }
 
 %public let symbol :=
-  | p=polarity; PERCENT; f = SYM; { noisy (p, f) }
-  | p=polarity; PERCENT; PRINT;   { noisy (p, "print") }
-  | p=polarity; f = SYM;          { muted (p, f) }
-  | f=SYM; { muted (Null, f) }
+  | p=polarity; AMP; f = SYM; { noisy (p, f) }
+  | p=polarity; AMP; PRINT;   { noisy (p, "print") }
+  | p=polarity; f = SYM;      { muted (p, f) }
+  | f=SYM;                    { muted (Null, f) }
 
 let polarity :=
   | PLUS;  { Pos }

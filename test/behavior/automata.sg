@@ -27,19 +27,19 @@ end
 empty = {}.
 
 tested :=: {}.
-tested = process #e. #a1. #kill. end
+tested = process #e. #a1. &kill. end
 
 tested :=: {}.
-tested = process #0. #a1. #kill. end
+tested = process #0. #a1. &kill. end
 
 tested :=: {}.
-tested = process #1. #a1. #kill. end
+tested = process #1. #a1. &kill. end
 
 tested :=: accept.
-tested = process +i(0:0:0:e). #a1. #kill. end
+tested = process +i(0:0:0:e). #a1. &kill. end
 
 tested :=: {}.
-tested = process +i(0:1:0:e). #a1. #kill. end
+tested = process +i(0:1:0:e). #a1. &kill. end
 
 tested :=: {}.
-tested = process +i(1:1:0:e). #a1. #kill. end
+tested = process +i(1:1:0:e). #a1. &kill. end

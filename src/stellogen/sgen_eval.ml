@@ -48,6 +48,12 @@ and map_galaxy_expr env ~f : galaxy_expr -> (galaxy_expr, err) Result.t =
   | Exec e ->
     let* map_e = map_galaxy_expr env ~f e in
     Exec map_e |> Result.return
+  | Kill e ->
+    let* map_e = map_galaxy_expr env ~f e in
+    Kill map_e |> Result.return
+  | Clean e ->
+    let* map_e = map_galaxy_expr env ~f e in
+    Clean map_e |> Result.return
   | LinExec e ->
     let* map_e = map_galaxy_expr env ~f e in
     LinExec map_e |> Result.return
@@ -89,6 +95,12 @@ let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
   | Exec e ->
     let* g = replace_id env _from _to e in
     Exec g |> Result.return
+  | Kill e ->
+    let* g = replace_id env _from _to e in
+    Kill g |> Result.return
+  | Clean e ->
+    let* g = replace_id env _from _to e in
+    Clean g |> Result.return
   | LinExec e ->
     let* g = replace_id env _from _to e in
     LinExec g |> Result.return
@@ -225,6 +237,14 @@ and eval_galaxy_expr ~notyping (env : env) :
     let* eval_e = eval_galaxy_expr ~notyping env e in
     let* mcs = galaxy_to_constellation ~notyping env eval_e in
     Const (mcs |> remove_mark_all |> focus) |> Result.return
+  | Kill e ->
+    let* eval_e = eval_galaxy_expr ~notyping env e in
+    let* mcs = galaxy_to_constellation ~notyping env eval_e in
+    Const (mcs |> remove_mark_all |> kill |> focus) |> Result.return
+  | Clean e ->
+    let* eval_e = eval_galaxy_expr ~notyping env e in
+    let* mcs = galaxy_to_constellation ~notyping env eval_e in
+    Const (mcs |> remove_mark_all |> clean |> focus) |> Result.return
   | Process [] -> Ok (Const [])
   | Process (h :: t) ->
     let* eval_e = eval_galaxy_expr ~notyping env h in

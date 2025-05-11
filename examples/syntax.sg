@@ -40,7 +40,7 @@ end
 show #g.
 
 'reactive effects
-run +%print(X); -%print("hello world\n").
+run +&print(X); -&print("hello world\n").
 
 'access to field of a galaxy
 show #g->test1.
@@ -83,6 +83,8 @@ nat2 = -nat(X) ok.
 2 = +nat(s(s(0))).
 3 :: nat; nat2.
 3 = +nat(s(s(s(0)))).
+4 :: nat [checker]; nat2 [checker].
+4 = +nat(s(s(s(s(0))))).
 
 'galaxy with type declarations
 show galaxy

@@ -31,7 +31,7 @@ a1 = galaxy
     -a(0:W q1) +a(W q2).
 end
 
-show process #e.   #a1. #kill. end
-show process #000. #a1. #kill. end
-show process #010. #a1. #kill. end
-show process #110. #a1. #kill. end
+show process #e.   #a1. &kill. end
+show process #000. #a1. &kill. end
+show process #010. #a1. &kill. end
+show process #110. #a1. &kill. end

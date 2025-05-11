@@ -32,11 +32,11 @@ mt = galaxy
     -m(qr L C R) reject.
 end
 
-show process +i(a:e:e).       #mt. #kill. end
-show process +i(b:e:e).       #mt. #kill. end
-show process +i(a:b:b:e:e).   #mt. #kill. end
-show process +i(e:e).         #mt. #kill. end
-show process +i(a:b:e:e).     #mt. #kill. end
-show process +i(a:a:b:b:e:e). #mt. #kill. end
-show process +i(a:b:b:a:e:e). #mt. #kill. end
-show process +i(a:b:a:b:e:e). #mt. #kill. end
+show process +i(a:e:e).       #mt. &kill. end
+show process +i(b:e:e).       #mt. &kill. end
+show process +i(a:b:b:e:e).   #mt. &kill. end
+show process +i(e:e).         #mt. &kill. end
+show process +i(a:b:e:e).     #mt. &kill. end
+show process +i(a:a:b:b:e:e). #mt. &kill. end
+show process +i(a:b:b:a:e:e). #mt. &kill. end
+show process +i(a:b:a:b:e:e). #mt. &kill. end
