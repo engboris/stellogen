@@ -34,7 +34,7 @@ show-exec process
   #b1[b=>+b1].
   #and[arg=>1]. #and[arg=>2]. #and[arg=>3]. #and[arg=>4].
   #b2[b=>+b2].
-  #kill.
+  &kill.
 end
 
 'logical OR
@@ -42,7 +42,7 @@ show-exec process
   #b1[b=>+b1].
   #or[arg=>1]. #or[arg=>2]. #or[arg=>3]. #or[arg=>4].
   #b2[b=>+b2].
-  #kill.
+  &kill.
 end
 
 'logical XOR
@@ -50,5 +50,5 @@ show-exec process
   #b1[b=>+b1].
   #xor[arg=>1]. #xor[arg=>2]. #xor[arg=>3]. #xor[arg=>4].
   #b2[b=>+b2].
-  #kill.
+  &kill.
 end

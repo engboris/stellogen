@@ -8,5 +8,5 @@ cut = -5(X) -3(X).
 show-exec process
   #with.
   #plus #cut.
-  #kill.
+  &kill.
 end

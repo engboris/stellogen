@@ -9,13 +9,13 @@ open Sgen_ast
 %token SPEC
 %token TRACE
 %token SHARP
+%token KILL CLEAN
 %token EXEC LINEXEC
 %token PROCESS
 %token GALAXY
 %token RARROW DRARROW
 %token EQ
 %token END
-%token PROOF LEMMA THEOREM
 
 %start <Sgen_ast.program> program
 %start <Sgen_ast.declaration> declaration
@@ -38,28 +38,23 @@ let declaration :=
   | RUN; EOL*; ~=galaxy_expr;                     <Run>
   | ~=type_declaration;                           <TypeDef>
   | USE; ~=separated_list(RARROW, ident); DOT;    <Use>
-  | proof_spec; x=ident; CONS; ts=separated_list(COMMA, ident);
-    EOL*; ck=bracks(ident)?; EOL*; EQ; EOL*; g=galaxy_expr;
-    { ProofDef (x, ts, ck, g) }
   | INTERFACE; EOL*; x=ident; EOL*; i=interface_item*; END; INTERFACE?;
     { Def (x, Raw (Interface i)) }
 
-let proof_spec :=
-  | THEOREM; EOL*; <>
-  | LEMMA; EOL*; <>
-
 let type_declaration :=
-  | x=ident; CONS; CONS; ts=separated_list(COMMA, ident);
-    EOL*; ck=bracks(ident)?; EOL*; DOT;                   { TDef (x, ts, ck) }
-  | x=ident; CONS; EQ; CONS; EOL*; g=galaxy_expr;         { TExp (x, g) }
+  | x=ident; CONS; CONS; ts=separated_list(SEMICOLON, type_expr); EOL*; DOT;
+    { TDef (x, ts) }
+  | x=ident; CONS; EQ; CONS; EOL*; g=galaxy_expr;
+    { TExp (x, g) }
+
+let type_expr := ~=ident; ~=bracks(ident)?; EOL*; <>
 
 let galaxy_expr :=
   | ~=galaxy_content; EOL*; DOT; <>
   | ~=process;                   <>
   | ~=undelimited_raw_galaxy;    <Raw>
 
-let interface_item :=
-  | ~=type_declaration; EOL*; <>
+let interface_item := ~=type_declaration; EOL*; <>
 
 let undelimited_raw_galaxy :=
   | ~=marked_constellation; EOL*; DOT;                <Const>
@@ -71,8 +66,6 @@ let delimited_raw_galaxy :=
   | ~=braces(marked_constellation); <Const>
 
 let prefixed_id := SHARP; ~=ident; <Id>
-
-let naked_id := ~=ident; <Id>
 
 let galaxy_content :=
   | ~=pars(galaxy_content);                    <>
@@ -96,10 +89,18 @@ let galaxy_block :=
     <Exec>
   | LINEXEC; EOL*; ~=galaxy_content; EOL*; END; LINEXEC?;
     <LinExec>
+  | KILL; EOL*; ~=galaxy_content; EOL*; END; KILL?;
+    <Kill>
+  | CLEAN; EOL*; ~=galaxy_content; EOL*; END; CLEAN?;
+    <Clean>
   | EXEC; EOL*; mcs=marked_constellation; EOL*; END; EXEC?;
     { Exec (Raw (Const mcs)) }
   | LINEXEC; EOL*; mcs=marked_constellation; EOL*; END; LINEXEC?;
     { LinExec (Raw (Const mcs)) }
+  | KILL; EOL*; mcs=marked_constellation; EOL*; END; KILL?;
+    { Kill (Raw (Const mcs)) }
+  | CLEAN; EOL*; mcs=marked_constellation; EOL*; END; CLEAN?;
+    { Clean (Raw (Const mcs)) }
 
 let galaxy_access :=
   | SHARP; x=ident; RARROW; y=ident;  { Access (Id x, y) }
@@ -126,14 +127,10 @@ let galaxy_item :=
 
 let process :=
   | PROCESS; EOL*; END; PROCESS?;                   { Process [] }
-  | PROOF; EOL*; END; PROOF?;                       { Process [] }
   | PROCESS; EOL*; ~=process_item+; END; PROCESS?;  <Process>
-  | PROOF; EOL*; ~=proof_content+; END; PROOF?;     <Process>
 
 let process_item :=
   | ~=galaxy_content; DOT; EOL*;     <>
   | ~=undelimited_raw_galaxy; EOL*;  <Raw>
-
-let proof_content :=
-  | ~=delimited_raw_galaxy; DOT; EOL*; <Raw>
-  | ~=naked_id; DOT; EOL*;             <>
+  | AMP; KILL; DOT; EOL*;            { Id (const "kill") }
+  | AMP; CLEAN; DOT; EOL*;           { Id (const "clean") }

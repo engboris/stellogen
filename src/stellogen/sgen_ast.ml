@@ -10,7 +10,7 @@ type idfunc = polarity * string
 type ray_prefix = StellarRays.fmark * idfunc
 
 type type_declaration =
-  | TDef of ident * ident list * ident option
+  | TDef of ident * (ident * ident option) list
   | TExp of ident * galaxy_expr
 
 and galaxy =
@@ -31,6 +31,8 @@ and galaxy_expr =
   | Union of galaxy_expr * galaxy_expr
   | Subst of galaxy_expr * substitution
   | Focus of galaxy_expr
+  | Clean of galaxy_expr
+  | Kill of galaxy_expr
   | Process of galaxy_expr list
 
 and substitution =
@@ -46,7 +48,7 @@ let is_reserved = List.mem reserved_words ~equal:equal_ray
 
 type env =
   { objs : (ident * galaxy_expr) list
-  ; types : (ident * (ident list * ident option)) list
+  ; types : (ident * (ident * ident option) list) list
   }
 
 let expect (g : galaxy_expr) : galaxy_expr =
@@ -58,7 +60,7 @@ let expect (g : galaxy_expr) : galaxy_expr =
 
 let initial_env =
   { objs = [ (const "^empty", Raw (Const [])) ]
-  ; types = [ (const "^empty", ([ const "^empty" ], None)) ]
+  ; types = [ (const "^empty", [ (const "^empty", None) ]) ]
   }
 
 type declaration =
@@ -69,6 +71,5 @@ type declaration =
   | Run of galaxy_expr
   | TypeDef of type_declaration
   | Use of ident list
-  | ProofDef of ident * ident list * ident option * galaxy_expr
 
 type program = declaration list

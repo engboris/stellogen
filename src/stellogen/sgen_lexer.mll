@@ -21,20 +21,19 @@ rule read = parse
   | "interface"   { INTERFACE }
   | "show"        { SHOW }
   | "spec"        { SPEC }
+  | "kill"        { KILL }
+  | "clean"       { CLEAN }
   | "use"         { USE }
   | "trace"       { TRACE }
   | "linear-exec" { LINEXEC }
   | "show-exec"   { SHOWEXEC }
   | "galaxy"      { GALAXY }
   | "process"     { PROCESS }
-  | "proof"       { PROOF }
-  | "theorem"     { THEOREM }
-  | "lemma"       { LEMMA }
   | "->"          { RARROW }
   | "=>"          { DRARROW }
   | "."           { DOT }
   | "#"           { SHARP }
-  | "%"           { PERCENT }
+  | "&"           { AMP }
   | '"'           { read_string (Buffer.create 255) lexbuf }
   (* Stellar resolution *)
   | '|'     { BAR }
@@ -44,7 +43,6 @@ rule read = parse
   | ']'     { RBRACK }
   | '('     { LPAR }
   | ')'     { RPAR }
-  | '!'     { BANG }
   | ','     { COMMA }
   | '@'     { AT }
   | '+'     { PLUS }

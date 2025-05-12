@@ -40,7 +40,7 @@ end
 show #g.
 
 'reactive effects
-run +%print(X); -%print("hello world\n").
+run +&print(X); -&print("hello world\n").
 
 'access to field of a galaxy
 show #g->test1.
@@ -81,8 +81,10 @@ nat2 = -nat(X) ok.
 2 :: nat.
 2 :: nat2.
 2 = +nat(s(s(0))).
-3 :: nat, nat2.
+3 :: nat; nat2.
 3 = +nat(s(s(s(0)))).
+4 :: nat [checker]; nat2 [checker].
+4 = +nat(s(s(s(s(0))))).
 
 'galaxy with type declarations
 show galaxy
@@ -105,18 +107,6 @@ end
 
 'import file
 'use examples->automata.
-
-'proof
-theorem x : nat =
-proof
-  0.
-end
-
-'proof lemma and end proof
-lemma y : nat =
-proof
-  0.
-end proof
 
 'complex identifiers
 f(a b) = function(a b).
