@@ -500,9 +500,11 @@ let rec eval_decl ~typecheckonly ~notyping env :
   | Use path ->
     let path = List.map path ~f:string_of_ray in
     let formatted_filename = String.concat ~sep:"/" path ^ ".sg" in
-    let lexbuf = Lexing.from_channel (Stdlib.open_in formatted_filename) in
-    lexbuf.lex_curr_p <-
-      { lexbuf.lex_curr_p with pos_fname = formatted_filename };
+  let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in formatted_filename) in
+    let start_pos filename =
+      { Lexing.pos_fname = filename; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
+    in
+    Sedlexing.set_position lexbuf (start_pos formatted_filename);
     let p = Sgen_parsing.parse_with_error lexbuf in
     let* env = eval_program ~typecheckonly ~notyping p in
     Ok env

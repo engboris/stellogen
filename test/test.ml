@@ -13,8 +13,13 @@ let lsc filename () =
   | Ok res -> Lsc.Lsc_ast.string_of_constellation res
 
 let sgen filename () =
-  let lexbuf = Lexing.from_channel (Stdlib.open_in filename) in
-  let p = Stellogen.Sgen_parser.program Stellogen.Sgen_lexer.read lexbuf in
+  let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in filename) in
+  let lexer = Sedlexing.with_tokenizer Stellogen.Sgen_lexer.read lexbuf in
+  let parser =
+    MenhirLib.Convert.Simplified.traditional2revised
+      Stellogen.Sgen_parser.program
+  in
+  let p = parser lexer in
   Stellogen.Sgen_eval.eval_program ~typecheckonly:false ~notyping:false p
 
 let make_expect_test name path f expected =

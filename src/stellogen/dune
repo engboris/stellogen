@@ -1,6 +1,8 @@
 (library
  (name stellogen)
- (libraries base common))
+ (libraries base common sedlex sedlex.ppx menhirLib)
+ (preprocess
+  (pps sedlex.ppx)))
 
 (env
  (dev
@@ -10,6 +12,4 @@
 (menhir
  (modules ../common/common_parser lsc_parser sgen_parser)
  (merge_into sgen_parser)
- (flags --explain --dump))
-
-(ocamllex sgen_lexer)
+ (flags --table --explain --dump))

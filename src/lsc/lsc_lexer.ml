@@ -75,7 +75,7 @@ and read lexbuf =
   | '-' -> MINUS
   | ':' -> CONS
   | ';' -> SEMICOLON
-  | '"' -> read_string (Buffer.create 255) lexbuf
+  | '"' -> read_string (Buffer.create 128) lexbuf
   | space | newline -> read lexbuf
   | eof -> EOF
   | _ ->

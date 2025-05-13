@@ -1,8 +1,13 @@
 open Base
 
 let rec loop env =
-  let lexbuf = Lexing.from_channel Stdlib.stdin in
-  let d = Stellogen.Sgen_parser.declaration Stellogen.Sgen_lexer.read lexbuf in
+  let lexbuf = Sedlexing.Utf8.from_channel Stdlib.stdin in
+  let lexer = Sedlexing.with_tokenizer Stellogen.Sgen_lexer.read lexbuf in
+  let parser =
+    MenhirLib.Convert.Simplified.traditional2revised
+      Stellogen.Sgen_parser.declaration
+  in
+  let d = parser lexer in
   let wrapped_env =
     Stellogen.Sgen_eval.eval_decl ~typecheckonly:false ~notyping:false env d
   in

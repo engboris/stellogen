@@ -2,11 +2,11 @@
 open Lsc_ast
 %}
 
+%token <string> VAR
+%token <string> SYM
 %token BAR
 %token NEQ
 %token COMMA
-%token <string> VAR
-%token <string> SYM
 %token PLUS MINUS
 %token CONS
 %token SEMICOLON
