@@ -29,8 +29,9 @@ let input_file_arg =
 
 let unfincomp_flag =
   let doc =
-    "Show stars containing polarities which are left after execution\n
-    (they correspond to unfinished computation and are omitted by default)."
+    "Show stars containing polarities which are left after execution\n\n\
+    \    (they correspond to unfinished computation and are omitted by \
+     default)."
   in
   Arg.(value & flag & info [ "unfincomp" ] ~doc)
 
