@@ -1,8 +1,13 @@
 open Base
 
 let lsc filename () =
-  let lexbuf = Lexing.from_channel (Stdlib.open_in filename) in
-  let mcs = Lsc.Lsc_parser.constellation_file Lsc.Lsc_lexer.read lexbuf in
+  let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in filename) in
+  let lexer = Sedlexing.with_tokenizer Lsc.Lsc_lexer.read lexbuf in
+  let parser =
+    MenhirLib.Convert.Simplified.traditional2revised
+      Lsc.Lsc_parser.constellation_file
+  in
+  let mcs = parser lexer in
   match Lsc.Lsc_ast.exec ~showtrace:false mcs with
   | Error e -> Lsc.Lsc_err.pp_err_effect e
   | Ok res -> Lsc.Lsc_ast.string_of_constellation res

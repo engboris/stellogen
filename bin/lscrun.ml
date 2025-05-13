@@ -1,8 +1,6 @@
 open Base
 open Lsc.Lsc_ast
 open Lsc.Lsc_err
-open Lsc.Lsc_parser
-open Lsc.Lsc_lexer
 open Out_channel
 
 let usage_msg = "exec [-linear] [-show-trace] <filename>"
@@ -31,8 +29,13 @@ let speclist =
 
 let () =
   Stdlib.Arg.parse speclist anon_fun usage_msg;
-  let lexbuf = Lexing.from_channel (Stdlib.open_in !input_file) in
-  let mcs = constellation_file read lexbuf in
+  let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in !input_file) in
+  let lexer = Sedlexing.with_tokenizer Lsc.Lsc_lexer.read lexbuf in
+  let parser =
+    MenhirLib.Convert.Simplified.traditional2revised
+      Lsc.Lsc_parser.constellation_file
+  in
+  let mcs = parser lexer in
   let result =
     match exec ~linear:!linear ~showtrace:!showtrace mcs with
     | Ok result -> result

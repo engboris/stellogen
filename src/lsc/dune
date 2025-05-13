@@ -1,6 +1,8 @@
 (library
  (name lsc)
- (libraries base common)
+ (libraries base common sedlex sedlex.ppx menhirLib)
+ (preprocess
+  (pps sedlex.ppx))
  (modules lsc_err lsc_ast unification lsc_parser lsc_lexer))
 
 (env
@@ -11,6 +13,4 @@
 (menhir
  (modules ../common/common_parser lsc_parser)
  (merge_into lsc_parser)
- (flags --dump --explain))
-
-(ocamllex lsc_lexer)
+ (flags --table --dump --explain))
