@@ -1,47 +1,55 @@
 open Base
+open Cmdliner
 open Lsc.Lsc_ast
 open Lsc.Lsc_err
 open Lsc.Lsc_parser
 open Lsc.Lsc_lexer
 open Out_channel
 
-let usage_msg = "exec [-linear] [-show-trace] <filename>"
-
-let unfincomp = ref false
-
-let showtrace = ref false
-
-let linear = ref false
-
-let input_file = ref ""
-
-let anon_fun filename = input_file := filename
-
-let speclist =
-  [ ( "-allow-unfinished-computation"
-    , Stdlib.Arg.Set unfincomp
-    , "Show stars containing polarities which are left after execution\n\
-      \      (they correspond to unfinished computation and are omitted by \
-       default)." )
-  ; ( "-show-trace"
-    , Stdlib.Arg.Set showtrace
-    , "Interactively show steps of selection and unification." )
-  ; ("-linear", Stdlib.Arg.Set linear, "Actions which are used are consummed.")
-  ]
-
-let () =
-  Stdlib.Arg.parse speclist anon_fun usage_msg;
-  let lexbuf = Lexing.from_channel (Stdlib.open_in !input_file) in
+let parse_and_eval input_file unfincomp linear showtrace =
+  let lexbuf = Lexing.from_channel (Stdlib.open_in input_file) in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = input_file };
   let mcs = constellation_file read lexbuf in
   let result =
-    match exec ~linear:!linear ~showtrace:!showtrace mcs with
+    match exec ~linear ~showtrace mcs with
     | Ok result -> result
     | Error e ->
       pp_err_effect e |> Out_channel.output_string Out_channel.stderr;
       Stdlib.exit 1
   in
-  if not !showtrace then
+  if not showtrace then
     result
-    |> (if !unfincomp then kill else Fn.id)
+    |> (if unfincomp then kill else Fn.id)
     |> string_of_constellation |> Stdlib.print_endline
   else output_string stdout "No interaction left.\n"
+
+let input_file_arg =
+  let doc = "Input file to process." in
+  Arg.(required & pos 0 (some string) None & info [] ~docv:"FILENAME" ~doc)
+
+let unfincomp_flag =
+  let doc =
+    "Show stars containing polarities which are left after execution\n
+    (they correspond to unfinished computation and are omitted by default)."
+  in
+  Arg.(value & flag & info [ "unfincomp" ] ~doc)
+
+let showtrace_flag =
+  let doc = "Interactively show steps of selection and unification." in
+  Arg.(value & flag & info [ "showtrace" ] ~doc)
+
+let linear_flag =
+  let doc = "Actions which are used are consummed." in
+  Arg.(value & flag & info [ "linear" ] ~doc)
+
+let term =
+  let open Term in
+  const (fun input_file unfincomp showtrace linear ->
+    try Ok (parse_and_eval input_file unfincomp showtrace linear)
+    with e -> Error (`Msg (Stdlib.Printexc.to_string e)) )
+  $ input_file_arg $ unfincomp_flag $ showtrace_flag $ linear_flag
+  |> term_result
+
+let cmd = Cmd.v (Cmd.info "sgen" ~doc:"Run the Stellogen program.") term
+
+let () = Stdlib.exit (Cmd.eval cmd)

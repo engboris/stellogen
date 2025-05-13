@@ -1,7 +1,7 @@
 (executables
  (public_names lsc sgen isgen)
  (names lscrun sgen isgen)
- (libraries lsc stellogen base))
+ (libraries lsc stellogen base cmdliner))
 
 (env
  (dev
