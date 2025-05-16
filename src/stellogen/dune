@@ -1,6 +1,6 @@
 (library
  (name stellogen)
- (libraries base common sedlex sedlex.ppx menhirLib)
+ (libraries base common sedlex menhirLib)
  (preprocess
   (pps sedlex.ppx)))
 

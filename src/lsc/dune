@@ -1,6 +1,6 @@
 (library
  (name lsc)
- (libraries base common sedlex sedlex.ppx menhirLib)
+ (libraries base common sedlex menhirLib)
  (preprocess
   (pps sedlex.ppx))
  (modules lsc_err lsc_ast unification lsc_parser lsc_lexer))
