@@ -98,7 +98,13 @@ and comment lexbuf =
   match%sedlex lexbuf with
   | '\r' | '\n' | "\r\n" -> EOL
   | eof -> EOF
-  | _ -> comment lexbuf
+  | _ ->
+    ignore (Sedlexing.next lexbuf);
+    comment lexbuf
 
 and comments lexbuf =
-  match%sedlex lexbuf with "'''" -> read lexbuf | _ -> comments lexbuf
+  match%sedlex lexbuf with
+  | "'''" -> read lexbuf
+  | _ ->
+    ignore (Sedlexing.next lexbuf);
+    comments lexbuf

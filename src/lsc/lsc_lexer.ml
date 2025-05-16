@@ -50,10 +50,18 @@ let rec read_string buf lexbuf =
   | _ -> raise (SyntaxError ("Illegal string character: " ^ Utf8.lexeme lexbuf))
 
 and comment lexbuf =
-  match%sedlex lexbuf with newline | eof -> read lexbuf | _ -> comment lexbuf
+  match%sedlex lexbuf with
+  | newline | eof -> read lexbuf
+  | _ ->
+    ignore (Sedlexing.next lexbuf);
+    comment lexbuf
 
 and comments lexbuf =
-  match%sedlex lexbuf with "'''" -> read lexbuf | _ -> comments lexbuf
+  match%sedlex lexbuf with
+  | "'''" -> read lexbuf
+  | _ ->
+    ignore (Sedlexing.next lexbuf);
+    comments lexbuf
 
 and read lexbuf =
   match%sedlex lexbuf with
