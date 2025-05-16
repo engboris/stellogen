@@ -1,11 +1,13 @@
 open Base
 open Cmdliner
 open Stellogen.Sgen_eval
-open Lexing
 
 let parse_and_eval input_file typecheckonly notyping =
-  let lexbuf = Lexing.from_channel (Stdlib.open_in input_file) in
-  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = input_file };
+  let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in input_file) in
+  let start_pos filename =
+    { Lexing.pos_fname = filename; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
+  in
+  Sedlexing.set_position lexbuf (start_pos input_file);
   let p = Stellogen.Sgen_parsing.parse_with_error lexbuf in
   let _ = eval_program ~typecheckonly ~notyping p in
   ()

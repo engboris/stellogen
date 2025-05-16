@@ -2,14 +2,20 @@ open Base
 open Cmdliner
 open Lsc.Lsc_ast
 open Lsc.Lsc_err
-open Lsc.Lsc_parser
-open Lsc.Lsc_lexer
 open Out_channel
 
 let parse_and_eval input_file unfincomp linear showtrace =
-  let lexbuf = Lexing.from_channel (Stdlib.open_in input_file) in
-  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = input_file };
-  let mcs = constellation_file read lexbuf in
+  let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in input_file) in
+  let start_pos filename =
+    { Lexing.pos_fname = filename; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
+  in
+  Sedlexing.set_position lexbuf (start_pos input_file);
+  let lexer = Sedlexing.with_tokenizer Lsc.Lsc_lexer.read lexbuf in
+  let parser =
+    MenhirLib.Convert.Simplified.traditional2revised
+      Lsc.Lsc_parser.constellation_file
+  in
+  let mcs = parser lexer in
   let result =
     match exec ~linear ~showtrace mcs with
     | Ok result -> result
