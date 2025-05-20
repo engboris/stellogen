@@ -1,32 +1,35 @@
 # Stellogen
 
 **Note: this project is an experimental proof of concept, not a fully
-designed and specified programming language.**
+designed or specified programming language. It is better understood as a
+research project or an esoteric language.**
 
 Stellogen is a *logic-agnostic* programming language based on term unification.
 It has been designed from concepts of Girard's transcendental syntax.
 
 ## Key characteristics
 
-- dynamically/statically **typed** but without primitive type nor type systems,
+- dynamically/statically **typed** but without primitive types nor type systems,
 by using very flexible assert-like expressions defining *sets of tests* to pass;
-- everything is based on **term unification**;
+- everything is based on **term unification**.
 
 It is multi-paradigm:
-- _logic programs_ are the elementary bricks of computation and typing;
+- _logic programs_ called "constellations" are the elementary bricks of
+computation and typing;
 - _functional programs_ correspond to logic programs enforcing an order of
 interaction;
-- _imperative programs_ are iterative recipes constructing logic programs;
-- _objects_ are ways to structure logic programs.
+- _imperative programs_ are iterative recipes constructing constellations;
+- _objects_ are ways to structure constellations.
 
 ## Influences
 
 It draws (or try to draw) inspiration from:
-- Prolog/Datalog (for unification-based computation);
+- Prolog/Datalog (for unification-based computation and constraint solving);
 - Smalltalk (for message-passing, object-oriented paradigm and minimalism);
 - Coq (for proof-as-program paradigm and iterative programming with tactics);
 - Scheme/Racket (for minimalism and metaprogramming);
-- Haskell/Ruby/Lua (for syntax).
+- Haskell/Ruby/Lua (for syntax);
+- Shen (for its optional type systems).
 
 ## Syntax samples
 
@@ -62,18 +65,18 @@ a1 = galaxy
     -a(0:W q1) +a(W q2).
 end
 
-show process #e.   #a1. #kill. end
-show process #000. #a1. #kill. end
-show process #010. #a1. #kill. end
-show process #110. #a1. #kill. end
+show process #e.   #a1. %kill. end
+show process #000. #a1. %kill. end
+show process #010. #a1. %kill. end
+show process #110. #a1. %kill. end
 ```
 
 More examples can be found in `examples/`.
 
 ## Learn
 
-This project is still in development, hence the syntax and features are still
-changing frequently.
+This project is still in (chaotic) development, hence the syntax and features
+are still changing frequently.
 
 To learn more about the current implementation of stellogen:
 - French guide (official): https://tsguide.refl.fr/
