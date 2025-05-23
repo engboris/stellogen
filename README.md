@@ -29,7 +29,8 @@ It draws (or try to draw) inspiration from:
 - Coq (for proof-as-program paradigm and iterative programming with tactics);
 - Scheme/Racket (for minimalism and metaprogramming);
 - Haskell/Ruby/Lua (for syntax);
-- Shen (for its optional type systems).
+- Shen (for its optional type systems and its "power and responsibility"
+philosophy).
 
 ## Syntax samples
 
