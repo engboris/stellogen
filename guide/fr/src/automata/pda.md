@@ -1,1 +1,0 @@
-# Automates à pile
