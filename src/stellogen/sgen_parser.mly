@@ -8,6 +8,9 @@ open Sgen_ast
 %token RUN
 %token SPEC
 %token TRACE
+%token CONS
+%token SEMICOLON
+%token DOT
 %token SHARP
 %token KILL CLEAN
 %token EXEC LINEXEC

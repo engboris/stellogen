@@ -32,14 +32,12 @@ let rec read lexbuf =
   | "&" -> AMP
   | '"' -> read_string (Buffer.create 255) lexbuf
   (* Stellar resolution *)
-  | '|' -> BAR
   | "!=" -> NEQ
   | '_' -> PLACEHOLDER
   | '[' -> LBRACK
   | ']' -> RBRACK
   | '(' -> LPAR
   | ')' -> RPAR
-  | ',' -> COMMA
   | '@' -> AT
   | '+' -> PLUS
   | '-' -> MINUS

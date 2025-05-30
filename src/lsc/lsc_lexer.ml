@@ -65,24 +65,27 @@ and comments lexbuf =
 
 and read lexbuf =
   match%sedlex lexbuf with
+  | "star" -> STAR
+  | "const" -> CONST
+  | "bans" -> BANS
   | is_var_start, Star is_var_rest -> VAR (Utf8.lexeme lexbuf)
   | is_func_start, Star is_func_rest -> SYM (Utf8.lexeme lexbuf)
   | '\'' -> comment lexbuf
   | "'''" -> comments lexbuf
   | '_' -> PLACEHOLDER
-  | '.' -> DOT
-  | '|' -> BAR
   | '[' -> LBRACK
   | ']' -> RBRACK
   | '(' -> LPAR
   | ')' -> RPAR
-  | ',' -> COMMA
+  | '<' -> LANGLE
+  | '>' -> RANGLE
+  | '/' -> SLASH
+  | "!=" -> NEQ
+  | "!@" -> INCOMP
   | '@' -> AT
   | '&' -> AMP
   | '+' -> PLUS
   | '-' -> MINUS
-  | ':' -> CONS
-  | ';' -> SEMICOLON
   | '"' -> read_string (Buffer.create 128) lexbuf
   | space | newline -> read lexbuf
   | eof -> EOF
