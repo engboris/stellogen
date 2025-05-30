@@ -66,7 +66,6 @@ and comments lexbuf =
 and read lexbuf =
   match%sedlex lexbuf with
   | "star" -> STAR
-  | "const" -> CONST
   | "bans" -> BANS
   | is_var_start, Star is_var_rest -> VAR (Utf8.lexeme lexbuf)
   | is_func_start, Star is_func_rest -> SYM (Utf8.lexeme lexbuf)

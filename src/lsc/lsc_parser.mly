@@ -4,9 +4,7 @@ open Lsc_ast
 
 %token <string> VAR
 %token <string> SYM
-%token STAR CONST
 %token BANS
-%token SLASH
 %token NEQ INCOMP
 %token PLUS MINUS
 %token PLACEHOLDER
@@ -16,9 +14,7 @@ open Lsc_ast
 
 %%
 
-let constellation_file :=
-  | EOF;                         { [] }
-  | ~=marked_constellation; EOF; <>
+let constellation_file := mcs=marked_constellation; EOF; { mcs }
 
 let marked_constellation :=
   | ~=star+; <>
@@ -52,14 +48,15 @@ let polarity :=
   | PLACEHOLDER; { to_var ("_"^(fresh_placeholder ())) }
   | ~=VAR; <to_var>
   | pf=symbol; { to_func (pf, []) }
-  | LPAR; pf=symbol; ts=ray_internal+; RPAR; { to_func (pf, ts) }
+  | LPAR; pf=symbol; ts=ray+; RPAR; { to_func (pf, ts) }
+  | ~=blocks; <>
 
-let ray_internal :=
-  | ~=ray; <>
-  | LBRACK; AMP; pf=symbol; rs=ray_internal+; RBRACK;
+let blocks :=
+  | LBRACK; AMP; pf=symbol; rs=ray+; RBRACK;
     { Base.List.reduce_exn rs ~f:(fun r1 r2 -> to_func (pf, [r2; r1]) ) }
-  | LBRACK; rs=ray_internal+; RBRACK;
+  | LBRACK; rs=ray+; RBRACK;
     { Base.List.reduce_exn rs ~f:(fun r1 r2 ->
       to_func (muted (Null, "cons"), [r2; r1]) ) }
   | LANGLE; pfs=symbol+; SLASH; r=ray; RANGLE;
-    { Base.List.fold_left pfs ~init:r ~f:(fun acc pf -> to_func (pf, [acc]) ) }
+    { Base.List.fold_right pfs ~init:r ~f:(fun pf base ->
+      to_func (pf, [base]) ) }

@@ -3,6 +3,8 @@
 %token AT
 %token EOL
 %token AMP
+%token STAR
+%token SLASH
 %token LBRACK RBRACK
 %token LBRACE RBRACE
 %token LANGLE RANGLE
