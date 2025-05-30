@@ -20,7 +20,7 @@
 (:: 1 nat)
 (def 1
   (const
-    (star <+nat s /0>)))
+    (star (+nat (s 0)))))
 
 (:: 2 nat)
 (def 2
@@ -30,13 +30,13 @@
 (:: add1 ((arrow nat nat) fchecker))
 (def add1
   (const
-    (star (-nat X) <+nat s /X>)))
+    (star (-nat X) (+nat (s X)))))
 
 (def is_empty
   (const
-    (star <-nat /0> <res /1>)
-    (star <-nat s /_> <res /0>)))
+    (star (-nat 0) (res 1))
+    (star (-nat (s _)) (res 0))))
 
-(show-exec (union #add1 #2))
+(show-exec (union @#add1 #2))
 (show-exec (union #is_empty @#0))
 (show-exec (union #is_empty @#1))
