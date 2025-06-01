@@ -31,7 +31,11 @@
   (star a) (star b) (star c))))
 
 'inequality constraints
-'ineq = +f(a); +f(b); @-f(X) -f(Y) r(X Y) | X!=Y.
+(def ineq
+  (const
+    (star (+f a))
+    (star (+f b))
+    (@star (-f X) (-f Y) (r X Y) / (!= X Y))))
 
 'interactive debugging of execution
 '(trace ineq)
@@ -109,6 +113,16 @@
 (:: 4 (nat / checker) (nat2 / checker))
 (def 4
   (const (star (+nat <s s s s /0>))))
+
+(interface nat_pair
+  (:: n nat)
+  (:: m nat))
+
+(:: g_pair nat_pair)
+(def g_pair
+  (galaxy
+    (n (const (star (+nat 0))))
+    (m (const (star (+nat 0))))))
 
 'galaxy with type declarations
 (show (galaxy

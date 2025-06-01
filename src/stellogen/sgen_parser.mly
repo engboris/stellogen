@@ -3,7 +3,7 @@ open Sgen_ast
 %}
 
 %token SHOW SHOWEXEC
-(* %token INTERFACE *)
+%token INTERFACE
 %token USE
 %token RUN
 %token CONS
@@ -31,16 +31,15 @@ let program := ~=pars(declaration)*; EOF; <>
 let ident := ~=ray; <>
 
 let declaration :=
-  | SPEC; ~=ident; ~=galaxy_expr; <Def>
-  | DEF; ~=ident; ~=galaxy_expr;  <Def>
-  | SHOW; ~=galaxy_expr;          <Show>
-  | SHOWEXEC; ~=galaxy_expr;      <ShowExec>
-  | TRACE; ~=galaxy_expr;         <Trace>
-  | RUN; ~=galaxy_expr;           <Run>
-  | ~=type_declaration;          <TypeDef>
-  | USE; ~=ident+;                <Use>
-  (* | INTERFACE; EOL*; x=ident; EOL*; i=interface_item*; END; INTERFACE?;
-    { Def (x, Raw (Interface i)) } *)
+  | SPEC; ~=ident; ~=galaxy_expr;          <Def>
+  | DEF; ~=ident; ~=galaxy_expr;           <Def>
+  | SHOW; ~=galaxy_expr;                   <Show>
+  | SHOWEXEC; ~=galaxy_expr;               <ShowExec>
+  | TRACE; ~=galaxy_expr;                  <Trace>
+  | RUN; ~=galaxy_expr;                    <Run>
+  | ~=type_declaration;                    <TypeDef>
+  | USE; ~=ident+;                         <Use>
+  | INTERFACE; x=ident; i=interface_item*; { Def (x, Raw (Interface i)) }
 
 let type_declaration :=
   | CONS; CONS; x=ident; ts=type_expr+; { TDef (x, ts) }
@@ -54,7 +53,7 @@ let galaxy_expr :=
   | ~=galaxy_content;   <>
   | ~=pars(process);    <>
 
-(* let interface_item := ~=pars(type_declaration); <> *)
+let interface_item := ~=pars(type_declaration); <>
 
 let raw_galaxy :=
   | CONST;                         { Const [] }

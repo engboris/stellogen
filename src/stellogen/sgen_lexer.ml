@@ -13,7 +13,7 @@ let rec read lexbuf =
   | "union" -> UNION
   | "process" -> PROCESS
   | "get" -> GET
-  (* | "interface" -> INTERFACE *)
+  | "interface" -> INTERFACE
   | "show" -> SHOW
   | "spec" -> SPEC
   | "def" -> DEF
@@ -30,11 +30,10 @@ let rec read lexbuf =
   | '=' -> EQ
   | '"' -> read_string (Buffer.create 255) lexbuf
   (* Stellar resolution *)
-  | "!=" -> NEQ
   | "!@" -> INCOMP
+  | "!=" -> NEQ
   | "=>" -> DRARROW
   | "star" -> STAR
-  | "bans" -> BANS
   | '_' -> PLACEHOLDER
   | '[' -> LBRACK
   | ']' -> RBRACK

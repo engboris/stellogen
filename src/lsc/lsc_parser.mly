@@ -4,7 +4,6 @@ open Lsc_ast
 
 %token <string> VAR
 %token <string> SYM
-%token BANS
 %token NEQ INCOMP
 %token PLUS MINUS
 %token PLACEHOLDER
@@ -26,11 +25,11 @@ let star :=
   | ~=pars(AT; STAR; star_content); <Marked>
 
 let star_content :=
-  | l=ray*; bs=pars(bans)?;
+  | l=ray*; bs=bans?;
     { { content=l; bans=Option.to_list bs |> List.concat } }
 
 let bans :=
-  | ~=pars(ban)+; <>
+  | SLASH; ~=pars(ban)+; <>
 
 let ban :=
   | NEQ; r1=ray; r2=ray;    { Ineq (r1, r2) }

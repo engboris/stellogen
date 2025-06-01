@@ -1,15 +1,10 @@
-'''
 (def left
   (const (star
-    (+5 [l l X]) (+5 [l r X])
-    (!@ c a)))))
-    '''
+    (+5 [l l X]) (+5 [l r X]) / (!@ c a))))
 
-'''
 (def right
   (const
-    (star (+5 [r l X]) (+5 [r r X)
-      (bans (!@ c b)))))
+    (star (+5 [r l X]) (+5 [r r X]) / (!@ c b))))
 
 (def with
   (union #left #right))
@@ -26,4 +21,3 @@
   #with
   (union #plus #cut)
   &kill))
-'''
