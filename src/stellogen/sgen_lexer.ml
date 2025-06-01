@@ -11,6 +11,7 @@ let rec read lexbuf =
   | "run" -> RUN
   | "const" -> CONST
   | "union" -> UNION
+  | "process" -> PROCESS
   | "get" -> GET
   (* | "interface" -> INTERFACE *)
   | "show" -> SHOW
@@ -23,14 +24,17 @@ let rec read lexbuf =
   | "linear-exec" -> LINEXEC
   | "show-exec" -> SHOWEXEC
   | "galaxy" -> GALAXY
-  (* | "process" -> PROCESS *)
   | "#" -> SHARP
   | "&" -> AMP
   | ':' -> CONS
+  | '=' -> EQ
   | '"' -> read_string (Buffer.create 255) lexbuf
   (* Stellar resolution *)
   | "!=" -> NEQ
+  | "!@" -> INCOMP
+  | "=>" -> DRARROW
   | "star" -> STAR
+  | "bans" -> BANS
   | '_' -> PLACEHOLDER
   | '[' -> LBRACK
   | ']' -> RBRACK
@@ -96,6 +100,7 @@ and read_string buf lexbuf =
 and comment lexbuf =
   match%sedlex lexbuf with
   | eof -> EOF
+  | '\r' | '\n' | "\r\n" -> read lexbuf
   | _ ->
     ignore (Sedlexing.next lexbuf);
     comment lexbuf

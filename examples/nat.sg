@@ -27,7 +27,7 @@
   (const
     (star <+nat s s /0>)))
 
-(:: add1 ((arrow nat nat) fchecker))
+(:: add1 ((arrow nat nat) / fchecker))
 (def add1
   (const
     (star (-nat X) (+nat (s X)))))

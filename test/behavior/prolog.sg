@@ -1,25 +1,32 @@
-'''unary addition'''
-add =
-  +add(0 Y Y);
-  -add(X Y Z) +add(s(X) Y s(Z)).
+(def add
+  (const
+    (star (+add 0 Y Y))
+    (star (-add X Y Z) (+add (s X) Y (s Z)))))
 
-tested :=: 0.
-tested = #add @(-add(0 0 R) R).
+(== tested (const (star 0)))
+(def tested
+  (union #add @(const (star (-add 0 0 R) R))))
 
-tested :=: s(0).
-tested = #add @(-add(s(0) 0 R) R).
+(== tested (const (star (s 0))))
+(def tested
+  (union #add @(const (star (-add (s 0) 0 R) R))))
 
-tested :=: s(0).
-tested = #add @(-add(0 s(0) R) R).
+(== tested (const (star (s 0))))
+(def tested
+  (union #add @(const (star (-add 0 (s 0) R) R))))
 
-tested :=: s(s(s(s(0)))).
-tested = #add @(-add(s(s(0)) s(s(0)) R) R).
+(== tested (const (star <s s s s /0>)))
+(def tested
+  (union #add @(const (star (-add <s s /0> <s s /0> R) R))))
 
-tested :=: 0.
-tested = #add @(-add(s(s(0)) R s(s(0))) R).
+(== tested (const (star 0)))
+(def tested
+  (union #add @(const (star (-add <s s /0> R <s s /0>) R))))
 
-tested :=: s(0).
-tested = #add @(-add(s(s(0)) R s(s(s(0)))) R).
+(== tested (const (star <s /0>)))
+(def tested
+  (union #add @(const (star (-add <s s /0> R <s s s /0>) R))))
 
-tested :=: s(s(0)).
-tested = #add @(-add(s(s(0)) R s(s(s(s(0))))) R).
+(== tested (const (star <s s /0>)))
+(def tested
+  (union #add @(const (star (-add <s s /0> R <s s s s /0>) R))))

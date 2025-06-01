@@ -1,20 +1,21 @@
-show-exec process
-  +stack0(e).
+(show-exec (process
+  (const (star (+stack0 e)))
   'push 1 then 0
-  -stack0(X) +stack1(1:X).
-  -stack1(X) +stack2(0:X).
+  (const
+    (star (-stack0 X) (+stack1 [1 X]))
+    (star (-stack1 X) (+stack2 [0 X])))
 
   'pop & save
-  -stack2(C:X) +stack3(X) +save(C).
+  (const (star (-stack2 [C X]) (+stack3 X) (+save C)))
 
   'conditional duplication
-  -stack3(0:X) +stack4(0:0:X);
-  -stack3(1:X) +stack4(1:1:X).
+  (const
+    (star (-stack3 [0 X]) (+stack4 [0 0 X]))
+    (star (-stack3 [1 X]) (+stack4 [1 1 X])))
 
   'freeze information
-  -stack4(X) stack(X).
+  (const (star (-stack4 X) (stack X)))
 
-  -save(C) save(C).
+  (const (star (-save C) (save C)))
   'kill remaining polarized stars
-  &kill.
-end
+  &kill))

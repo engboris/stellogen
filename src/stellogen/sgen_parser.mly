@@ -11,6 +11,8 @@ open Sgen_ast
 %token CONST
 %token GET
 %token DEF
+%token PROCESS
+%token DRARROW
 %token TRACE
 %token UNION
 %token SHARP
@@ -45,12 +47,12 @@ let type_declaration :=
   | EQ; EQ; x=ident; g=galaxy_expr;     { TExp (x, g) }
 
 let type_expr :=
-  | t=ident;                       { (t, None) }
-  | LPAR; t=ident; ck=ident; RPAR; { (t, Some ck) }
+  | t=ident;                              { (t, None) }
+  | LPAR; t=ident; SLASH; ck=ident; RPAR; { (t, Some ck) }
 
 let galaxy_expr :=
   | ~=galaxy_content;   <>
-  (*| ~=pars(process);    <> *)
+  | ~=pars(process);    <>
 
 (* let interface_item := ~=pars(type_declaration); <> *)
 
@@ -63,9 +65,9 @@ let prefixed_id := SHARP; ~=ident; <Id>
 
 let galaxy_content :=
   | ~=pars(raw_galaxy);                         <Raw>
-  | ~=galaxy_access;                            <>
-  | AT; ~=focussed_galaxy_content;              <Focus>
-  (*| ~=galaxy_content; ~=bracks(substitution);   <Subst> *)
+  | ~=pars(galaxy_access);                      <>
+  | AT; ~=galaxy_content;                       <Focus>
+  | ~=galaxy_content; ~=bracks(substitution);   <Subst>
   | ~=pars(galaxy_block);                       <>
   | ~=prefixed_id;                              <>
   | LPAR; UNION; g1=galaxy_content; g2=galaxy_content; RPAR;
@@ -81,16 +83,10 @@ let galaxy_block :=
   | KILL; g=raw_galaxy;        { Kill (Raw g) }
   | CLEAN; g=raw_galaxy;       { Clean (Raw g) }
 
-let focussed_galaxy_content :=
-  | ~=galaxy_content;      <>
-  | ~=pars(galaxy_access); <>
-  (* | ~=pars(galaxy_block);  <> *)
-
 let galaxy_access :=
-  | GET; x=ident; y=ident;         { Access (Id x, y) }
-  | GET; ~=galaxy_access; y=ident; <Access>
+  | GET; x=ident; y=ident;               { Access (Id x, y) }
+  | GET; ~=pars(galaxy_access); y=ident; <Access>
 
-(*
 let substitution :=
   | DRARROW; ~=symbol;                      <Extend>
   | ~=symbol; DRARROW;                      <Reduce>
@@ -99,21 +95,17 @@ let substitution :=
   | SHARP; ~=ident; DRARROW; ~=galaxy_expr; <SGal>
   | SHARP; x=ident; DRARROW;
     h=marked_constellation;                 { SGal (x, Raw (Const h)) }
-*)
 
 let galaxy_item :=
-  | ~=ident; ~=galaxy_content;   <GLabelDef>
-  (*| ~=ident; ~=pars(process);    <GLabelDef> *)
-  | ~=type_declaration;          <GTypeDef>
+  | ~=ident; ~=galaxy_content; <GLabelDef>
+  | ~=ident; ~=pars(process);  <GLabelDef>
+  | ~=type_declaration;        <GTypeDef>
 
-(*
 let process :=
   | PROCESS;                  { Process [] }
   | PROCESS; ~=process_item+; <Process>
 
 let process_item :=
-  | ~=galaxy_content;   <>
-  | ~=pars(raw_galaxy); <Raw>
-  | pars(AMP; KILL);    { Id (const "kill") }
-  | pars(AMP; CLEAN);   { Id (const "clean") }
-*)
+  | ~=galaxy_content; <>
+  | AMP; KILL;        { Id (const "kill") }
+  | AMP; CLEAN;       { Id (const "clean") }

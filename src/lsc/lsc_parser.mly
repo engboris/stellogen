@@ -14,7 +14,9 @@ open Lsc_ast
 
 %%
 
-let constellation_file := mcs=marked_constellation; EOF; { mcs }
+let constellation_file :=
+  | EOF; { [] }
+  | mcs=marked_constellation; EOF; { mcs }
 
 let marked_constellation :=
   | ~=star+; <>
@@ -27,8 +29,8 @@ let star_content :=
   | l=ray*; bs=pars(bans)?;
     { { content=l; bans=Option.to_list bs |> List.concat } }
 
-%public let bans :=
-  | BANS; ~=ban+; <>
+let bans :=
+  | ~=pars(ban)+; <>
 
 let ban :=
   | NEQ; r1=ray; r2=ray;    { Ineq (r1, r2) }
@@ -53,10 +55,11 @@ let polarity :=
 
 let blocks :=
   | LBRACK; AMP; pf=symbol; rs=ray+; RBRACK;
-    { Base.List.reduce_exn rs ~f:(fun r1 r2 -> to_func (pf, [r2; r1]) ) }
+    { Base.List.reduce_exn (List.rev rs)
+      ~f:(fun r1 r2 -> to_func (pf, [r2; r1]) ) }
   | LBRACK; rs=ray+; RBRACK;
-    { Base.List.reduce_exn rs ~f:(fun r1 r2 ->
-      to_func (muted (Null, "cons"), [r2; r1]) ) }
+    { Base.List.reduce_exn (List.rev rs)
+      ~f:(fun r1 r2 -> to_func (muted (Null, "cons"), [r2; r1]) ) }
   | LANGLE; pfs=symbol+; SLASH; r=ray; RANGLE;
     { Base.List.fold_right pfs ~init:r ~f:(fun pf base ->
       to_func (pf, [base]) ) }

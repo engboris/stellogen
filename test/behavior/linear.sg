@@ -1,14 +1,21 @@
-1 = +nat(s(0)).
-2 = +nat(s(s(0))).
-3 = +nat(s(s(s(0)))).
+(def 1
+  (const (star (+nat (s 0)))))
+(def 2
+  (const (star (+nat <s s /0>))))
+(def 3
+  (const (star (+nat <s s s /0>))))
 
-nat = -nat(s(X)) +nat(X).
+(spec nat
+  (const (star (-nat (s X)) (+nat X))))
 
-tested :=: +nat(0).
-tested = @linear-exec (@#1) #nat end.
+(== tested (const (star (+nat 0))))
+(def tested
+  @(linear-exec (union @#1 #nat)))
 
-tested :=: +nat(s(0)).
-tested = @linear-exec (@#2) #nat end.
+(== tested (const (star (+nat <s /0>))))
+(def tested
+  @(linear-exec (union @#2 #nat)))
 
-tested :=: +nat(s(s(0))).
-tested = @linear-exec (@#3) #nat end.
+(== tested (const (star (+nat <s s /0>))))
+(def tested
+  @(linear-exec (union @#3 #nat)))

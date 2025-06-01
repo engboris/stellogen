@@ -1,113 +1,127 @@
 'static definition of constellation
-x = +a; -a b.
-y = #x.
-z = -f(X).
+(def x
+  (const
+    (star +a)
+    (star -a b)))
+
+(def y #x)
+(def z
+  (const (star (-f X))))
 
 'string literals
-w = "hello world".
+(def w
+  (const (star "hello world")))
 
 'cons
-w = +w(0:1:0:1:e).
+(def w
+  (const (star (+w [0 1 0 1 e]))))
 
 'full focus
-show-exec @#w #w.
+(show-exec (union @#w #w))
 
 'show (literal) contellations
-show a; b; c.
+(show (const
+    (star a) (star b) (star c)))
 
 'print result of execution
-show-exec a; b; c.
-show exec a; b; c end.
+(show-exec (const
+    (star a) (star b) (star c)))
+
+(show (exec (const
+  (star a) (star b) (star c))))
 
 'inequality constraints
-ineq = +f(a); +f(b); @-f(X) -f(Y) r(X Y) | X!=Y.
+'ineq = +f(a); +f(b); @-f(X) -f(Y) r(X Y) | X!=Y.
 
 'interactive debugging of execution
-'trace ineq.
+'(trace ineq)
 
 'dynamic definition of constellation
-c = process
-  +n0(0).           'base constellation
-  -n0(X) +n1(s(X)). 'interacts with previous
-  -n1(X) +n2(s(X)). 'interacts with previous
-end
+(def c (process
+  (const (star (+n0 0)))               'base constellation
+  (const (star (-n0 X) (+n1 (s X))))   'interacts with previous
+  (const (star (-n1 X) (+n2 (s X)))))) 'interacts with previous
 
 'galaxy definition
-g = galaxy
-  test1 = +f(a) ok.
-  test2 = +f(b) ok.
-end
-show #g.
+(def g (galaxy
+  (test1 (const (star (+f a) ok)))
+  (test2 (const (star (+f b) ok)))))
+
+(show #g)
 
 'reactive effects
-run +&print(X); -&print("hello world\n").
+(run (const
+  (star (+&print X))
+  (star (-&print "hello world\n"))))
 
 'access to field of a galaxy
-show #g->test1.
-show #g->test2.
+(show (get g test1))
+(show (get g test2))
 
 'extend rays with a head function symbol
-show-exec (+f(X); f(X))[=>+a].
-show-exec (+f(X); f(X))[=>a].
+(show-exec (const (star (+f X)) (star (f X)))[=>+a])
+(show-exec (const (star (+f X)) (star (f X)))[=>a])
 
 'remove head function symbol from a ray
-show-exec (+f(X); f(X))[+f=>].
+(show-exec (const (star (+f X)) (star (f X)))[+f=>])
 
 'substitutions
-show-exec (+f(X))[X=>+a(X)].
-show-exec (+f(X))[+f=>+g].
-show-exec (#1 #2)[#1=>+f(X) X][#2=>-f(a)].
+(show-exec
+  (const (star (+f X)))[X=>(+a X)])
+(show-exec (const (star (+f X)))[+f=>+g])
+(show-exec (union #1 #2)
+  [#1=>(const (star (+f X) X))]
+  [#2=>(const (star (-f a)))])
 
 'checkers & typechecking
-checker = galaxy
-  interaction = (@#tested) #test.
-  expect = ok.
-end
+(def checker (galaxy
+  (interaction (union @#tested #test))
+  (expect (const (star ok)))))
 
-spec nat = galaxy
-  test =
-    -nat(0) ok;
-    -nat(s(N)) +nat(N).
-end
+(spec nat
+  (galaxy
+    (test
+      (const
+        (star (-nat 0) ok)
+        (star (-nat (s N)) (+nat N))))))
 
-0 :: nat [checker].
-0 = +nat(0).
+(:: 0 (nat /checker))
+(def 0
+  (const (star (+nat 0))))
 
-1 :: nat [checker].
-1 = +nat(s(0)).
+(:: 1 (nat / checker))
+(def 1
+  (const (star (+nat (s 0)))))
 
 'plural typing
-nat2 = -nat(X) ok.
-2 :: nat.
-2 :: nat2.
-2 = +nat(s(s(0))).
-3 :: nat; nat2.
-3 = +nat(s(s(s(0)))).
-4 :: nat [checker]; nat2 [checker].
-4 = +nat(s(s(s(s(0))))).
+(def nat2
+  (const (star (-nat X) ok)))
+
+(:: 2 nat)
+(:: 2 nat2)
+(def 2
+  (const (star (+nat <s s /0>))))
+
+(:: 3 nat nat2)
+(def 3
+  (const (star (+nat <s s s /0>))))
+
+(:: 4 (nat / checker) (nat2 / checker))
+(def 4
+  (const (star (+nat <s s s s /0>))))
 
 'galaxy with type declarations
-show galaxy
-  n1 :: nat.
-  n1 = +nat(0).
-  n2 :: nat.
-  n2 = +nat(s(s(0))).
-end
-
-interface nat_pair
-  n :: nat.
-  m :: nat.
-end
-
-g_pair :: nat_pair.
-g_pair = galaxy
-  n = +nat(0).
-  m = +nat(0).
-end
+(show (galaxy
+  (:: n1 nat)
+  (n1 (const (star (+nat 0))))
+  (:: n2 nat)
+  (n2 (const (star (+nat <s s /0>))))))
 
 'import file
-'use examples->automata.
+'(use examples automata)
 
 'complex identifiers
-f(a b) = function(a b).
-show #f(a b).
+(def (f a b)
+  (const
+    (star (function a b))))
+(show #(f a b))

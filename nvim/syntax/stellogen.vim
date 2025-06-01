@@ -1,6 +1,6 @@
 syn clear
 
-syn keyword sgKeyword def const star show use exec spec linear trace process end galaxy run interface union
+syn keyword sgKeyword def kill clean const star show use exec spec linear trace process end galaxy run interface union
 syn match sgComment "\s*'[^'].*$"
 syn match sgId "#\%(\l\|\d\)\w*"
 syn region sgComment start="'''" end="'''" contains=NONE

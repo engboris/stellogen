@@ -34,9 +34,12 @@ module Make (Sig : Signature) = struct
     match (t, u) with
     | Var x, Var y -> Sig.equal_idvar x y
     | Func ((Muted, f), ts), Func ((Muted, g), us)
-    | Func ((Noisy, f), ts), Func ((Noisy, g), us) ->
-      Sig.equal_idfunc f g
-      && List.for_all2_exn ~f:(fun t u -> equal_term t u) ts us
+    | Func ((Noisy, f), ts), Func ((Noisy, g), us) -> begin
+      try
+        Sig.equal_idfunc f g
+        && List.for_all2_exn ~f:(fun t u -> equal_term t u) ts us
+      with _ -> false
+    end
     | _ -> false
 
   type substitution = (Sig.idvar * term) list

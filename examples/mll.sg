@@ -1,61 +1,75 @@
-'''test of linear identity'''
-spec "a -o a" = galaxy
-  testrl =
-    -1(X) -2(X) +c5(X);
-    -3(X); -4(X) +c6(X);
-    -c5(X) +7(X); -c6(X);
-    @-7(X) ok.
-  testrr =
-    -1(X) -2(X) +c5(X);
-    -3(X); -4(X) +c6(X);
-    -c5(X); +7(X) -c6(X);
-    @-7(X) ok.
-  testll =
-    -1(X) -2(X) +c5(X);
-    -4(X); -3(X) +c6(X);
-    -c5(X) +7(X); -c6(X);
-    @-7(X) ok.
-  testlr =
-    -1(X) -2(X) +c5(X);
-    -4(X); -3(X) +c6(X);
-    -c5(X); +7(X) -c6(X);
-    @-7(X) ok.
-end
+' test of linear identity
+(spec (larrow a a)
+  (galaxy
+    (testrl
+      (const
+        (star (-1 X) (-2 X) (+c5 X))
+        (star (-3 X)) (star (-4 X) (+c6 X))
+        (star (-c5 X) (+7 X)) (star (-c6 X))
+        (@star (-7 X) ok)))
+    (testrr
+      (const
+        (star (-1 X) (-2 X) (+c5 X))
+        (star (-3 X)) (star (-4 X) (+c6 X))
+        (star (-c5 X)) (star (+7 X) (-c6 X))
+        (@star (-7 X) ok)))
+    (testll
+      (const
+        (star (-1 X) (-2 X) (+c5 X))
+        (star (-4 X)) (star (-3 X) (+c6 X))
+        (star (-c5 X) (+7 X)) (star (-c6 X))
+        (@star (-7 X) ok)))
+    (testlr
+      (const
+        (star (-1 X) (-2 X) (+c5 X))
+        (star (-4 X)) (star (-3 X) (+c6 X))
+        (star (-c5 X)) (star (+7 X) (-c6 X))
+        (@star (-7 X) ok)))))
 
-checker = galaxy
-  interaction = #tested #test.
-  expect = ok.
-end
+(def checker
+  (galaxy
+    (interaction (union #tested #test))
+    (expect (const (star ok)))))
 
-id :: "a -o a" [checker].
-id =
-  -5(l:X) +1(X);
-  -5(r:X) +2(X);
-  -6(l:X) +3(X);
-  -6(r:X) +4(X);
-  +5(l:X) +6(l:X);
-  +5(r:X) +6(r:X).
+(:: id ((larrow a a) / checker))
+(def id
+  (const
+    (star (-5 [l X]) (+1 X))
+    (star (-5 [r X]) (+2 X))
+    (star (-6 [l X]) (+3 X))
+    (star (-6 [r X]) (+4 X))
+    (star (+5 [l X]) (+6 [l X]))
+    (star (+5 [r X]) (+6 [r X]))))
 
-'''cut-elimination'''
-ps1 = galaxy
-  vehicle = +7(l:X) +7(r:X); 3(X) +8(l:X); @+8(r:X) 6(X).
-  cuts = -7(X) -8(X).
-end
+'cut-elimination
+(def ps1
+  (galaxy
+    (vehicle
+      (const
+        (star (+7 [l X]) (+7 [r X]))
+        (star (3 X) (+8 [l X]))
+        (@star (+8 [r X]) (6 X))))
+    (cuts
+      (const
+        (star (-7 X) (-8 X))))))
 
-show-exec #ps1->vehicle #ps1->cuts.
+(show-exec (union (get ps1 vehicle) (get ps1 cuts)))
 
-spec "a * b" =
-  -1(g:X) -2(g:X) +3(g:X);
-  @-3(g:X) ok.
+(spec (tens a b)
+  (const
+    (star (-1 [g X]) (-2 [g X]) (+3 [g X]))
+    (@star (-3 [g X]) ok)))
 
-linear = galaxy
-  interaction = linear-exec #tested #test end.
-  expect = ok.
-end
+(def linear
+  (galaxy
+    (interaction
+      (linear-exec (union #tested #test)))
+    (expect (const (star ok)))))
 
-'does not typecheck
-'vehicle :: "a * a" [linear].
-vehicle =
-  +3(l:X) +3(r:X);
-  -3(l:X) +1(g:X);
-  -3(r:X) +2(g:X).
+' does not typecheck
+' (:: vehicle ((tens a a) linear))
+(def vehicle
+  (const
+    (star (+3 [l X]) (+3 [r X]))
+    (star (-3 [l X]) (+1 [g X]))
+    (star (-3 [r X]) (+2 [g X]))))

@@ -1,45 +1,45 @@
-binary =
-  -i(e) ok;
-  -i(0:X) +i(X);
-  -i(1:X) +i(X).
+(spec binary
+  (const
+    (star (-i e) ok)
+    (star (-i [0 X]) (+i X))
+    (star (-i [1 X]) (+i X))))
 
-e :: binary.
-e = +i(e).
+(def a1
+  (galaxy
+    (initial
+      (const
+        (star (-i W) (+a W q0))))
+    (final
+      (const
+        (star (-a e q2) accept)))
+    (transitions
+      (const
+        (star (-a [0 W] q0) (+a W q0))
+        (star (-a [0 W] q0) (+a W q1))
+        (star (-a [1 W] q0) (+a W q0))
+        (star (-a [0 W] q1) (+a W q2))))))
 
-0 :: binary.
-0 = +i(0:e).
+(== tested (const))
+(def tested
+  (kill (exec
+    (union @(const (star (+i [0 e]))) #a1))))
 
-1 :: binary.
-1 = +i(1:e).
+(== tested (const))
+(def tested
+  (kill (exec
+    (union @(const (star (+i [1 e]))) #a1))))
 
-a1 = galaxy
-  initial =
-    -i(W) +a(W q0).
-  final =
-    -a(e q2) accept.
-  transitions =
-    -a(0:W q0) +a(W q0);
-    -a(0:W q0) +a(W q1);
-    -a(1:W q0) +a(W q0);
-    -a(0:W q1) +a(W q2).
-end
+(== tested (const))
+(def tested
+  (kill (exec
+    (union @(const (star (+i [0 1 0 e]))) #a1))))
 
-empty = {}.
+(== tested (const))
+(def tested
+  (kill (exec
+    (union @(const (star (+i [1 1 0 e]))) #a1))))
 
-tested :=: {}.
-tested = process #e. #a1. &kill. end
-
-tested :=: {}.
-tested = process #0. #a1. &kill. end
-
-tested :=: {}.
-tested = process #1. #a1. &kill. end
-
-tested :=: accept.
-tested = process +i(0:0:0:e). #a1. &kill. end
-
-tested :=: {}.
-tested = process +i(0:1:0:e). #a1. &kill. end
-
-tested :=: {}.
-tested = process +i(1:1:0:e). #a1. &kill. end
+(== tested (const (star accept)))
+(def tested
+  (kill (exec
+    (union @(const (star (+i [0 0 0 e]))) #a1))))

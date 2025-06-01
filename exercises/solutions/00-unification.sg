@@ -1,22 +1,45 @@
 'fill the #your_answer holes with the correct result of execution
 
-x1 :=: a.
-x1 = @+f(X) X; -f(a).
+(== x1 (const (star a)))
+(def x1
+  (const
+    (@star (+f X) X)
+    (star (-f a))))
 
-x2 :=: a.
-x2 = @+f(X); -f(Y) a.
+(== x2 (const (star a)))
+(def x2
+  (const
+    (@star (+f X))
+    (star (-f Y) a)))
 
-x3 :=: b; a.
-x3 = @+f(X) X; -f(a); -f(b).
+(== x3 (const (star b) (star a)))
+(def x3
+  (const
+    (@star (+f X) X)
+    (star (-f a))
+    (star (-f b))))
 
-x4 :=: +1 -2.
-x4 = @+1 -2; -2 +3.
+(== x4 (const (star +1 -2)))
+(def x4
+  (const
+    (@star +1 -2)
+    (star -2 +3)))
 
-x5 :=: -2 +1.
-x5 = @-1 +2; -2 +1.
+(== x5 (const (star -2 +1)))
+(def x5
+  (const
+    (@star -1 +2)
+    (star -2 +1)))
 
-x6 :=: -2 +1.
-x6 = @-1 +2; -2 +1.
+(== x6 (const (star -2 +1)))
+(def x6
+  (const
+    (@star -1 +2)
+    (star -2 +1)))
 
-x7 :=: a.
-x7 = @-f(X) X; +f(+g(a)); -g(X) X.
+(== x7 (const (star a)))
+(def x7
+  (const
+    (@star (-f X) X)
+    (star (+f (+g a)))
+    (star (-g X) X)))

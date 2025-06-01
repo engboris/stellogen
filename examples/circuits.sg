@@ -1,41 +1,43 @@
 '''
 FIXME
 '''
+(def semantics
+  (const
+    (star (+1 1))
+    (star (+0 0))
+    (star (+s X X X))
+    (star (+not 1 0)) (star (+not 0 1))
+    (star (+and 1 X X)) (star (+and 0 X 0))))
 
-semantics =
-  +1(1);
-  +0(0);
-  +s(X X X);
-  +not(1 0); +not(0 1);
-  +and(1 X X); +and(0 X 0).
-
-show-exec process
+(show-exec (process
   'inputs
-    -1(X) +c0(X).
+    (const (star (-1 X) (+c0 X)))
   'layer 1
-    -c0(X) -s(X Y Z) +c1(Y) +c2(Z).
+    (const (star (-c0 X) (-s X Y Z) (+c1 Y) (+c2 Z)))
   'layer 2
-    -c1(X) -not(X R) +c3(R).
+    (const (star (-c1 X) (-not X R) (+c3 R)))
   'layer 3
-    -c2(X) -c3(Y) -and(X Y R) +c4(R).
+    (const (star (-c2 X) (-c3 Y) (-and X Y R) (+c4 R)))
   'output
-    -c4(R) R.
-    #semantics.
-  '&kill.
-end
+    (const (star (-c4 R) R))
+    #semantics))
+  '&kill
 
-show-exec process
+(show-exec (process
   'inputs
-    -0(X) +c0(X);
-    -0(X) +c1(X).
+  (const
+    (star (-0 X) (+c0 X))
+    (star (-0 X) (+c1 X)))
   'layer 1
-    -c0(X) -not(X R) +c2(R);
-    -c1(X) -not(X R) +c3(R).
+  (const
+    (star (-c0 X) (-not X R) (+c2 R))
+    (star (-c1 X) (-not X R) (+c3 R)))
   'layer 2
-    -c2(X) -c3(Y) -and(X Y R) +c4(R).
+  (const
+    (star (-c2 X) (-c3 Y) (-and X Y R) (+c4 R)))
   'output
-    -c4(R) R.
+  (const
+    (star (-c4 R) R))
   'apply semantics
-    #semantics.
-  '&kill.
-end
+    #semantics))
+  '&kill

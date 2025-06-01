@@ -1,12 +1,29 @@
-left = +5(l:l:X) +5(l:r:X)  | c:a.
-right = +5(r:l:X) +5(r:r:X) | c:b.
+'''
+(def left
+  (const (star
+    (+5 [l l X]) (+5 [l r X])
+    (!@ c a)))))
+    '''
 
-with = #left #right.
-plus = +3(l:l:X) c(X); +3(l:r:X) d(X).
-cut = -5(X) -3(X).
+'''
+(def right
+  (const
+    (star (+5 [r l X]) (+5 [r r X)
+      (bans (!@ c b)))))
 
-show-exec process
-  #with.
-  #plus #cut.
-  &kill.
-end
+(def with
+  (union #left #right))
+
+(def plus
+  (const
+    (star (+3 [l l X]) (c X))
+    (star (+3 [l r X]) (d X))))
+
+(def cut
+  (const (star (-5 X) (-3 X))))
+
+(show-exec (process
+  #with
+  (union #plus #cut)
+  &kill))
+'''
