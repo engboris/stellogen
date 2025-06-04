@@ -28,7 +28,6 @@ It draws (or try to draw) inspiration from:
 - Smalltalk (for message-passing, object-oriented paradigm and minimalism);
 - Coq (for proof-as-program paradigm and iterative programming with tactics);
 - Scheme/Racket (for minimalism and metaprogramming);
-- Haskell/Ruby/Lua (for syntax);
 - Shen (for its optional type systems and its "power and responsibility"
 philosophy).
 
@@ -37,39 +36,52 @@ philosophy).
 Finite state machine
 
 ```
-spec binary =
-  -i(e) ok;
-  -i(0:X) +i(X);
-  -i(1:X) +i(X).
+(spec binary
+  (const
+    (star (-i e) ok)
+    (star (-i [0 X]) (+i X))
+    (star (-i [1 X]) (+i X))))
 
-e :: binary.
-e = +i(e).
+'input words
+(:: e binary)
+(def e
+  (const (star (+i e))))
 
-000 :: binary.
-000 = +i(0:0:0:e).
+(:: 000 binary)
+(def 000
+  (const (star (+i [0 0 0 e]))))
 
-010 :: binary.
-010 = +i(0:1:0:e).
+(:: 010 binary)
+(def 010
+  (const (star (+i [0 1 0 e]))))
 
-110 :: binary.
-110 = +i(1:1:0:e).
+(:: 110 binary)
+(def 110
+  (const (star (+i [1 1 0 e]))))
 
-a1 = galaxy
-  initial =
-    -i(W) +a(W q0).
-  final =
-    -a(e q2) accept.
-  transitions =
-    -a(0:W q0) +a(W q0);
-    -a(0:W q0) +a(W q1);
-    -a(1:W q0) +a(W q0);
-    -a(0:W q1) +a(W q2).
-end
+(def a1
+  (galaxy
+    (initial
+      (const
+        (star (-i W) (+a W q0))))
+    (final
+      (const
+        (star (-a e q2) accept)))
+    (transitions
+      (const
+        (star (-a [0 W] q0) (+a W q0))
+        (star (-a [0 W] q0) (+a W q1))
+        (star (-a [1 W] q0) (+a W q0))
+        (star (-a [0 W] q1) (+a W q2))))))
 
-show process #e.   #a1. &kill. end
-show process #000. #a1. &kill. end
-show process #010. #a1. &kill. end
-show process #110. #a1. &kill. end
+(show (kill (exec
+      (union @#e #a1))))
+(show (kill (exec
+      (union @#000 #a1))))
+(show (kill (exec
+      (union @#010 #a1))))
+(show (kill (exec
+      (union @#110 #a1))))
 ```
 
 More examples can be found in `examples/`.
