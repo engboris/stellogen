@@ -2,21 +2,21 @@ open Sgen_parser
 
 exception SyntaxError of string
 
-let update_pos_newline lexbuf =
-  Sedlexing.new_line lexbuf;
-  EOL
+let update_pos_newline lexbuf = Sedlexing.new_line lexbuf
 
 let rec read lexbuf =
   match%sedlex lexbuf with
   (* Stellogen *)
-  | '{' -> LBRACE
-  | '}' -> RBRACE
-  | "end" -> END
   | "exec" -> EXEC
   | "run" -> RUN
+  | "const" -> CONST
+  | "union" -> UNION
+  | "process" -> PROCESS
+  | "get" -> GET
   | "interface" -> INTERFACE
   | "show" -> SHOW
   | "spec" -> SPEC
+  | "def" -> DEF
   | "kill" -> KILL
   | "clean" -> CLEAN
   | "use" -> USE
@@ -24,28 +24,28 @@ let rec read lexbuf =
   | "linear-exec" -> LINEXEC
   | "show-exec" -> SHOWEXEC
   | "galaxy" -> GALAXY
-  | "process" -> PROCESS
-  | "->" -> RARROW
-  | "=>" -> DRARROW
-  | "." -> DOT
   | "#" -> SHARP
   | "&" -> AMP
+  | ':' -> CONS
+  | '=' -> EQ
   | '"' -> read_string (Buffer.create 255) lexbuf
   (* Stellar resolution *)
-  | '|' -> BAR
+  | "!@" -> INCOMP
   | "!=" -> NEQ
+  | "=>" -> DRARROW
+  | "star" -> STAR
   | '_' -> PLACEHOLDER
   | '[' -> LBRACK
   | ']' -> RBRACK
+  | '<' -> LANGLE
+  | '>' -> RANGLE
   | '(' -> LPAR
   | ')' -> RPAR
-  | ',' -> COMMA
   | '@' -> AT
+  | '/' -> SLASH
   | '+' -> PLUS
   | '-' -> MINUS
   | '=' -> EQ
-  | ':' -> CONS
-  | ';' -> SEMICOLON
   (* Identifiers *)
   | Plus 'A' .. 'Z', Star ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' | '-') ->
     VAR (Sedlexing.Utf8.lexeme lexbuf)
@@ -54,7 +54,9 @@ let rec read lexbuf =
     SYM (Sedlexing.Utf8.lexeme lexbuf)
   (* Whitespace *)
   | Plus (' ' | '\t') -> read lexbuf
-  | '\r' | '\n' | "\r\n" -> update_pos_newline lexbuf
+  | '\r' | '\n' | "\r\n" ->
+    update_pos_newline lexbuf;
+    read lexbuf
   (* Comments *)
   | '\'' -> comment lexbuf
   | "'''" -> comments lexbuf
@@ -96,8 +98,8 @@ and read_string buf lexbuf =
 
 and comment lexbuf =
   match%sedlex lexbuf with
-  | '\r' | '\n' | "\r\n" -> EOL
   | eof -> EOF
+  | '\r' | '\n' | "\r\n" -> read lexbuf
   | _ ->
     ignore (Sedlexing.next lexbuf);
     comment lexbuf

@@ -1,17 +1,32 @@
 'fill the 'your_answer' holes to replace #1 in the constellations
 'below such that the result of execution is { ok }
 
-x1 :=: ok.
-x1 = (@(-1 ok) #1)[#1=>+1].
+(== x1 (const (star ok)))
+(def x1
+  (union (const (@star -1 ok)) #1)
+  [#1=>(const (star +1))])
 
-x2 :=: ok.
-x2 = ((@-1; +2) #1)[#1=>+1 -2 ok].
+(== x2 (const (star ok)))
+(def x2
+  (union (const (@star -1) (star +2)) #1)
+  [#1=>(const (star +1 -2 ok))])
 
-x3 :=: ok.
-x3 = ((@-1 ok; -2 +3) #1)[#1=>+1 +2; -3].
+(== x3 (const (star ok)))
+(def x3
+  (union (const (@star -1 ok) (star -2 +3)) #1)
+  [#1=>(const (star +1 +2) (star -3))])
 
-x4 :=: ok.
-x4 = ((@-f(+g(X)) ok) #1)[#1=>+f(-g(X))].
+(== x4 (const (star ok)))
+(def x4
+  (union (const (@star (-f (+g X)) ok)) #1)
+  [#1=>(const (star (+f (-g X))))])
 
-x5 :=: ok.
-x5 = ((+f(a) +f(b); +g(a); @+g(b) ok) #1)[#1=>-f(a); -f(b) -g(a) -g(b)].
+(== x5 (const (star ok)))
+(def x5
+  (union
+    (const
+      (star (+f a) (+f b))
+      (star (+g a))
+      (@star (+g b) ok))
+    #1)
+  [#1=>(const (star (-f a)) (star (-f b) (-g a) (-g b)))])

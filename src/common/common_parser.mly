@@ -1,11 +1,13 @@
 %token PRINT
 %token EOF
 %token AT
-%token DOT
 %token EOL
 %token AMP
+%token STAR
+%token SLASH
 %token LBRACK RBRACK
 %token LBRACE RBRACE
+%token LANGLE RANGLE
 %token LPAR RPAR
 
 %%

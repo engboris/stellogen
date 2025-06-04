@@ -1,1 +1,2 @@
--f(a); @+f(X) X.
+(star (-f a))
+(@star (+f X) X)

@@ -1,29 +1,35 @@
 ' unary addition
-add =
-  +add(0 Y Y);
-  -add(X Y Z) +add(s(X) Y s(Z)).
+(def add
+  (const
+    (star (+add 0 Y Y))
+    (star (-add X Y Z) (+add (s X) Y (s Z)))))
 
 ' 2 + 2 = R
-query = -add(s(s(0)) s(s(0)) R) R.
+(def query
+  (const
+    (star (-add <s s /0> <s s /0> R) R)))
 
-show-exec #add @#query.
+(show-exec (union #add @#query))
 
-graph =
-  +from(1) +to(2);
-  +from(1) +to(3);
-  +from(3) +to(2);
-  +from(3) +to(4).
-  '+from(4) +to(3);
+(def graph
+  (const
+    (star (+from 1) (+to 2))
+    (star (+from 1) (+to 3))
+    (star (+from 3) (+to 2))
+    (star (+from 3) (+to 4))))
+    '(star (+from 4) (+to 3))
 
-composition = -to(X) -from(X).
+(def composition
+  (const
+    (star (-to X) (-from X))))
 
 ' is there a path between 1 and 4?
-query =
-  @-from(1);
-  -to(4) ok.
+(def query
+  (const
+    (@star (-from 1))
+    (star (-to 4) ok)))
 
-show-exec process
-  #query.
-  #graph #composition.
-  &kill.
-end
+(show-exec (process
+  #query
+  (union #graph #composition)
+  &kill))
