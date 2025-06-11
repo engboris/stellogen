@@ -1,0 +1,14 @@
+(library
+ (name stellogen)
+ (libraries base menhirLib)
+ (preprocess
+  (pps sedlex.ppx)))
+
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))
+
+(menhir
+ (modules parser)
+ (flags --table --dump --explain))

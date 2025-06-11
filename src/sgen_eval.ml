@@ -3,8 +3,7 @@ open Lsc_ast
 open Lsc_err
 open Sgen_ast
 open Sgen_err
-open Common.Format_exn
-open Common.Pretty
+open Pretty
 open Out_channel
 
 let ( let* ) x f = Result.bind x ~f
@@ -453,11 +452,9 @@ let rec eval_decl ~typecheckonly ~notyping env :
     in
     Ok env
   | Show _ when typecheckonly -> Ok env
-  | Show (Id x) -> begin
-    match get_obj env x with
-    | None -> Error (UnknownID (string_of_ray x))
-    | Some e -> eval_decl ~typecheckonly ~notyping env (Show e)
-  end
+  | Show (Id x) ->
+    Show (Raw (Const [ Marked { content = [ func "#" [ x ] ]; bans = [] } ]))
+    |> eval_decl ~typecheckonly ~notyping env
   | Show (Raw (Galaxy g)) ->
     Galaxy g |> string_of_galaxy ~notyping env |> Stdlib.print_string;
     Stdlib.print_newline ();
@@ -475,8 +472,6 @@ let rec eval_decl ~typecheckonly ~notyping env :
     |> string_of_constellation |> Stdlib.print_string;
     Stdlib.print_newline ();
     Ok env
-  | ShowExec _ when typecheckonly -> Ok env
-  | ShowExec e -> eval_decl ~typecheckonly ~notyping env (Show (Exec e))
   | Trace _ when typecheckonly -> Ok env
   | Trace e ->
     let* eval_e = eval_galaxy_expr ~notyping env e in
@@ -507,11 +502,13 @@ let rec eval_decl ~typecheckonly ~notyping env :
       { Lexing.pos_fname = filename; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
     in
     Sedlexing.set_position lexbuf (start_pos formatted_filename);
-    let p = Sgen_parsing.parse_with_error lexbuf in
+    let expr = Sgen_parsing.parse_with_error lexbuf in
+    let expanded = List.map ~f:Expr.expand_macro expr in
+    let p = Expr.program_of_expr expanded in
     let* env = eval_program ~typecheckonly ~notyping p in
     Ok env
 
-and eval_program ~typecheckonly ~notyping p =
+and eval_program ~typecheckonly ~notyping (p : program) =
   match
     List.fold_left
       ~f:(fun acc x ->

@@ -66,7 +66,6 @@ let initial_env =
 type declaration =
   | Def of ident * galaxy_expr
   | Show of galaxy_expr
-  | ShowExec of galaxy_expr
   | Trace of galaxy_expr
   | Run of galaxy_expr
   | TypeDef of type_declaration

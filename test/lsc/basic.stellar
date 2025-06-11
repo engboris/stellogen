@@ -1,2 +1,0 @@
-(star (-f a))
-(@star (+f X) X)

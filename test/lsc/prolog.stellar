@@ -1,3 +1,0 @@
-(star (+add 0 Y Y))
-(star (-add X Y Z) (+add (s X) Y (s Z)))
-(@star (-add <s s /0> <s s /0> R) R)

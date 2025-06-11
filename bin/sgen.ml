@@ -1,6 +1,6 @@
 open Base
 open Cmdliner
-open Stellogen.Sgen_eval
+open Stellogen
 
 let parse_and_eval input_file typecheckonly notyping =
   let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in input_file) in
@@ -8,8 +8,16 @@ let parse_and_eval input_file typecheckonly notyping =
     { Lexing.pos_fname = filename; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
   in
   Sedlexing.set_position lexbuf (start_pos input_file);
-  let p = Stellogen.Sgen_parsing.parse_with_error lexbuf in
-  let _ = eval_program ~typecheckonly ~notyping p in
+  let expr = Sgen_parsing.parse_with_error lexbuf in
+  let expanded = List.map ~f:Expr.expand_macro expr in
+  Stdlib.print_string
+    (List.map ~f:Expr.to_string expanded |> String.concat ~sep:"\n");
+  Stdlib.print_newline ();
+  Stdlib.print_string "----------------";
+  Stdlib.flush Stdlib.stdout;
+  let p = Expr.program_of_expr expanded in
+  Stdlib.print_string "\n";
+  let _ = Stellogen.Sgen_eval.eval_program ~typecheckonly ~notyping p in
   ()
 
 let input_file_arg =

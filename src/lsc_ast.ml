@@ -1,5 +1,5 @@
 open Base
-open Common.Pretty
+open Pretty
 open Out_channel
 open In_channel
 open Lsc_err
