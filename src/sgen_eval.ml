@@ -56,10 +56,9 @@ and map_galaxy_expr env ~f : galaxy_expr -> (galaxy_expr, err) Result.t =
   | LinExec e ->
     let* map_e = map_galaxy_expr env ~f e in
     LinExec map_e |> Result.return
-  | Union (e, e') ->
-    let* map_e = map_galaxy_expr env ~f e in
-    let* map_e' = map_galaxy_expr env ~f e' in
-    Union (map_e, map_e') |> Result.return
+  | Unions es ->
+    let* map_es = List.map ~f:(map_galaxy_expr env ~f) es |> Result.all in
+    Unions map_es |> Result.return
   | Subst (e, Extend pf) ->
     let* map_e = map_galaxy_expr env ~f e in
     Subst (map_e, Extend pf) |> Result.return
@@ -103,10 +102,9 @@ let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
   | LinExec e ->
     let* g = replace_id env _from _to e in
     LinExec g |> Result.return
-  | Union (e1, e2) ->
-    let* g1 = replace_id env _from _to e1 in
-    let* g2 = replace_id env _from _to e2 in
-    Union (g1, g2) |> Result.return
+  | Unions es ->
+    let* gs = List.map ~f:(replace_id env _from _to) es |> Result.all in
+    Unions gs |> Result.return
   | Focus e ->
     let* g = replace_id env _from _to e in
     Focus g |> Result.return
@@ -210,12 +208,16 @@ and eval_galaxy_expr ~notyping (env : env) :
       | Some g -> eval_galaxy_expr ~notyping env g
     end
   end
-  | Union (e, e') ->
-    let* eval_e = eval_galaxy_expr ~notyping env e in
-    let* eval_e' = eval_galaxy_expr ~notyping env e' in
-    let* mcs1 = eval_e |> galaxy_to_constellation ~notyping env in
-    let* mcs2 = eval_e' |> galaxy_to_constellation ~notyping env in
-    Ok (Const (mcs1 @ mcs2))
+  | Unions es ->
+    let* eval_es =
+      List.map ~f:(eval_galaxy_expr ~notyping env) es |> Result.all
+    in
+    let* mcs =
+      eval_es
+      |> List.map ~f:(galaxy_to_constellation ~notyping env)
+      |> Result.all
+    in
+    Ok (Const (List.concat mcs))
   | Exec e ->
     let* eval_e = eval_galaxy_expr ~notyping env e in
     let* mcs = galaxy_to_constellation ~notyping env eval_e in
@@ -261,7 +263,7 @@ and eval_galaxy_expr ~notyping (env : env) :
           let origin = acc |> remove_mark_all |> focus in
           let* ev =
             eval_galaxy_expr ~notyping env
-              (Focus (Exec (Union (x, Raw (Const origin)))))
+              (Focus (Exec (Unions [ x; Raw (Const origin) ])))
           in
           galaxy_to_constellation ~notyping env ev )
     in
@@ -380,7 +382,8 @@ and typecheck ~notyping env x (t : StellarRays.term) (ck : galaxy_expr) :
     | Error e -> Error e )
   |> Result.all_unit
 
-and default_interaction = Union (Focus (Id (const "tested")), Id (const "test"))
+and default_interaction =
+  Unions [ Focus (Id (const "tested")); Id (const "test") ]
 
 and default_expect =
   Raw (Const [ Unmarked { content = [ func "ok" [] ]; bans = [] } ])
