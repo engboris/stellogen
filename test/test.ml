@@ -20,9 +20,6 @@ let run_dir test_f directory =
        not @@ Stdlib.Sys.is_directory (Stdlib.Filename.concat directory f) )
   |> List.map ~f:(fun x -> make_ok_test x directory test_f)
 
-let () = Alcotest.run "Stellogen Test Suite" []
-
-(* FIXME
 let () =
   Alcotest.run "Stellogen Test Suite"
     [ ("Stellogen examples", run_dir sgen "../examples/")
@@ -30,4 +27,3 @@ let () =
     ; ("Stellogen syntax", run_dir sgen "./syntax/")
     ; ("Stellogen behavior", run_dir sgen "./behavior/")
     ]
-*)

@@ -1,24 +1,22 @@
 'static definition of constellation
-(def x
-  (const
-    (star +a)
-    (star -a b)))
+(:= x [
+  [+a]
+  [-a b]])
 
-(def y #x)
-(def z
-  (const (star (-f X))))
+(:= y #x)
+
+(:= z (-f X))
 
 'string literals
-(def w
-  (const (star "hello world")))
+'(:= w ["hello world"])
 
 'cons
-(def w
-  (const (star (+w [0 1 0 1 e]))))
+(:= w [+w [0 1 0 1 e]])
 
 'full focus
-(show-exec (union @#w #w))
+<show exec (union @#w #w)>
 
+'''
 'show (literal) contellations
 (show (const
     (star a) (star b) (star c)))
@@ -139,3 +137,4 @@
   (const
     (star (function a b))))
 (show #(f a b))
+'''

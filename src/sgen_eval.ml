@@ -56,9 +56,9 @@ and map_galaxy_expr env ~f : galaxy_expr -> (galaxy_expr, err) Result.t =
   | LinExec e ->
     let* map_e = map_galaxy_expr env ~f e in
     LinExec map_e |> Result.return
-  | Unions es ->
+  | Union es ->
     let* map_es = List.map ~f:(map_galaxy_expr env ~f) es |> Result.all in
-    Unions map_es |> Result.return
+    Union map_es |> Result.return
   | Subst (e, Extend pf) ->
     let* map_e = map_galaxy_expr env ~f e in
     Subst (map_e, Extend pf) |> Result.return
@@ -102,9 +102,9 @@ let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
   | LinExec e ->
     let* g = replace_id env _from _to e in
     LinExec g |> Result.return
-  | Unions es ->
+  | Union es ->
     let* gs = List.map ~f:(replace_id env _from _to) es |> Result.all in
-    Unions gs |> Result.return
+    Union gs |> Result.return
   | Focus e ->
     let* g = replace_id env _from _to e in
     Focus g |> Result.return
@@ -208,7 +208,7 @@ and eval_galaxy_expr ~notyping (env : env) :
       | Some g -> eval_galaxy_expr ~notyping env g
     end
   end
-  | Unions es ->
+  | Union es ->
     let* eval_es =
       List.map ~f:(eval_galaxy_expr ~notyping env) es |> Result.all
     in
@@ -263,7 +263,7 @@ and eval_galaxy_expr ~notyping (env : env) :
           let origin = acc |> remove_mark_all |> focus in
           let* ev =
             eval_galaxy_expr ~notyping env
-              (Focus (Exec (Unions [ x; Raw (Const origin) ])))
+              (Focus (Exec (Union [ x; Raw (Const origin) ])))
           in
           galaxy_to_constellation ~notyping env ev )
     in
@@ -383,7 +383,7 @@ and typecheck ~notyping env x (t : StellarRays.term) (ck : galaxy_expr) :
   |> Result.all_unit
 
 and default_interaction =
-  Unions [ Focus (Id (const "tested")); Id (const "test") ]
+  Union [ Focus (Id (const "tested")); Id (const "test") ]
 
 and default_expect =
   Raw (Const [ Unmarked { content = [ func "ok" [] ]; bans = [] } ])

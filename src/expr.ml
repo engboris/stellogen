@@ -105,15 +105,24 @@ let rec constellation_of_expr : expr -> marked_constellation = function
    --------------------------------------- *)
 
 let rec galaxy_expr_of_expr : expr -> galaxy_expr = function
+  (* ray *)
   | Symbol s ->
     Raw (Const [ Unmarked { content = [ ray_of_expr (Symbol s) ]; bans = [] } ])
+  (* id *)
   | Unquote g -> Id (ray_of_expr g)
+  (* focus @ *)
   | List [ Symbol k; g ] when equal_string k focus_op ->
     Focus (galaxy_expr_of_expr g)
+  (* union *)
+  | List (Symbol k :: gs) when equal_string k "union" ->
+    Union (List.map ~f:galaxy_expr_of_expr gs)
+  (* exec *)
   | List [ Symbol k; g ] when equal_string k "exec" ->
     Exec (galaxy_expr_of_expr g)
+  (* linear exec *)
   | List [ Symbol k; g ] when equal_string k "linexec" ->
     LinExec (galaxy_expr_of_expr g)
+  (* raw constellation *)
   | List g -> Raw (Const (constellation_of_expr (List g)))
 
 (* ---------------------------------------
@@ -121,12 +130,16 @@ let rec galaxy_expr_of_expr : expr -> galaxy_expr = function
    --------------------------------------- *)
 
 let rec decl_of_expr : expr -> declaration = function
+  (* definition := *)
   | List [ Symbol k; x; g ] when equal_string k def_op ->
-    Def (ray_of_expr x, Raw (Const (constellation_of_expr g)))
+    Def (ray_of_expr x, galaxy_expr_of_expr g)
+  (* show *)
   | List [ Symbol k; g ] when equal_string k "show" ->
     Show (galaxy_expr_of_expr g)
+  (* trace *)
   | List [ Symbol k; g ] when equal_string k "trace" ->
     Show (galaxy_expr_of_expr g)
+  (* expect *)
   | List [ Symbol k; x; g ] when equal_string k expect_op ->
     TypeDef (TExp (ray_of_expr x, galaxy_expr_of_expr g))
   | _ -> failwith "error: invalid declaration"
