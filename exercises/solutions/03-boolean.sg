@@ -1,0 +1,95 @@
+'fill the #your_answer hole by following the specifications
+
+(def checker
+  (galaxy
+    (interaction (union #tested #test))
+    (expect (const (star ok)))))
+
+(def not_spec
+  (galaxy
+    (test0 (const (@star (-not 0 1) ok)))
+    (test1 (const (@star (-not 1 0) ok)))))
+
+(:: not (not_spec / checker))
+(def not
+  (const
+    (star (+not 0 1))
+    (star (+not 1 0))))
+
+'how to print the truth table of NOT ?
+(== table_not (const
+  (star (table_not 0 1))
+  (star (table_not 1 0))))
+(def table_not
+  (union
+    #not
+    (const (@star (-not X Y) (table_not X Y)))))
+
+(def and_spec
+  (galaxy
+    (test00 (const (@star (-and 0 0 0) ok)))
+    (test01 (const (@star (-and 0 1 0) ok)))
+    (test10 (const (@star (-and 1 0 0) ok)))
+    (test11 (const (@star (-and 1 1 1) ok)))))
+
+(:: and (and_spec / checker))
+(def and
+  (const
+    (star (+and 0 0 0))
+    (star (+and 0 1 0))
+    (star (+and 1 0 0))
+    (star (+and 1 1 1))))
+
+(:: and (and_spec / checker))
+(def and2
+  (const
+    (star (+and 0 X 0))
+    (star (+and 1 X X))))
+
+(def or_spec
+  (galaxy
+    (test00 (const (@star (-or 0 0 0) ok)))
+    (test01 (const (@star (-or 0 1 1) ok)))
+    (test10 (const (@star (-or 1 0 1) ok)))
+    (test11 (const (@star (-or 1 1 1) ok)))))
+
+(:: or (or_spec / checker))
+(def or
+  (const
+    (star (+or 0 0 0))
+    (star (+or 0 1 1))
+    (star (+or 1 0 1))
+    (star (+or 1 1 1))))
+
+(:: or2 (or_spec / checker))
+(def or2
+  (const
+    (star (+or 0 X X))
+    (star (+or 1 X 1))))
+
+(def impl_spec
+  (galaxy
+    (test00 (const (@star (-impl 0 0 1) ok)))
+    (test01 (const (@star (-impl 0 1 1) ok)))
+    (test10 (const (@star (-impl 1 0 0) ok)))
+    (test11 (const (@star (-impl 1 1 1) ok)))))
+
+(:: impl (impl_spec / checker))
+(def impl
+  (exec (union (union #not #or)
+  (const (@star (-not X Y) (-or Y Z R) (+impl X Z R))))))
+
+(:: impl2 (impl_spec / checker))
+(def impl2
+  (exec (union (union #not #or)
+  (const (@star (-not X Y) (-or Y Z R) (+impl X Z R))))))
+
+(== ex (const (star (+ex 1 1)) (star (+ex 0 1))))
+(def ex
+  (union (union #not #or)
+  (const (@star (-not X R1) (-or R1 X R2) (+ex X R2)))))
+
+'how to show the values of X, Y and Z for which X /\ ~(Y /\ Z) is true?
+(show-exec
+  (union (union (union #or #not) #and)
+  (const (@star (-or Y Z R1) (-not R1 R2) (-and X R2 1) (x X) (y Y) (z Z)))))

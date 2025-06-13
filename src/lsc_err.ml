@@ -1,5 +1,6 @@
 open Base
-open Common.Format_exn
+
+let red text = "\x1b[31m" ^ text ^ "\x1b[0m"
 
 type err_effect =
   | TooFewArgs of string

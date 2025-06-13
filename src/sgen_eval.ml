@@ -3,8 +3,7 @@ open Lsc_ast
 open Lsc_err
 open Sgen_ast
 open Sgen_err
-open Common.Format_exn
-open Common.Pretty
+open Pretty
 open Out_channel
 
 let ( let* ) x f = Result.bind x ~f
@@ -57,10 +56,9 @@ and map_galaxy_expr env ~f : galaxy_expr -> (galaxy_expr, err) Result.t =
   | LinExec e ->
     let* map_e = map_galaxy_expr env ~f e in
     LinExec map_e |> Result.return
-  | Union (e, e') ->
-    let* map_e = map_galaxy_expr env ~f e in
-    let* map_e' = map_galaxy_expr env ~f e' in
-    Union (map_e, map_e') |> Result.return
+  | Union es ->
+    let* map_es = List.map ~f:(map_galaxy_expr env ~f) es |> Result.all in
+    Union map_es |> Result.return
   | Subst (e, Extend pf) ->
     let* map_e = map_galaxy_expr env ~f e in
     Subst (map_e, Extend pf) |> Result.return
@@ -104,10 +102,9 @@ let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
   | LinExec e ->
     let* g = replace_id env _from _to e in
     LinExec g |> Result.return
-  | Union (e1, e2) ->
-    let* g1 = replace_id env _from _to e1 in
-    let* g2 = replace_id env _from _to e2 in
-    Union (g1, g2) |> Result.return
+  | Union es ->
+    let* gs = List.map ~f:(replace_id env _from _to) es |> Result.all in
+    Union gs |> Result.return
   | Focus e ->
     let* g = replace_id env _from _to e in
     Focus g |> Result.return
@@ -211,12 +208,16 @@ and eval_galaxy_expr ~notyping (env : env) :
       | Some g -> eval_galaxy_expr ~notyping env g
     end
   end
-  | Union (e, e') ->
-    let* eval_e = eval_galaxy_expr ~notyping env e in
-    let* eval_e' = eval_galaxy_expr ~notyping env e' in
-    let* mcs1 = eval_e |> galaxy_to_constellation ~notyping env in
-    let* mcs2 = eval_e' |> galaxy_to_constellation ~notyping env in
-    Ok (Const (mcs1 @ mcs2))
+  | Union es ->
+    let* eval_es =
+      List.map ~f:(eval_galaxy_expr ~notyping env) es |> Result.all
+    in
+    let* mcs =
+      eval_es
+      |> List.map ~f:(galaxy_to_constellation ~notyping env)
+      |> Result.all
+    in
+    Ok (Const (List.concat mcs))
   | Exec e ->
     let* eval_e = eval_galaxy_expr ~notyping env e in
     let* mcs = galaxy_to_constellation ~notyping env eval_e in
@@ -262,7 +263,7 @@ and eval_galaxy_expr ~notyping (env : env) :
           let origin = acc |> remove_mark_all |> focus in
           let* ev =
             eval_galaxy_expr ~notyping env
-              (Focus (Exec (Union (x, Raw (Const origin)))))
+              (Focus (Exec (Union [ x; Raw (Const origin) ])))
           in
           galaxy_to_constellation ~notyping env ev )
     in
@@ -381,7 +382,8 @@ and typecheck ~notyping env x (t : StellarRays.term) (ck : galaxy_expr) :
     | Error e -> Error e )
   |> Result.all_unit
 
-and default_interaction = Union (Focus (Id (const "tested")), Id (const "test"))
+and default_interaction =
+  Union [ Focus (Id (const "tested")); Id (const "test") ]
 
 and default_expect =
   Raw (Const [ Unmarked { content = [ func "ok" [] ]; bans = [] } ])
@@ -453,11 +455,9 @@ let rec eval_decl ~typecheckonly ~notyping env :
     in
     Ok env
   | Show _ when typecheckonly -> Ok env
-  | Show (Id x) -> begin
-    match get_obj env x with
-    | None -> Error (UnknownID (string_of_ray x))
-    | Some e -> eval_decl ~typecheckonly ~notyping env (Show e)
-  end
+  | Show (Id x) ->
+    Show (Raw (Const [ Marked { content = [ func "#" [ x ] ]; bans = [] } ]))
+    |> eval_decl ~typecheckonly ~notyping env
   | Show (Raw (Galaxy g)) ->
     Galaxy g |> string_of_galaxy ~notyping env |> Stdlib.print_string;
     Stdlib.print_newline ();
@@ -475,8 +475,6 @@ let rec eval_decl ~typecheckonly ~notyping env :
     |> string_of_constellation |> Stdlib.print_string;
     Stdlib.print_newline ();
     Ok env
-  | ShowExec _ when typecheckonly -> Ok env
-  | ShowExec e -> eval_decl ~typecheckonly ~notyping env (Show (Exec e))
   | Trace _ when typecheckonly -> Ok env
   | Trace e ->
     let* eval_e = eval_galaxy_expr ~notyping env e in
@@ -507,11 +505,13 @@ let rec eval_decl ~typecheckonly ~notyping env :
       { Lexing.pos_fname = filename; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
     in
     Sedlexing.set_position lexbuf (start_pos formatted_filename);
-    let p = Sgen_parsing.parse_with_error lexbuf in
+    let expr = Sgen_parsing.parse_with_error lexbuf in
+    let expanded = List.map ~f:Expr.expand_macro expr in
+    let p = Expr.program_of_expr expanded in
     let* env = eval_program ~typecheckonly ~notyping p in
     Ok env
 
-and eval_program ~typecheckonly ~notyping p =
+and eval_program ~typecheckonly ~notyping (p : program) =
   match
     List.fold_left
       ~f:(fun acc x ->
