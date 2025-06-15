@@ -28,7 +28,7 @@ and galaxy_expr =
   | Id of ident
   | Exec of galaxy_expr
   | LinExec of galaxy_expr
-  | Union of galaxy_expr * galaxy_expr
+  | Union of galaxy_expr list
   | Subst of galaxy_expr * substitution
   | Focus of galaxy_expr
   | Clean of galaxy_expr
@@ -66,7 +66,6 @@ let initial_env =
 type declaration =
   | Def of ident * galaxy_expr
   | Show of galaxy_expr
-  | ShowExec of galaxy_expr
   | Trace of galaxy_expr
   | Run of galaxy_expr
   | TypeDef of type_declaration
