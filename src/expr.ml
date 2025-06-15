@@ -90,20 +90,21 @@ let rec ray_of_expr : expr -> ray = function
 
 let bans_of_expr : expr list -> ban list =
   let ban_of_expr = function
-    | List [Symbol k; a; b] when equal_string k ineq_op ->
+    | List [ Symbol k; a; b ] when equal_string k ineq_op ->
       Ineq (ray_of_expr a, ray_of_expr b)
-    | List [Symbol k; a; b] when equal_string k incomp_op ->
+    | List [ Symbol k; a; b ] when equal_string k incomp_op ->
       Incomp (ray_of_expr a, ray_of_expr b)
     | _ -> failwith "error: invalid ban expression"
-  in List.map ~f:ban_of_expr
+  in
+  List.map ~f:ban_of_expr
 
 let rec raylist_of_expr (e : expr) : ray list =
   match e with
   | Symbol k when equal_string k nil_op -> []
-  | Symbol _ | Var _ -> [ray_of_expr e]
+  | Symbol _ | Var _ -> [ ray_of_expr e ]
   | Unquote _ -> failwith "error: cannot unquote star"
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
-    (ray_of_expr h) :: raylist_of_expr t
+    ray_of_expr h :: raylist_of_expr t
   | e -> failwith ("error: unhandled star " ^ to_string e)
 
 let rec star_of_expr : expr -> marked_star = function
@@ -142,8 +143,9 @@ let rec galaxy_expr_of_expr (e : expr) : galaxy_expr =
     Raw (Const [ Unmarked { content = [ ray_of_expr e ]; bans = [] } ])
   (* star *)
   | List [ Symbol s; h; t ]
-    when equal_string s cons_op && not @@ is_cons h && not @@ contains_cons t ->
-    Raw (Const [star_of_expr e])
+    when equal_string s cons_op && (not @@ is_cons h) && (not @@ contains_cons t)
+    ->
+    Raw (Const [ star_of_expr e ])
   (* id *)
   | Unquote g -> Id (ray_of_expr g)
   (* focus @ *)

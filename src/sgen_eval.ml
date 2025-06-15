@@ -455,11 +455,11 @@ let rec eval_decl ~typecheckonly ~notyping env :
     in
     Ok env
   | Show _ when typecheckonly -> Ok env
-  | Show (Id x) ->
-    begin match get_obj env x with
+  | Show (Id x) -> begin
+    match get_obj env x with
     | None -> Error (UnknownID (string_of_ray x))
     | Some g -> eval_decl ~typecheckonly ~notyping env (Show g)
-    end
+  end
   | Show (Raw (Galaxy g)) ->
     Galaxy g |> string_of_galaxy ~notyping env |> Stdlib.print_string;
     Stdlib.print_newline ();
