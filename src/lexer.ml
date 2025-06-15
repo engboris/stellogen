@@ -23,7 +23,7 @@ and comments lexbuf =
 
 and read lexbuf =
   match%sedlex lexbuf with
-  | Plus (Compl (Chars "'\" \t\n\r()<>[]@#")) ->
+  | Plus (Compl (Chars "'\" \t\n\r()<>[]|@#")) ->
     let lexeme = Utf8.lexeme lexbuf in
     begin
       match lexeme.[0] with 'A' .. 'Z' -> VAR lexeme | _ -> SYM lexeme
@@ -36,6 +36,7 @@ and read lexbuf =
   | '>' -> RANGLE
   | '@' -> AT
   | '#' -> UNQUOTE
+  | '|' -> BAR
   | '\'' -> comment lexbuf
   | "'''" -> comments lexbuf
   | '"' -> STRMARK

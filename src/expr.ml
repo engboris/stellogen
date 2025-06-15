@@ -13,6 +13,7 @@ module Raw = struct
     | List of t list
     | Stack of t list
     | Cons of t list
+    | ConsWithParams of t list * t list
 end
 
 type expr =
@@ -21,7 +22,9 @@ type expr =
   | Unquote of expr
   | List of expr list
 
-let cons_op = "cons"
+let nil_op = "$nil"
+
+let cons_op = "$cons"
 
 let unquote_op = "#"
 
@@ -32,6 +35,12 @@ let def_op = ":="
 let typedef_op = "::"
 
 let expect_op = "=="
+
+let params_op = "$params"
+
+let ineq_op = "!="
+
+let incomp_op = "!@"
 
 let string_of_list lmark rmark l =
   l |> String.concat ~sep:" " |> fun l' ->
@@ -50,8 +59,10 @@ let rec expand_macro : Raw.t -> expr = function
   | Raw.Focus e' -> List [ Symbol focus_op; expand_macro e' ]
   | Raw.List es -> List (List.map ~f:expand_macro es)
   | Raw.Cons es ->
-    List.fold_left es ~init:(Symbol "nil") ~f:(fun acc e ->
+    List.fold_left es ~init:(Symbol nil_op) ~f:(fun acc e ->
       List [ Symbol cons_op; expand_macro e; acc ] )
+  | Raw.ConsWithParams (es, ps) ->
+    List [ Symbol params_op; expand_macro (Cons es); expand_macro (List ps) ]
   | Raw.Stack [] -> List []
   | Raw.Stack (h :: t) ->
     List.fold_left t ~init:(expand_macro h) ~f:(fun acc e ->
@@ -76,38 +87,63 @@ let rec ray_of_expr : expr -> ray = function
   | List (Symbol h :: t) ->
     to_func ((Muted, symbol_of_str h), List.map ~f:ray_of_expr t)
   | List (_ :: _) -> failwith "error: ray must start with constant"
-  | e -> failwith ("error: unhandled ray" ^ to_string e)
+
+let bans_of_expr : expr list -> ban list =
+  let ban_of_expr = function
+    | List [Symbol k; a; b] when equal_string k ineq_op ->
+      Ineq (ray_of_expr a, ray_of_expr b)
+    | List [Symbol k; a; b] when equal_string k incomp_op ->
+      Incomp (ray_of_expr a, ray_of_expr b)
+    | _ -> failwith "error: invalid ban expression"
+  in List.map ~f:ban_of_expr
+
+let rec raylist_of_expr (e : expr) : ray list =
+  match e with
+  | Symbol k when equal_string k nil_op -> []
+  | Symbol _ | Var _ -> [ray_of_expr e]
+  | Unquote _ -> failwith "error: cannot unquote star"
+  | List [ Symbol s; h; t ] when equal_string s cons_op ->
+    (ray_of_expr h) :: raylist_of_expr t
+  | e -> failwith ("error: unhandled star " ^ to_string e)
 
 let rec star_of_expr : expr -> marked_star = function
-  | Symbol "nil" -> Marked { content = []; bans = [] }
-  | Symbol s -> Marked { content = []; bans = [] }
-  | Var x -> Marked { content = []; bans = [] }
-  | Unquote e -> Marked { content = []; bans = [] }
-  | List [ Symbol s; h; t ] when equal_string s cons_op -> begin
-    match star_of_expr t with
-    | Marked { content = next_content; bans = next_bans } ->
-      Marked { content = ray_of_expr h :: next_content; bans = next_bans }
-  end
-  | e -> failwith ("error: unhandled star" ^ to_string e)
+  | List [ Symbol k; s ] when equal_string k focus_op ->
+    star_of_expr s |> Lsc_ast.remove_mark |> Lsc_ast.mark
+  | List [ Symbol k; s; List ps ] when equal_string k params_op ->
+    Unmarked { content = raylist_of_expr s; bans = bans_of_expr ps }
+  | e -> Unmarked { content = raylist_of_expr e; bans = [] }
 
 let rec constellation_of_expr : expr -> marked_constellation = function
-  | Symbol "nil" -> []
+  | Symbol k when equal_string k nil_op -> []
   | Symbol s -> [ Unmarked { content = [ var (s, None) ]; bans = [] } ]
   | Var x -> [ Unmarked { content = [ var (x, None) ]; bans = [] } ]
-  | Unquote e -> failwith "error: can't unquote constellation"
+  | Unquote _ -> failwith "error: can't unquote constellation"
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
     star_of_expr h :: constellation_of_expr t
   | List g -> [ Unmarked { content = [ ray_of_expr (List g) ]; bans = [] } ]
-  | e -> failwith ("error: unhandled constellation " ^ to_string e)
 
 (* ---------------------------------------
    Galaxy expr of Expr
    --------------------------------------- *)
 
-let rec galaxy_expr_of_expr : expr -> galaxy_expr = function
+let is_cons = function
+  | List [ Symbol s; _; _ ] when equal_string s cons_op -> true
+  | _ -> false
+
+let rec contains_cons = function
+  | List [ Symbol s; h; t ] when equal_string s cons_op ->
+    is_cons h || contains_cons t
+  | _ -> false
+
+let rec galaxy_expr_of_expr (e : expr) : galaxy_expr =
+  match e with
   (* ray *)
-  | Symbol s ->
-    Raw (Const [ Unmarked { content = [ ray_of_expr (Symbol s) ]; bans = [] } ])
+  | Var _ | Symbol _ ->
+    Raw (Const [ Unmarked { content = [ ray_of_expr e ]; bans = [] } ])
+  (* star *)
+  | List [ Symbol s; h; t ]
+    when equal_string s cons_op && not @@ is_cons h && not @@ contains_cons t ->
+    Raw (Const [star_of_expr e])
   (* id *)
   | Unquote g -> Id (ray_of_expr g)
   (* focus @ *)
@@ -138,7 +174,7 @@ let rec decl_of_expr : expr -> declaration = function
     Show (galaxy_expr_of_expr g)
   (* trace *)
   | List [ Symbol k; g ] when equal_string k "trace" ->
-    Show (galaxy_expr_of_expr g)
+    Trace (galaxy_expr_of_expr g)
   (* expect *)
   | List [ Symbol k; x; g ] when equal_string k expect_op ->
     TypeDef (TExp (ray_of_expr x, galaxy_expr_of_expr g))

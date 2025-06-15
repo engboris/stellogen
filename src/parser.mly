@@ -6,6 +6,7 @@ open Expr.Raw
 %token <string> SYM
 %token STRMARK
 %token AT
+%token BAR
 %token LPAR RPAR
 %token LBRACK RBRACK
 %token LANGLE RANGLE
@@ -32,6 +33,9 @@ let expr_file :=
   | EOF; { [] }
   | es=expr+; EOF; { es }
 
+let params :=
+  | BAR; ~=expr+; <>
+
 let expr :=
   | ~=SYM; <Symbol>
   | ~=VAR; <Var>
@@ -40,3 +44,4 @@ let expr :=
   | ~=pars(expr+); <List>
   | LANGLE; es=revlist(expr); RANGLE; <Stack>
   | LBRACK; es=revlist(expr); RBRACK; <Cons>
+  | LBRACK; ~=revlist(expr); ~=params; RBRACK; <ConsWithParams>

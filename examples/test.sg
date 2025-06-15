@@ -1,3 +1,0 @@
-(:= x a)
-(:= x @b)
-(show (exec #x))

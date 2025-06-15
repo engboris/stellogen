@@ -456,8 +456,10 @@ let rec eval_decl ~typecheckonly ~notyping env :
     Ok env
   | Show _ when typecheckonly -> Ok env
   | Show (Id x) ->
-    Show (Raw (Const [ Marked { content = [ func "#" [ x ] ]; bans = [] } ]))
-    |> eval_decl ~typecheckonly ~notyping env
+    begin match get_obj env x with
+    | None -> Error (UnknownID (string_of_ray x))
+    | Some g -> eval_decl ~typecheckonly ~notyping env (Show g)
+    end
   | Show (Raw (Galaxy g)) ->
     Galaxy g |> string_of_galaxy ~notyping env |> Stdlib.print_string;
     Stdlib.print_newline ();

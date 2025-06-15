@@ -11,33 +11,31 @@
 '(:= w ["hello world"])
 
 'cons
-(:= w [+w [0 1 0 1 e]])
-
-'full focus
-<show exec (union @#w #w)>
-
-'''
-'show (literal) contellations
-(show (const
-    (star a) (star b) (star c)))
+(:= w [(+w [0 1 0 1 e])])
 
 'print result of execution
-(show-exec (const
-  (star a) (star b) (star c)))
+(:= x [(+f X) X])
+(:= y (-f a))
+<show exec (union @#x #y)>
 
-(show (exec (const
-  (star a) (star b) (star c))))
+'show (literal) contellations
+(show [ [a] [b] [c] ])
+
+'full focus
+(show @[ [a] [b] [c] ])
 
 'inequality constraints
-(def ineq
-  (const
-    (star (+f a))
-    (star (+f b))
-    (@star (-f X) (-f Y) (r X Y) / (!= X Y))))
+(:= ineq [
+  [(+f a)]
+  [(+f b)]
+  @[(-f X) (-f Y) (r X Y) | (!= X Y)]])
+(show #ineq)
+<show exec #ineq>
 
 'interactive debugging of execution
-'(trace ineq)
+'(trace #ineq)
 
+'''
 'dynamic definition of constellation
 (def c (process
   (const (star (+n0 0)))               'base constellation
