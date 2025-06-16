@@ -82,7 +82,7 @@ let symbol_of_str (s : string) : idfunc =
 let rec ray_of_expr : expr -> ray = function
   | Symbol s -> to_func ((Muted, symbol_of_str s), [])
   | Var s -> to_var s
-  | Unquote _ -> failwith "error: cannot unquote ray"
+  | Unquote e -> failwith ("error: cannot unquote ray " ^ to_string e)
   | List [] -> failwith "error: ray cannot be empty"
   | List (Symbol h :: t) ->
     to_func ((Muted, symbol_of_str h), List.map ~f:ray_of_expr t)
@@ -102,7 +102,7 @@ let rec raylist_of_expr (e : expr) : ray list =
   match e with
   | Symbol k when equal_string k nil_op -> []
   | Symbol _ | Var _ -> [ ray_of_expr e ]
-  | Unquote _ -> failwith "error: cannot unquote star"
+  | Unquote e -> failwith ("error: cannot unquote star " ^ to_string e) 
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
     ray_of_expr h :: raylist_of_expr t
   | e -> failwith ("error: unhandled star " ^ to_string e)
@@ -118,7 +118,7 @@ let rec constellation_of_expr : expr -> marked_constellation = function
   | Symbol k when equal_string k nil_op -> []
   | Symbol s -> [ Unmarked { content = [ var (s, None) ]; bans = [] } ]
   | Var x -> [ Unmarked { content = [ var (x, None) ]; bans = [] } ]
-  | Unquote _ -> failwith "error: can't unquote constellation"
+  | Unquote e -> failwith ("error: can't unquote constellation" ^ to_string e)
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
     star_of_expr h :: constellation_of_expr t
   | List g -> [ Unmarked { content = [ ray_of_expr (List g) ]; bans = [] } ]
@@ -154,20 +154,32 @@ let rec galaxy_expr_of_expr (e : expr) : galaxy_expr =
   (* union *)
   | List (Symbol k :: gs) when equal_string k "union" ->
     Union (List.map ~f:galaxy_expr_of_expr gs)
+  (* process *)
+  | List (Symbol k :: gs) when equal_string k "process" ->
+    Process (List.map ~f:galaxy_expr_of_expr gs)
+  (* kill *)
+  | List [ Symbol k; g ] when equal_string k "kill" ->
+    Kill (galaxy_expr_of_expr g)
+  (* clean *)
+  | List [ Symbol k; g ] when equal_string k "clean" ->
+    Clean (galaxy_expr_of_expr g)
   (* exec *)
   | List [ Symbol k; g ] when equal_string k "exec" ->
     Exec (galaxy_expr_of_expr g)
   (* linear exec *)
   | List [ Symbol k; g ] when equal_string k "linexec" ->
     LinExec (galaxy_expr_of_expr g)
-  (* raw constellation *)
+  (* linear exec *)
+  | List [ Symbol k; g ] when equal_string k "eval" ->
+    Eval (ray_of_expr g)
+  (* KEEP LAST -- raw constellation *)
   | List g -> Raw (Const (constellation_of_expr (List g)))
 
 (* ---------------------------------------
    Stellogen program of Expr
    --------------------------------------- *)
 
-let rec decl_of_expr : expr -> declaration = function
+let decl_of_expr : expr -> declaration = function
   (* definition := *)
   | List [ Symbol k; x; g ] when equal_string k def_op ->
     Def (ray_of_expr x, galaxy_expr_of_expr g)

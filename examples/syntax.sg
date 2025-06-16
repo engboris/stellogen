@@ -35,20 +35,24 @@
 'interactive debugging of execution
 '(trace #ineq)
 
-'''
 'dynamic definition of constellation
-(def c (process
-  (const (star (+n0 0)))               'base constellation
-  (const (star (-n0 X) (+n1 (s X))))   'interacts with previous
-  (const (star (-n1 X) (+n2 (s X)))))) 'interacts with previous
+(:= c (process
+  (+n0 0)                 'base constellation
+  [(-n0 X) (+n1 (s X))]   'interacts with previous
+  [(-n1 X) (+n2 (s X))])) 'interacts with previous
+(show #c)
 
-'galaxy definition
-(def g (galaxy
-  (test1 (const (star (+f a) ok)))
-  (test2 (const (star (+f b) ok)))))
-
+'constellation with fields
+(:= g [
+  [+test1 [(+f a) ok]]
+  [+test2 [(+f b) ok]]])
 (show #g)
 
+'field access and evaluation
+<show eval exec (union #g @[-test1])>
+<show eval exec (union #g @[-test2])>
+
+'''
 'reactive effects
 (run (const
   (star (+&print X))
