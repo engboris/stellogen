@@ -102,7 +102,7 @@ let rec raylist_of_expr (e : expr) : ray list =
   match e with
   | Symbol k when equal_string k nil_op -> []
   | Symbol _ | Var _ -> [ ray_of_expr e ]
-  | Unquote e -> failwith ("error: cannot unquote star " ^ to_string e) 
+  | Unquote e -> failwith ("error: cannot unquote star " ^ to_string e)
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
     ray_of_expr h :: raylist_of_expr t
   | e -> failwith ("error: unhandled star " ^ to_string e)
@@ -171,7 +171,7 @@ let rec galaxy_expr_of_expr (e : expr) : galaxy_expr =
     LinExec (galaxy_expr_of_expr g)
   (* linear exec *)
   | List [ Symbol k; g ] when equal_string k "eval" ->
-    Eval (ray_of_expr g)
+    Eval (galaxy_expr_of_expr g)
   (* KEEP LAST -- raw constellation *)
   | List g -> Raw (Const (constellation_of_expr (List g)))
 

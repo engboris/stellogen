@@ -34,7 +34,7 @@ and galaxy_expr =
   | Clean of galaxy_expr
   | Kill of galaxy_expr
   | Process of galaxy_expr list
-  | Eval of ray
+  | Eval of galaxy_expr
 
 and substitution =
   | Extend of ray_prefix

@@ -81,7 +81,9 @@ and map_galaxy_expr env ~f : galaxy_expr -> (galaxy_expr, err) Result.t =
   | Process gs ->
     let* procs = List.map ~f:(map_galaxy_expr env ~f) gs |> Result.all in
     Process procs |> Result.return
-  | Eval e -> Eval e |> Result.return
+  | Eval e ->
+    let* map_e = map_galaxy_expr env ~f e in
+    Eval map_e |> Result.return
 
 let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
   (galaxy_expr, err) Result.t =
@@ -115,7 +117,10 @@ let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
   | Process gs ->
     let* procs = List.map ~f:(replace_id env _from _to) gs |> Result.all in
     Process procs |> Result.return
-  | Raw _ | Id _ | Eval _ -> e |> Result.return
+  | Eval e ->
+    let* g = replace_id env _from _to e in
+    Eval g |> Result.return
+  | Raw _ | Id _ -> e |> Result.return
 
 let subst_vars env _from _to =
   map_galaxy_expr env ~f:(subst_all_vars [ (_from, _to) ])
@@ -297,16 +302,22 @@ and eval_galaxy_expr ~notyping (env : env) :
   | Subst (e, SGal (x, _to)) ->
     let* fill = replace_id env x _to e in
     eval_galaxy_expr ~notyping env fill
-  | Eval e ->
-    let* eval_e = Expr.galaxy_expr_of_expr (expr_of_ray e)
-      |> eval_galaxy_expr ~notyping env in
-    eval_galaxy_expr ~notyping env (Raw eval_e)
+  | Eval e -> (
+    let* eval_e = eval_galaxy_expr ~notyping env e in
+    match eval_e with
+    | Const [ Marked { content = [ r ]; bans = _ } ]
+    | Const [ Unmarked { content = [ r ]; bans = _ } ] ->
+      r |> expr_of_ray |> Expr.galaxy_expr_of_expr
+      |> eval_galaxy_expr ~notyping env
+    | _ -> failwith "error: only rays can be evaluated." )
 
 and expr_of_ray = function
   | Var (x, None) -> Expr.Var x
   | Var (x, Some i) -> Expr.Var (x ^ Int.to_string i)
+  | Func (pf, []) -> Symbol (Lsc_ast.string_of_polsym pf)
   | Func (pf, args) ->
-    Expr.List (Symbol (Lsc_ast.string_of_polsym pf) :: List.map ~f:expr_of_ray args)
+    Expr.List
+      (Symbol (Lsc_ast.string_of_polsym pf) :: List.map ~f:expr_of_ray args)
 
 and galaxy_to_constellation ~notyping env :
   galaxy -> (marked_constellation, err) Result.t = function
