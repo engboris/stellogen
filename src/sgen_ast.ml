@@ -9,18 +9,9 @@ type idfunc = polarity * string
 
 type ray_prefix = StellarRays.fmark * idfunc
 
-type type_declaration =
-  | TDef of ident * (ident * ident option) list
-  | TExp of ident * galaxy_expr
-
 and galaxy =
   | Const of marked_constellation
-  | Galaxy of galaxy_declaration list
-  | Interface of type_declaration list
-
-and galaxy_declaration =
-  | GTypeDef of type_declaration
-  | GLabelDef of ident * galaxy_expr
+  | Galaxy of (ident * galaxy_expr) list
 
 and galaxy_expr =
   | Raw of galaxy
@@ -54,10 +45,7 @@ type env =
 
 let expect (g : galaxy_expr) : galaxy_expr =
   Raw
-    (Galaxy
-       [ GLabelDef (const "interaction", Id (const "tested"))
-       ; GLabelDef (const "expect", g)
-       ] )
+    (Galaxy [ (const "interaction", Id (const "tested")); (const "expect", g) ])
 
 let initial_env =
   { objs = [ (const "^empty", Raw (Const [])) ]
@@ -69,7 +57,8 @@ type declaration =
   | Show of galaxy_expr
   | Trace of galaxy_expr
   | Run of galaxy_expr
-  | TypeDef of type_declaration
+  | Typedecl of ident * (ident * ident option) list
+  | Expect of ident * galaxy_expr
   | Use of ident list
 
 type program = declaration list

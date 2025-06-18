@@ -18,6 +18,10 @@
 (:= y (-f a))
 <show exec (union @#x #y)>
 
+'complex identifiers
+(:= (f a b) [(function a b)])
+(show #(f a b))
+
 'show (literal) contellations
 (show [ [a] [b] [c] ])
 
@@ -52,47 +56,33 @@
 <show eval exec (union #g @[-test1])>
 <show eval exec (union #g @[-test2])>
 
-'''
-'reactive effects
-(run (const
-  (star (+&print X))
-  (star (-&print "hello world\n"))))
-
-'access to field of a galaxy
-(show (get g test1))
-(show (get g test2))
-
 'extend rays with a head function symbol
-(show-exec (const (star (+f X)) (star (f X)))[=>+a])
-(show-exec (const (star (+f X)) (star (f X)))[=>a])
+'<show exec [[(+f X)] [(f X)]][=>+a]>
+'<show exec [[(+f X)] [(f X)]][=>a]>
 
 'remove head function symbol from a ray
-(show-exec (const (star (+f X)) (star (f X)))[+f=>])
+'<show-exec [[(+f X)] [(f X)]][+f=>]>
 
 'substitutions
-(show-exec
-  (const (star (+f X)))[X=>(+a X)])
-(show-exec (const (star (+f X)))[+f=>+g])
-(show-exec (union #1 #2)
-  [#1=>(const (star (+f X) X))]
-  [#2=>(const (star (-f a)))])
+'<show exec (+f X)[X=>(+a X)]>
+'<show exec (+f X)[+f=>+g]>
+'<show exec (union #1 #2)
+'  [#1=>[(+f X) X)]]
+'  [#2=>(-f a)]>
 
 'checkers & typechecking
-(def checker (galaxy
-  (interaction (union @#tested #test))
-  (expect (const (star ok)))))
+(:= checker [
+  [+interaction (union @#tested #test)]
+  [+expect ok]])
 
-(spec nat
-  (galaxy
-    (test
-      (const
-        (star (-nat 0) ok)
-        (star (-nat (s N)) (+nat N))))))
+(spec nat [
+  [(-nat 0) ok)]
+  [(-nat (s N)) (+nat N)]])
 
-(:: 0 (nat /checker))
-(def 0
-  (const (star (+nat 0))))
+'(:: 0 (nat | checker))
+'(:= 0 (+nat 0))
 
+'''
 (:: 1 (nat / checker))
 (def 1
   (const (star (+nat (s 0)))))
@@ -114,29 +104,7 @@
 (def 4
   (const (star (+nat <s s s s /0>))))
 
-(interface nat_pair
-  (:: n nat)
-  (:: m nat))
-
-(:: g_pair nat_pair)
-(def g_pair
-  (galaxy
-    (n (const (star (+nat 0))))
-    (m (const (star (+nat 0))))))
-
-'galaxy with type declarations
-(show (galaxy
-  (:: n1 nat)
-  (n1 (const (star (+nat 0))))
-  (:: n2 nat)
-  (n2 (const (star (+nat <s s /0>))))))
-
 'import file
 '(use examples automata)
 
-'complex identifiers
-(def (f a b)
-  (const
-    (star (function a b))))
-(show #(f a b))
 '''

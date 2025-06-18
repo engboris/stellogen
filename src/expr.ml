@@ -82,7 +82,7 @@ let symbol_of_str (s : string) : idfunc =
 let rec ray_of_expr : expr -> ray = function
   | Symbol s -> to_func ((Muted, symbol_of_str s), [])
   | Var s -> to_var s
-  | Unquote e -> failwith ("error: cannot unquote ray " ^ to_string e)
+  | Unquote e -> to_func ((Muted, (Null, "#")), [ ray_of_expr e ])
   | List [] -> failwith "error: ray cannot be empty"
   | List (Symbol h :: t) ->
     to_func ((Muted, symbol_of_str h), List.map ~f:ray_of_expr t)
@@ -179,10 +179,20 @@ let rec galaxy_expr_of_expr (e : expr) : galaxy_expr =
    Stellogen program of Expr
    --------------------------------------- *)
 
+(* let typedecl_of_expr : expr -> type_declaration = function
+  | Symbol k when equal_string k nil_op -> []
+  | List [ Symbol k; h; t ] when equal_string k cons_op ->
+*)
+
 let decl_of_expr : expr -> declaration = function
   (* definition := *)
   | List [ Symbol k; x; g ] when equal_string k def_op ->
     Def (ray_of_expr x, galaxy_expr_of_expr g)
+  | List [ Symbol k; x; g ] when equal_string k "spec" ->
+    Def (ray_of_expr x, galaxy_expr_of_expr g)
+  (* type declaration :: *)
+  (* | List [ Symbol k; x; g ] when equal_string k typedef_op ->
+    Typedecl (ray_of_expr x, typedecl_of_expr g) *)
   (* show *)
   | List [ Symbol k; g ] when equal_string k "show" ->
     Show (galaxy_expr_of_expr g)
@@ -191,7 +201,7 @@ let decl_of_expr : expr -> declaration = function
     Trace (galaxy_expr_of_expr g)
   (* expect *)
   | List [ Symbol k; x; g ] when equal_string k expect_op ->
-    TypeDef (TExp (ray_of_expr x, galaxy_expr_of_expr g))
+    Expect (ray_of_expr x, galaxy_expr_of_expr g)
   | _ -> failwith "error: invalid declaration"
 
 let program_of_expr = List.map ~f:decl_of_expr

@@ -18,14 +18,11 @@ let get_type env x = List.Assoc.find ~equal:equal_ray env.types x
 
 let rec map_galaxy env ~f : galaxy -> (galaxy, err) Result.t = function
   | Const mcs -> Const (f mcs) |> Result.return
-  | Interface i -> Interface i |> Result.return
   | Galaxy g ->
     let* g' =
-      List.map g ~f:(function
-        | GTypeDef tdef -> GTypeDef tdef |> Result.return
-        | GLabelDef (k, v) ->
-          let* map_v = map_galaxy_expr env ~f v in
-          GLabelDef (k, map_v) |> Result.return )
+      List.map g ~f:(function k, v ->
+        let* map_v = map_galaxy_expr env ~f v in
+        (k, map_v) |> Result.return )
       |> Result.all
     in
     Galaxy g' |> Result.return
@@ -128,39 +125,7 @@ let subst_vars env _from _to =
 let subst_funcs env _from _to =
   map_galaxy_expr env ~f:(subst_all_funcs [ (_from, _to) ])
 
-let group_galaxy :
-     galaxy_declaration list
-  -> type_declaration list * (StellarRays.term * galaxy_expr) list =
-  List.fold_left ~init:([], []) ~f:(function types, fields ->
-    (function
-    | GTypeDef d -> (d :: types, fields)
-    | GLabelDef (x, g') -> (types, (x, g') :: fields) ) )
-
-let rec typecheck_galaxy ~notyping env (g : galaxy_declaration list) :
-  (unit, err) Result.t =
-  let types, fields = group_galaxy g in
-  List.map types ~f:(function
-    | TExp (x, g) ->
-      let checker = expect g in
-      let new_env = { types = env.types; objs = fields @ env.objs } in
-      typecheck ~notyping new_env x (const "^empty") checker
-    | TDef (x, ts) ->
-      List.map ts ~f:(fun (t, ck) ->
-        let* checker =
-          match ck with
-          | None -> Ok default_checker
-          | Some xck -> begin
-            match get_obj env xck with
-            | None -> Error (UnknownID (string_of_ray xck))
-            | Some g -> Ok g
-          end
-        in
-        let new_env = { types = env.types; objs = fields @ env.objs } in
-        typecheck ~notyping new_env x t checker )
-      |> Result.all_unit )
-  |> Result.all_unit
-
-and pp_err ~notyping e : (string, err) Result.t =
+let rec pp_err ~notyping e : (string, err) Result.t =
   match e with
   | IllFormedChecker -> "Ill-formed checker.\n" |> Result.return
   | ExpectedGalaxy -> "Expected galaxy.\n" |> Result.return
@@ -189,22 +154,17 @@ and pp_err ~notyping e : (string, err) Result.t =
 
 and eval_galaxy_expr ~notyping (env : env) :
   galaxy_expr -> (galaxy, err) Result.t = function
-  | Raw (Galaxy g) ->
-    let* _ = if notyping then Ok () else typecheck_galaxy ~notyping env g in
-    Ok (Galaxy g)
+  | Raw (Galaxy g) -> Ok (Galaxy g)
   | Raw (Const mcs) -> Ok (Const mcs)
-  | Raw (Interface _) -> Ok (Interface [])
   | Access (e, x) -> begin
     match eval_galaxy_expr ~notyping env e with
     | Ok (Const _) -> Error (UnknownField (string_of_ray x))
-    | Ok (Interface _) -> Error (UnknownField (string_of_ray x))
-    | Ok (Galaxy g) -> (
-      let _, fields = group_galaxy g in
+    | Ok (Galaxy g) -> begin
       try
-        fields |> fun g ->
         List.Assoc.find_exn ~equal:equal_ray g x
         |> eval_galaxy_expr ~notyping env
-      with Not_found_s _ -> Error (UnknownField (string_of_ray x)) )
+      with Not_found_s _ -> Error (UnknownField (string_of_ray x))
+    end
     | Error e -> Error e
   end
   | Id x -> begin
@@ -315,6 +275,8 @@ and expr_of_ray = function
   | Var (x, None) -> Expr.Var x
   | Var (x, Some i) -> Expr.Var (x ^ Int.to_string i)
   | Func (pf, []) -> Symbol (Lsc_ast.string_of_polsym pf)
+  | Func ((Muted, (Null, k)), [ r ]) when equal_string k "#" ->
+    Unquote (expr_of_ray r)
   | Func (pf, args) ->
     Expr.List
       (Symbol (Lsc_ast.string_of_polsym pf) :: List.map ~f:expr_of_ray args)
@@ -322,10 +284,8 @@ and expr_of_ray = function
 and galaxy_to_constellation ~notyping env :
   galaxy -> (marked_constellation, err) Result.t = function
   | Const mcs -> Ok mcs
-  | Interface _ -> Ok []
   | Galaxy g ->
-    let _, fields = group_galaxy g in
-    List.fold_left fields ~init:(Ok []) ~f:(fun acc (_, v) ->
+    List.fold_left g ~init:(Ok []) ~f:(fun acc (_, v) ->
       let* acc = acc in
       let* eval_v = eval_galaxy_expr ~notyping env v in
       let* mcs = galaxy_to_constellation ~notyping env eval_v in
@@ -336,25 +296,11 @@ and equal_galaxy ~notyping env g g' =
   let* mcs' = galaxy_to_constellation ~notyping env g' in
   equal_mconstellation mcs mcs' |> Result.return
 
-and check_interface ~notyping env x i =
-  let* g =
-    match get_obj env x with
-    | Some (Raw (Galaxy g)) -> Ok g
-    | Some _ -> Error ExpectedGalaxy
-    | None -> Error (UnknownID (string_of_ray x))
-  in
-  let type_decls = List.map i ~f:(fun t -> GTypeDef t) in
-  typecheck_galaxy ~notyping env (type_decls @ g)
-
 and typecheck ~notyping env x (t : StellarRays.term) (ck : galaxy_expr) :
   (unit, err) Result.t =
   let* gtests : (StellarRays.term * galaxy_expr) list =
     match get_obj env t with
     | Some (Raw (Const mcs)) -> Ok [ (const "_", Raw (Const mcs)) ]
-    | Some (Raw (Interface i)) ->
-      let* _ = check_interface ~notyping env x i in
-      Ok []
-    | Some (Raw (Galaxy gtests)) -> group_galaxy gtests |> snd |> Result.return
     | Some e ->
       let* eval_e = eval_galaxy_expr ~notyping env e in
       let* mcs = galaxy_to_constellation ~notyping env eval_e in
@@ -366,10 +312,7 @@ and typecheck ~notyping env x (t : StellarRays.term) (ck : galaxy_expr) :
       match ck with
       | Raw (Galaxy gck) ->
         let format =
-          try
-            List.Assoc.find_exn ~equal:equal_ray
-              (group_galaxy gck |> snd)
-              (const "interaction")
+          try List.Assoc.find_exn ~equal:equal_ray gck (const "interaction")
           with Not_found_s _ -> default_interaction
         in
         begin
@@ -413,8 +356,8 @@ and default_expect =
 and default_checker : galaxy_expr =
   Raw
     (Galaxy
-       [ GLabelDef (const "interaction", default_interaction)
-       ; GLabelDef (const "expect", default_expect)
+       [ (const "interaction", default_interaction)
+       ; (const "expect", default_expect)
        ] )
 
 and string_of_type_expr (t, ck) =
@@ -422,35 +365,17 @@ and string_of_type_expr (t, ck) =
   | None -> Printf.sprintf "%s" (string_of_ray t)
   | Some xck -> Printf.sprintf "%s [%s]" (string_of_ray t) (string_of_ray xck)
 
-and string_of_type_declaration ~notyping env = function
-  | TDef (x, ts) ->
-    let str_x = string_of_ray x in
-    let str_ts = List.map ts ~f:string_of_type_expr in
-    Printf.sprintf "  %s :: %s.\n" str_x (string_of_list Fn.id ";" str_ts)
-  | TExp (x, g) -> (
-    match eval_galaxy_expr ~notyping env g with
-    | Error _ -> failwith "Error: string_of_type_declaration"
-    | Ok eval_g ->
-      let str_x = string_of_ray x in
-      Printf.sprintf "%s :=: %s" str_x (string_of_galaxy ~notyping env eval_g) )
-
 and string_of_galaxy_declaration ~notyping env = function
-  | GLabelDef (k, v) -> begin
+  | k, v -> (
     match eval_galaxy_expr ~notyping env v with
     | Error _ -> failwith "Error: string_of_galaxy_declaration"
     | Ok eval_v ->
       let str_k = string_of_ray k in
       Printf.sprintf "  %s = %s\n" str_k (string_of_galaxy ~notyping env eval_v)
-  end
-  | GTypeDef decl -> string_of_type_declaration ~notyping env decl
+    )
 
 and string_of_galaxy ~notyping env : galaxy -> string = function
   | Const mcs -> mcs |> remove_mark_all |> string_of_constellation
-  | Interface i ->
-    let content =
-      string_of_list (string_of_type_declaration ~notyping env) "" i
-    in
-    Printf.sprintf "interface\n%send" content
   | Galaxy g ->
     Printf.sprintf "galaxy\n%send"
       (string_of_list (string_of_galaxy_declaration ~notyping env) "" g)
@@ -487,11 +412,6 @@ let rec eval_decl ~typecheckonly ~notyping env :
     Stdlib.print_newline ();
     Stdlib.flush Stdlib.stdout;
     Ok env
-  | Show (Raw (Interface i)) ->
-    Interface i |> string_of_galaxy ~notyping env |> Stdlib.print_string;
-    Stdlib.print_newline ();
-    Stdlib.flush Stdlib.stdout;
-    Ok env
   | Show e ->
     let* eval_e = eval_galaxy_expr ~notyping env e in
     let* mcs = galaxy_to_constellation ~notyping env eval_e in
@@ -512,9 +432,9 @@ let rec eval_decl ~typecheckonly ~notyping env :
   | Run e ->
     let _ = eval_galaxy_expr ~notyping env (Exec e) in
     Ok env
-  | TypeDef _ when notyping -> Ok env
-  | TypeDef (TDef (x, ts)) -> Ok { objs = env.objs; types = add_type env x ts }
-  | TypeDef (TExp (x, mcs)) ->
+  | Typedecl _ when notyping -> Ok env
+  | Typedecl (x, ts) -> Ok { objs = env.objs; types = add_type env x ts }
+  | Expect (x, mcs) ->
     Ok
       { objs = add_obj env (const "^expect") (expect mcs)
       ; types = add_type env x [ (const "^empty", Some (const "^expect")) ]
