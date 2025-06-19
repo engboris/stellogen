@@ -56,6 +56,13 @@
 <show eval exec (union #g @[-test1])>
 <show eval exec (union #g @[-test2])>
 
+'nested fields
+(:= g1 [
+  [+test1 [
+    [+test2 [(+f c) ok]]]]])
+(:= g2 <eval exec (union #g1 @[-test1])>)
+<show eval exec (union #g2 @[-test2])>
+
 'extend rays with a head function symbol
 '<show exec [[(+f X)] [(f X)]][=>+a]>
 '<show exec [[(+f X)] [(f X)]][=>a]>
@@ -76,13 +83,19 @@
   [+expect ok]])
 
 (spec nat [
-  [(-nat 0) ok)]
+  [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]])
 
+'manual typing
+(:= 0 (+nat 0))
+(:= expect <eval exec (union #checker @[-expect])>)
+(== res_int #expect)
+(:= res_int @(exec (union @#0 #nat)))
+
+'''
 '(:: 0 (nat | checker))
 '(:= 0 (+nat 0))
 
-'''
 (:: 1 (nat / checker))
 (def 1
   (const (star (+nat (s 0)))))
