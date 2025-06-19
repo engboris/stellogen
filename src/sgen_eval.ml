@@ -3,7 +3,6 @@ open Lsc_ast
 open Lsc_err
 open Sgen_ast
 open Sgen_err
-open Pretty
 open Out_channel
 
 let ( let* ) x f = Result.bind x ~f
@@ -16,80 +15,61 @@ let add_type env x e = List.Assoc.add ~equal:equal_ray env.types x e
 
 let get_type env x = List.Assoc.find ~equal:equal_ray env.types x
 
-let rec map_galaxy env ~f : galaxy -> (galaxy, err) Result.t = function
-  | Const mcs -> Const (f mcs) |> Result.return
-  | Galaxy g ->
-    let* g' =
-      List.map g ~f:(function k, v ->
-        let* map_v = map_galaxy_expr env ~f v in
-        (k, map_v) |> Result.return )
-      |> Result.all
-    in
-    Galaxy g' |> Result.return
-
-and map_galaxy_expr env ~f : galaxy_expr -> (galaxy_expr, err) Result.t =
+let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t =
   function
-  | Raw g ->
-    let* map_g = map_galaxy env ~f g in
-    Raw map_g |> Result.return
-  | Access (e, x) ->
-    let* map_e = map_galaxy_expr env ~f e in
-    Access (map_e, x) |> Result.return
+  | Raw g -> Raw (f g) |> Result.return
   | Id x when is_reserved x -> Ok (Id x)
   | Id x -> begin
     match get_obj env x with
     | None -> Error (UnknownID (string_of_ray x))
-    | Some g -> map_galaxy_expr env ~f g
+    | Some g -> map_sgen_expr env ~f g
   end
   | Exec e ->
-    let* map_e = map_galaxy_expr env ~f e in
+    let* map_e = map_sgen_expr env ~f e in
     Exec map_e |> Result.return
   | Kill e ->
-    let* map_e = map_galaxy_expr env ~f e in
+    let* map_e = map_sgen_expr env ~f e in
     Kill map_e |> Result.return
   | Clean e ->
-    let* map_e = map_galaxy_expr env ~f e in
+    let* map_e = map_sgen_expr env ~f e in
     Clean map_e |> Result.return
   | LinExec e ->
-    let* map_e = map_galaxy_expr env ~f e in
+    let* map_e = map_sgen_expr env ~f e in
     LinExec map_e |> Result.return
   | Union es ->
-    let* map_es = List.map ~f:(map_galaxy_expr env ~f) es |> Result.all in
+    let* map_es = List.map ~f:(map_sgen_expr env ~f) es |> Result.all in
     Union map_es |> Result.return
   | Subst (e, Extend pf) ->
-    let* map_e = map_galaxy_expr env ~f e in
+    let* map_e = map_sgen_expr env ~f e in
     Subst (map_e, Extend pf) |> Result.return
   | Subst (e, Reduce pf) ->
-    let* map_e = map_galaxy_expr env ~f e in
+    let* map_e = map_sgen_expr env ~f e in
     Subst (map_e, Reduce pf) |> Result.return
   | Focus e ->
-    let* map_e = map_galaxy_expr env ~f e in
+    let* map_e = map_sgen_expr env ~f e in
     Focus map_e |> Result.return
   | Subst (e, SVar (x, r)) ->
-    let* map_e = map_galaxy_expr env ~f e in
+    let* map_e = map_sgen_expr env ~f e in
     Subst (map_e, SVar (x, r)) |> Result.return
   | Subst (e, SFunc (pf, pf')) ->
-    let* map_e = map_galaxy_expr env ~f e in
+    let* map_e = map_sgen_expr env ~f e in
     Subst (map_e, SFunc (pf, pf')) |> Result.return
   | Subst (e', SGal (x, e)) ->
-    let* map_e = map_galaxy_expr env ~f e in
-    let* map_e' = map_galaxy_expr env ~f e' in
+    let* map_e = map_sgen_expr env ~f e in
+    let* map_e' = map_sgen_expr env ~f e' in
     Subst (map_e', SGal (x, map_e)) |> Result.return
   | Process gs ->
-    let* procs = List.map ~f:(map_galaxy_expr env ~f) gs |> Result.all in
+    let* procs = List.map ~f:(map_sgen_expr env ~f) gs |> Result.all in
     Process procs |> Result.return
   | Eval e ->
-    let* map_e = map_galaxy_expr env ~f e in
+    let* map_e = map_sgen_expr env ~f e in
     Eval map_e |> Result.return
 
-let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
-  (galaxy_expr, err) Result.t =
+let rec replace_id env (_from : ident) (_to : sgen_expr) e :
+  (sgen_expr, err) Result.t =
   match e with
   | Id x when is_reserved x -> Ok (Id x)
   | Id x when equal_ray x _from -> Ok _to
-  | Access (g, x) ->
-    let* g' = replace_id env _from _to g in
-    Access (g', x) |> Result.return
   | Exec e ->
     let* g = replace_id env _from _to e in
     Exec g |> Result.return
@@ -120,103 +100,73 @@ let rec replace_id env (_from : ident) (_to : galaxy_expr) e :
   | Raw _ | Id _ -> e |> Result.return
 
 let subst_vars env _from _to =
-  map_galaxy_expr env ~f:(subst_all_vars [ (_from, _to) ])
+  map_sgen_expr env ~f:(subst_all_vars [ (_from, _to) ])
 
 let subst_funcs env _from _to =
-  map_galaxy_expr env ~f:(subst_all_funcs [ (_from, _to) ])
+  map_sgen_expr env ~f:(subst_all_funcs [ (_from, _to) ])
 
-let rec pp_err ~notyping e : (string, err) Result.t =
+let rec pp_err e : (string, err) Result.t =
   match e with
   | IllFormedChecker -> "Ill-formed checker.\n" |> Result.return
-  | ExpectedGalaxy -> "Expected galaxy.\n" |> Result.return
   | ReservedWord x ->
     Printf.sprintf "%s: identifier '%s' is reserved.\n"
       (red "ReservedWord Error") x
     |> Result.return
-  | UnknownField x ->
-    Printf.sprintf "%s: field '%s' not found.\n" (red "UnknownField Error") x
-    |> Result.return
   | UnknownID x ->
     Printf.sprintf "%s: identifier '%s' not found.\n" (red "UnknownID Error") x
     |> Result.return
-  | TestFailed (x, t, id, got, expected) ->
-    let* eval_got = galaxy_to_constellation ~notyping initial_env got in
-    let* eval_exp = galaxy_to_constellation ~notyping initial_env expected in
+  | TestFailed (x, t, id, got, exp) ->
     Printf.sprintf "%s: %s.\nChecking %s :: %s\n* got: %s\n* expected: %s\n"
       (red "TestFailed Error")
       ( if equal_string id "_" then "unique test of '" ^ t ^ "' failed"
         else "test '" ^ id ^ "' failed" )
       x t
-      (eval_got |> List.map ~f:remove_mark |> string_of_constellation)
-      (eval_exp |> List.map ~f:remove_mark |> string_of_constellation)
+      (got |> List.map ~f:remove_mark |> string_of_constellation)
+      (exp |> List.map ~f:remove_mark |> string_of_constellation)
     |> Result.return
   | LscError e -> pp_err_effect e |> Result.return
 
-and eval_galaxy_expr ~notyping (env : env) :
-  galaxy_expr -> (galaxy, err) Result.t = function
-  | Raw (Galaxy g) -> Ok (Galaxy g)
-  | Raw (Const mcs) -> Ok (Const mcs)
-  | Access (e, x) -> begin
-    match eval_galaxy_expr ~notyping env e with
-    | Ok (Const _) -> Error (UnknownField (string_of_ray x))
-    | Ok (Galaxy g) -> begin
-      try
-        List.Assoc.find_exn ~equal:equal_ray g x
-        |> eval_galaxy_expr ~notyping env
-      with Not_found_s _ -> Error (UnknownField (string_of_ray x))
-    end
-    | Error e -> Error e
-  end
+and eval_sgen_expr ~notyping (env : env) :
+  sgen_expr -> (marked_constellation, err) Result.t = function
+  | Raw mcs -> Ok mcs
   | Id x -> begin
     begin
       match get_obj env x with
       | None -> Error (UnknownID (string_of_ray x))
-      | Some g -> eval_galaxy_expr ~notyping env g
+      | Some g -> eval_sgen_expr ~notyping env g
     end
   end
   | Union es ->
-    let* eval_es =
-      List.map ~f:(eval_galaxy_expr ~notyping env) es |> Result.all
-    in
-    let* mcs =
-      eval_es
-      |> List.map ~f:(galaxy_to_constellation ~notyping env)
-      |> Result.all
-    in
-    Ok (Const (List.concat mcs))
+    let* eval_es = List.map ~f:(eval_sgen_expr ~notyping env) es |> Result.all in
+    let* mcs = Ok eval_es in
+    Ok (List.concat mcs)
   | Exec e ->
-    let* eval_e = eval_galaxy_expr ~notyping env e in
-    let* mcs = galaxy_to_constellation ~notyping env eval_e in
+    let* eval_e = eval_sgen_expr ~notyping env e in
     begin
-      match exec ~linear:false ~showtrace:false mcs with
-      | Ok res -> Ok (Const (unmark_all res))
+      match exec ~linear:false ~showtrace:false eval_e with
+      | Ok res -> Ok (unmark_all res)
       | Error e -> Error (LscError e)
     end
   | LinExec e ->
-    let* eval_e = eval_galaxy_expr ~notyping env e in
-    let* mcs = galaxy_to_constellation ~notyping env eval_e in
+    let* eval_e = eval_sgen_expr ~notyping env e in
     begin
-      match exec ~linear:true ~showtrace:false mcs with
-      | Ok mcs -> Ok (Const (unmark_all mcs))
+      match exec ~linear:true ~showtrace:false eval_e with
+      | Ok mcs -> Ok (unmark_all mcs)
       | Error e -> Error (LscError e)
     end
   | Focus e ->
-    let* eval_e = eval_galaxy_expr ~notyping env e in
-    let* mcs = galaxy_to_constellation ~notyping env eval_e in
-    Const (mcs |> remove_mark_all |> focus) |> Result.return
+    let* eval_e = eval_sgen_expr ~notyping env e in
+    (eval_e |> remove_mark_all |> focus) |> Result.return
   | Kill e ->
-    let* eval_e = eval_galaxy_expr ~notyping env e in
-    let* mcs = galaxy_to_constellation ~notyping env eval_e in
-    Const (mcs |> remove_mark_all |> kill |> focus) |> Result.return
+    let* eval_e = eval_sgen_expr ~notyping env e in
+    (eval_e |> remove_mark_all |> kill |> focus) |> Result.return
   | Clean e ->
-    let* eval_e = eval_galaxy_expr ~notyping env e in
-    let* mcs = galaxy_to_constellation ~notyping env eval_e in
-    Const (mcs |> remove_mark_all |> clean |> focus) |> Result.return
-  | Process [] -> Ok (Const [])
+    let* eval_e = eval_sgen_expr ~notyping env e in
+    (eval_e |> remove_mark_all |> clean |> focus) |> Result.return
+  | Process [] -> Ok []
   | Process (h :: t) ->
-    let* eval_e = eval_galaxy_expr ~notyping env h in
-    let* mcs = galaxy_to_constellation ~notyping env eval_e in
-    let init = mcs |> remove_mark_all |> focus in
+    let* eval_e = eval_sgen_expr ~notyping env h in
+    let init = eval_e |> remove_mark_all |> focus in
     let* res =
       List.fold_left t ~init:(Ok init) ~f:(fun acc x ->
         let* acc = acc in
@@ -227,23 +177,18 @@ and eval_galaxy_expr ~notyping (env : env) :
           acc |> remove_mark_all |> clean |> focus |> Result.return
         | _ ->
           let origin = acc |> remove_mark_all |> focus in
-          let* ev =
-            eval_galaxy_expr ~notyping env
-              (Focus (Exec (Union [ x; Raw (Const origin) ])))
-          in
-          galaxy_to_constellation ~notyping env ev )
+            eval_sgen_expr ~notyping env
+              (Focus (Exec (Union [ x; Raw origin ])))
+          )
     in
-    Const res |> Result.return
+    res |> Result.return
   | Subst (e, Extend pf) ->
-    let* eval_e = eval_galaxy_expr ~notyping env e in
-    let* mcs = galaxy_to_constellation ~notyping env eval_e in
-    Const (List.map mcs ~f:(map_mstar ~f:(fun r -> gfunc pf [ r ])))
+    let* eval_e = eval_sgen_expr ~notyping env e in
+    (List.map eval_e ~f:(map_mstar ~f:(fun r -> gfunc pf [ r ])))
     |> Result.return
   | Subst (e, Reduce pf) ->
-    let* eval_e = eval_galaxy_expr ~notyping env e in
-    let* mcs = galaxy_to_constellation ~notyping env eval_e in
-    Const
-      (List.map mcs
+    let* eval_e = eval_sgen_expr ~notyping env e in
+      (List.map eval_e
          ~f:
            (map_mstar ~f:(fun r ->
               match r with
@@ -255,20 +200,20 @@ and eval_galaxy_expr ~notyping (env : env) :
     |> Result.return
   | Subst (e, SVar (x, r)) ->
     let* subst = subst_vars env (x, None) r e in
-    eval_galaxy_expr ~notyping env subst
+    eval_sgen_expr ~notyping env subst
   | Subst (e, SFunc (pf1, pf2)) ->
     let* subst = subst_funcs env pf1 pf2 e in
-    eval_galaxy_expr ~notyping env subst
+    eval_sgen_expr ~notyping env subst
   | Subst (e, SGal (x, _to)) ->
     let* fill = replace_id env x _to e in
-    eval_galaxy_expr ~notyping env fill
+    eval_sgen_expr ~notyping env fill
   | Eval e -> (
-    let* eval_e = eval_galaxy_expr ~notyping env e in
+    let* eval_e = eval_sgen_expr ~notyping env e in
     match eval_e with
-    | Const [ Marked { content = [ r ]; bans = _ } ]
-    | Const [ Unmarked { content = [ r ]; bans = _ } ] ->
-      r |> expr_of_ray |> Expr.galaxy_expr_of_expr
-      |> eval_galaxy_expr ~notyping env
+    | [ Marked { content = [ r ]; bans = _ } ]
+    | [ Unmarked { content = [ r ]; bans = _ } ] ->
+      r |> expr_of_ray |> Expr.sgen_expr_of_expr
+      |> eval_sgen_expr ~notyping env
     | _ -> failwith "error: only rays can be evaluated." )
 
 and expr_of_ray = function
@@ -281,164 +226,51 @@ and expr_of_ray = function
     Expr.List
       (Symbol (Lsc_ast.string_of_polsym pf) :: List.map ~f:expr_of_ray args)
 
-and galaxy_to_constellation ~notyping env :
-  galaxy -> (marked_constellation, err) Result.t = function
-  | Const mcs -> Ok mcs
-  | Galaxy g ->
-    List.fold_left g ~init:(Ok []) ~f:(fun acc (_, v) ->
-      let* acc = acc in
-      let* eval_v = eval_galaxy_expr ~notyping env v in
-      let* mcs = galaxy_to_constellation ~notyping env eval_v in
-      Ok (mcs @ acc) )
-
-and equal_galaxy ~notyping env g g' =
-  let* mcs = galaxy_to_constellation ~notyping env g in
-  let* mcs' = galaxy_to_constellation ~notyping env g' in
-  equal_mconstellation mcs mcs' |> Result.return
-
-and typecheck ~notyping env x (t : StellarRays.term) (ck : galaxy_expr) :
-  (unit, err) Result.t =
-  let* gtests : (StellarRays.term * galaxy_expr) list =
-    match get_obj env t with
-    | Some (Raw (Const mcs)) -> Ok [ (const "_", Raw (Const mcs)) ]
-    | Some e ->
-      let* eval_e = eval_galaxy_expr ~notyping env e in
-      let* mcs = galaxy_to_constellation ~notyping env eval_e in
-      [ (const "test", Raw (Const mcs)) ] |> Result.return
-    | None -> Error (UnknownID (string_of_ray t))
-  in
-  let testing =
-    List.map gtests ~f:(fun (idtest, test) ->
-      match ck with
-      | Raw (Galaxy gck) ->
-        let format =
-          try List.Assoc.find_exn ~equal:equal_ray gck (const "interaction")
-          with Not_found_s _ -> default_interaction
-        in
-        begin
-          match get_obj env x with
-          | None -> Error (UnknownID (string_of_ray x))
-          | Some obj_x ->
-            Ok
-              ( idtest
-              , Exec
-                  (Subst
-                     ( Subst (format, SGal (const "test", test))
-                     , SGal (const "tested", obj_x) ) )
-                |> eval_galaxy_expr ~notyping env )
-        end
-      | _ -> Error IllFormedChecker )
-  in
-  let expect = Access (ck, const "expect") in
-  let* eval_exp = eval_galaxy_expr ~notyping env expect in
-  List.map testing ~f:(function
-    | Ok (idtest, got) ->
-      let* got = got in
-      let* eq = equal_galaxy ~notyping env got eval_exp in
-      if not eq then
-        Error
-          (TestFailed
-             ( string_of_ray x
-             , string_of_ray t
-             , string_of_ray idtest
-             , got
-             , eval_exp ) )
-      else Ok ()
-    | Error e -> Error e )
-  |> Result.all_unit
-
-and default_interaction =
-  Union [ Focus (Id (const "tested")); Id (const "test") ]
-
-and default_expect =
-  Raw (Const [ Unmarked { content = [ func "ok" [] ]; bans = [] } ])
-
-and default_checker : galaxy_expr =
-  Raw
-    (Galaxy
-       [ (const "interaction", default_interaction)
-       ; (const "expect", default_expect)
-       ] )
-
 and string_of_type_expr (t, ck) =
   match ck with
   | None -> Printf.sprintf "%s" (string_of_ray t)
   | Some xck -> Printf.sprintf "%s [%s]" (string_of_ray t) (string_of_ray xck)
-
-and string_of_galaxy_declaration ~notyping env = function
-  | k, v -> (
-    match eval_galaxy_expr ~notyping env v with
-    | Error _ -> failwith "Error: string_of_galaxy_declaration"
-    | Ok eval_v ->
-      let str_k = string_of_ray k in
-      Printf.sprintf "  %s = %s\n" str_k (string_of_galaxy ~notyping env eval_v)
-    )
-
-and string_of_galaxy ~notyping env : galaxy -> string = function
-  | Const mcs -> mcs |> remove_mark_all |> string_of_constellation
-  | Galaxy g ->
-    Printf.sprintf "galaxy\n%send"
-      (string_of_list (string_of_galaxy_declaration ~notyping env) "" g)
 
 let rec eval_decl ~typecheckonly ~notyping env :
   declaration -> (env, err) Result.t = function
   | Def (x, _) when is_reserved x -> Error (ReservedWord (string_of_ray x))
   | Def (x, e) ->
     let env = { objs = add_obj env x e; types = env.types } in
-    let* _ =
-      if notyping then Ok ()
-      else
-        List.filter env.types ~f:(fun (y, _) -> equal_ray x y)
-        |> List.map ~f:(fun (_, ts) ->
-             List.map ts ~f:(fun (t, ck) ->
-               match ck with
-               | None -> typecheck ~notyping env x t default_checker
-               | Some xck -> begin
-                 match get_obj env xck with
-                 | None -> Error (UnknownID (string_of_ray xck))
-                 | Some obj_xck -> typecheck ~notyping env x t obj_xck
-               end ) )
-        |> List.concat |> Result.all_unit
-    in
     Ok env
   | Show _ when typecheckonly -> Ok env
   | Show (Id x) -> begin
     match get_obj env x with
     | None -> Error (UnknownID (string_of_ray x))
-    | Some g -> eval_decl ~typecheckonly ~notyping env (Show g)
+    | Some e -> eval_decl ~typecheckonly ~notyping env (Show e)
   end
-  | Show (Raw (Galaxy g)) ->
-    Galaxy g |> string_of_galaxy ~notyping env |> Stdlib.print_string;
+  | Show (Raw mcs) ->
+    mcs |> remove_mark_all
+    |> string_of_constellation |> Stdlib.print_string;
     Stdlib.print_newline ();
     Stdlib.flush Stdlib.stdout;
     Ok env
   | Show e ->
-    let* eval_e = eval_galaxy_expr ~notyping env e in
-    let* mcs = galaxy_to_constellation ~notyping env eval_e in
-    List.map mcs ~f:remove_mark
+    let* eval_e = eval_sgen_expr ~notyping env e in
+    List.map eval_e ~f:remove_mark
     |> string_of_constellation |> Stdlib.print_string;
     Stdlib.print_newline ();
     Ok env
   | Trace _ when typecheckonly -> Ok env
   | Trace e ->
-    let* eval_e = eval_galaxy_expr ~notyping env e in
-    let* mcs = galaxy_to_constellation ~notyping env eval_e in
+    let* eval_e = eval_sgen_expr ~notyping env e in
     begin
-      match exec ~showtrace:true mcs with
+      match exec ~showtrace:true eval_e with
       | Ok _ -> Ok env
       | Error e -> Error (LscError e)
     end
   | Run _ when typecheckonly -> Ok env
   | Run e ->
-    let _ = eval_galaxy_expr ~notyping env (Exec e) in
+    let _ = eval_sgen_expr ~notyping env (Exec e) in
     Ok env
   | Typedecl _ when notyping -> Ok env
   | Typedecl (x, ts) -> Ok { objs = env.objs; types = add_type env x ts }
-  | Expect (x, mcs) ->
-    Ok
-      { objs = add_obj env (const "^expect") (expect mcs)
-      ; types = add_type env x [ (const "^empty", Some (const "^expect")) ]
-      }
+  | Expect (_x, _mcs) -> Ok { objs = []; types = [] }
+    (* TODO *)
   | Use path ->
     let path = List.map path ~f:string_of_ray in
     let formatted_filename = String.concat ~sep:"/" path ^ ".sg" in
@@ -465,6 +297,6 @@ and eval_program ~typecheckonly ~notyping (p : program) =
   with
   | Ok env -> Ok env
   | Error e ->
-    let* pp = pp_err ~notyping e in
+    let* pp = pp_err e in
     output_string stderr pp;
     Error e

@@ -124,7 +124,7 @@ let rec constellation_of_expr : expr -> marked_constellation = function
   | List g -> [ Unmarked { content = [ ray_of_expr (List g) ]; bans = [] } ]
 
 (* ---------------------------------------
-   Galaxy expr of Expr
+   Stellogen expr of Expr
    --------------------------------------- *)
 
 let is_cons = function
@@ -136,44 +136,44 @@ let rec contains_cons = function
     is_cons h || contains_cons t
   | _ -> false
 
-let rec galaxy_expr_of_expr (e : expr) : galaxy_expr =
+let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   match e with
   (* ray *)
   | Var _ | Symbol _ ->
-    Raw (Const [ Unmarked { content = [ ray_of_expr e ]; bans = [] } ])
+    Raw [ Unmarked { content = [ ray_of_expr e ]; bans = [] } ]
   (* star *)
   | List [ Symbol s; h; t ]
     when equal_string s cons_op && (not @@ is_cons h) && (not @@ contains_cons t)
     ->
-    Raw (Const [ star_of_expr e ])
+    Raw [ star_of_expr e ]
   (* id *)
   | Unquote g -> Id (ray_of_expr g)
   (* focus @ *)
   | List [ Symbol k; g ] when equal_string k focus_op ->
-    Focus (galaxy_expr_of_expr g)
+    Focus (sgen_expr_of_expr g)
   (* union *)
   | List (Symbol k :: gs) when equal_string k "union" ->
-    Union (List.map ~f:galaxy_expr_of_expr gs)
+    Union (List.map ~f:sgen_expr_of_expr gs)
   (* process *)
   | List (Symbol k :: gs) when equal_string k "process" ->
-    Process (List.map ~f:galaxy_expr_of_expr gs)
+    Process (List.map ~f:sgen_expr_of_expr gs)
   (* kill *)
   | List [ Symbol k; g ] when equal_string k "kill" ->
-    Kill (galaxy_expr_of_expr g)
+    Kill (sgen_expr_of_expr g)
   (* clean *)
   | List [ Symbol k; g ] when equal_string k "clean" ->
-    Clean (galaxy_expr_of_expr g)
+    Clean (sgen_expr_of_expr g)
   (* exec *)
   | List [ Symbol k; g ] when equal_string k "exec" ->
-    Exec (galaxy_expr_of_expr g)
+    Exec (sgen_expr_of_expr g)
   (* linear exec *)
   | List [ Symbol k; g ] when equal_string k "linexec" ->
-    LinExec (galaxy_expr_of_expr g)
+    LinExec (sgen_expr_of_expr g)
   (* linear exec *)
   | List [ Symbol k; g ] when equal_string k "eval" ->
-    Eval (galaxy_expr_of_expr g)
+    Eval (sgen_expr_of_expr g)
   (* KEEP LAST -- raw constellation *)
-  | List g -> Raw (Const (constellation_of_expr (List g)))
+  | List g -> Raw (constellation_of_expr (List g))
 
 (* ---------------------------------------
    Stellogen program of Expr
@@ -187,21 +187,21 @@ let rec galaxy_expr_of_expr (e : expr) : galaxy_expr =
 let decl_of_expr : expr -> declaration = function
   (* definition := *)
   | List [ Symbol k; x; g ] when equal_string k def_op ->
-    Def (ray_of_expr x, galaxy_expr_of_expr g)
+    Def (ray_of_expr x, sgen_expr_of_expr g)
   | List [ Symbol k; x; g ] when equal_string k "spec" ->
-    Def (ray_of_expr x, galaxy_expr_of_expr g)
+    Def (ray_of_expr x, sgen_expr_of_expr g)
   (* type declaration :: *)
   (* | List [ Symbol k; x; g ] when equal_string k typedef_op ->
     Typedecl (ray_of_expr x, typedecl_of_expr g) *)
   (* show *)
   | List [ Symbol k; g ] when equal_string k "show" ->
-    Show (galaxy_expr_of_expr g)
+    Show (sgen_expr_of_expr g)
   (* trace *)
   | List [ Symbol k; g ] when equal_string k "trace" ->
-    Trace (galaxy_expr_of_expr g)
+    Trace (sgen_expr_of_expr g)
   (* expect *)
   | List [ Symbol k; x; g ] when equal_string k expect_op ->
-    Expect (ray_of_expr x, galaxy_expr_of_expr g)
+    Expect (ray_of_expr x, sgen_expr_of_expr g)
   | _ -> failwith "error: invalid declaration"
 
 let program_of_expr = List.map ~f:decl_of_expr
