@@ -165,10 +165,10 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
     Clean (sgen_expr_of_expr g)
   (* exec *)
   | List [ Symbol k; g ] when equal_string k "exec" ->
-    Exec (sgen_expr_of_expr g)
+    Exec (false, sgen_expr_of_expr g)
   (* linear exec *)
   | List [ Symbol k; g ] when equal_string k "linexec" ->
-    LinExec (sgen_expr_of_expr g)
+    Exec (true, sgen_expr_of_expr g)
   (* linear exec *)
   | List [ Symbol k; g ] when equal_string k "eval" ->
     Eval (sgen_expr_of_expr g)

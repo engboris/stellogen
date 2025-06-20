@@ -1,6 +1,5 @@
 open Base
 open Lsc_ast
-open Lsc_err
 open Sgen_ast
 open Out_channel
 
@@ -22,18 +21,15 @@ let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
     | None -> Error (UnknownID (string_of_ray x))
     | Some g -> map_sgen_expr env ~f g
   end
-  | Exec e ->
+  | Exec (b, e) ->
     let* map_e = map_sgen_expr env ~f e in
-    Exec map_e |> Result.return
+    Exec (b, map_e) |> Result.return
   | Kill e ->
     let* map_e = map_sgen_expr env ~f e in
     Kill map_e |> Result.return
   | Clean e ->
     let* map_e = map_sgen_expr env ~f e in
     Clean map_e |> Result.return
-  | LinExec e ->
-    let* map_e = map_sgen_expr env ~f e in
-    LinExec map_e |> Result.return
   | Union es ->
     let* map_es = List.map ~f:(map_sgen_expr env ~f) es |> Result.all in
     Union map_es |> Result.return
@@ -68,18 +64,15 @@ let rec replace_id env (_from : ident) (_to : sgen_expr) e :
   match e with
   | Id x when is_reserved x -> Ok (Id x)
   | Id x when equal_ray x _from -> Ok _to
-  | Exec e ->
+  | Exec (b, e) ->
     let* g = replace_id env _from _to e in
-    Exec g |> Result.return
+    Exec (b, g) |> Result.return
   | Kill e ->
     let* g = replace_id env _from _to e in
     Kill g |> Result.return
   | Clean e ->
     let* g = replace_id env _from _to e in
     Clean g |> Result.return
-  | LinExec e ->
-    let* g = replace_id env _from _to e in
-    LinExec g |> Result.return
   | Union es ->
     let* gs = List.map ~f:(replace_id env _from _to) es |> Result.all in
     Union gs |> Result.return
@@ -104,8 +97,8 @@ let subst_funcs env _from _to =
   map_sgen_expr env ~f:(subst_all_funcs [ (_from, _to) ])
 
 let rec pp_err e : (string, err) Result.t =
+  let red text = "\x1b[31m" ^ text ^ "\x1b[0m" in
   match e with
-  | IllFormedChecker -> "Ill-formed checker.\n" |> Result.return
   | ReservedWord x ->
     Printf.sprintf "%s: identifier '%s' is reserved.\n"
       (red "ReservedWord Error") x
@@ -113,7 +106,6 @@ let rec pp_err e : (string, err) Result.t =
   | UnknownID x ->
     Printf.sprintf "%s: identifier '%s' not found.\n" (red "UnknownID Error") x
     |> Result.return
-  | LscError e -> pp_err_effect e |> Result.return
 
 and eval_sgen_expr ~notyping (env : env) :
   sgen_expr -> (marked_constellation, err) Result.t = function
@@ -131,20 +123,9 @@ and eval_sgen_expr ~notyping (env : env) :
     in
     let* mcs = Ok eval_es in
     Ok (List.concat mcs)
-  | Exec e ->
+  | Exec (b, e) ->
     let* eval_e = eval_sgen_expr ~notyping env e in
-    begin
-      match exec ~linear:false ~showtrace:false eval_e with
-      | Ok res -> Ok (unmark_all res)
-      | Error e -> Error (LscError e)
-    end
-  | LinExec e ->
-    let* eval_e = eval_sgen_expr ~notyping env e in
-    begin
-      match exec ~linear:true ~showtrace:false eval_e with
-      | Ok mcs -> Ok (unmark_all mcs)
-      | Error e -> Error (LscError e)
-    end
+    Ok (exec ~linear:b ~showtrace:false eval_e |> unmark_all)
   | Focus e ->
     let* eval_e = eval_sgen_expr ~notyping env e in
     eval_e |> remove_mark_all |> focus |> Result.return
@@ -168,7 +149,7 @@ and eval_sgen_expr ~notyping (env : env) :
           acc |> remove_mark_all |> clean |> focus |> Result.return
         | _ ->
           let origin = acc |> remove_mark_all |> focus in
-          eval_sgen_expr ~notyping env (Focus (Exec (Union [ x; Raw origin ]))) )
+          eval_sgen_expr ~notyping env (Focus (Exec (false, Union [ x; Raw origin ]))) )
     in
     res |> Result.return
   | Subst (e, Extend pf) ->
@@ -244,14 +225,11 @@ let rec eval_decl ~typecheckonly ~notyping env :
   | Trace _ when typecheckonly -> Ok env
   | Trace e ->
     let* eval_e = eval_sgen_expr ~notyping env e in
-    begin
-      match exec ~showtrace:true eval_e with
-      | Ok _ -> Ok env
-      | Error e -> Error (LscError e)
-    end
+    let _ = exec ~showtrace:true eval_e in
+    Ok env
   | Run _ when typecheckonly -> Ok env
   | Run e ->
-    let _ = eval_sgen_expr ~notyping env (Exec e) in
+    let _ = eval_sgen_expr ~notyping env (Exec (false, e)) in
     Ok env
   | Expect (_x, _mcs) -> Ok { objs = []; types = [] } (* TODO *)
   | Use path ->

@@ -2,10 +2,8 @@ open Base
 open Lsc_ast
 
 type err =
-  | IllFormedChecker
   | ReservedWord of string
   | UnknownID of string
-  | LscError of Lsc_err.err_effect
 
 type ident = StellarRays.term
 
@@ -18,8 +16,7 @@ type ray_prefix = StellarRays.fmark * idfunc
 and sgen_expr =
   | Raw of marked_constellation
   | Id of ident
-  | Exec of sgen_expr
-  | LinExec of sgen_expr
+  | Exec of bool * sgen_expr
   | Union of sgen_expr list
   | Subst of sgen_expr * substitution
   | Focus of sgen_expr
