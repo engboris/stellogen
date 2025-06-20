@@ -22,9 +22,11 @@ type expr =
   | Unquote of expr
   | List of expr list
 
-let nil_op = "$nil"
+let primitive = String.append "%"
 
-let cons_op = "$cons"
+let nil_op = primitive "nil"
+
+let cons_op = primitive "cons"
 
 let unquote_op = "#"
 
@@ -34,7 +36,7 @@ let def_op = ":="
 
 let expect_op = "=="
 
-let params_op = "$params"
+let params_op = primitive "params"
 
 let ineq_op = "!="
 
