@@ -16,7 +16,7 @@ let rec comment lexbuf =
 
 and comments lexbuf =
   match%sedlex lexbuf with
-  | "'''" -> read lexbuf
+  | "'''" | eof -> read lexbuf
   | _ ->
     ignore (Sedlexing.next lexbuf);
     comments lexbuf

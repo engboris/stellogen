@@ -32,8 +32,6 @@ let focus_op = "@"
 
 let def_op = ":="
 
-let typedef_op = "::"
-
 let expect_op = "=="
 
 let params_op = "$params"
