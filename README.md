@@ -9,15 +9,15 @@ It has been designed from concepts of Girard's transcendental syntax.
 
 ## Key characteristics
 
-- dynamically/statically **typed** but without primitive types nor type systems,
-by using very flexible assert-like expressions defining *sets of tests* to pass;
-- everything is based on **term unification**.
+- **typable** but without primitive types nor type systems
+- both computation and typing are based on basic **term unification** between
+blocks of terms.
 
 It is multi-paradigm:
-- _logic programs_ called "constellations" are the elementary bricks of
-computation and typing;
-- _functional programs_ correspond to logic programs enforcing an order of
-interaction;
+- _logic programs_ called "constellations" are the elementary blocks of
+programming;
+- _functional programs_ correspond to layered constellations enforcing an order
+of interaction;
 - _imperative programs_ are iterative recipes constructing constellations;
 - _objects_ are ways to structure constellations.
 
@@ -36,52 +36,36 @@ philosophy).
 Finite state machine
 
 ```
-(spec binary
-  (const
-    (star (-i e) ok)
-    (star (-i [0 X]) (+i X))
-    (star (-i [1 X]) (+i X))))
+(spec binary [
+  [(-i e) ok]
+  [(-i [0 X]) (+i X)]
+  [(-i [1 X]) (+i X)]])
 
 'input words
 (:: e binary)
-(def e
-  (const (star (+i e))))
+(:= e (+i e))
 
 (:: 000 binary)
-(def 000
-  (const (star (+i [0 0 0 e]))))
+(:= 000 (+i [0 0 0 e]))
 
 (:: 010 binary)
-(def 010
-  (const (star (+i [0 1 0 e]))))
+(:= 010 (+i [0 1 0 e]))
 
 (:: 110 binary)
-(def 110
-  (const (star (+i [1 1 0 e]))))
+(:= 110 (+i [1 1 0 e]))
 
-(def a1
-  (galaxy
-    (initial
-      (const
-        (star (-i W) (+a W q0))))
-    (final
-      (const
-        (star (-a e q2) accept)))
-    (transitions
-      (const
-        (star (-a [0 W] q0) (+a W q0))
-        (star (-a [0 W] q0) (+a W q1))
-        (star (-a [1 W] q0) (+a W q0))
-        (star (-a [0 W] q1) (+a W q2))))))
+(:= a1 [
+  [(-i W) (+a W q0)]
+  [(-a e q2) accept]
+  [(-a [0 W] q0) (+a W q0)]
+  [(-a [0 W] q0) (+a W q1)]
+  [(-a [1 W] q0) (+a W q0)]
+  [(-a [0 W] q1) (+a W q2)]])
 
-(show (kill (exec
-      (union @#e #a1))))
-(show (kill (exec
-      (union @#000 #a1))))
-(show (kill (exec
-      (union @#010 #a1))))
-(show (kill (exec
-      (union @#110 #a1))))
+<show kill exec (union @#e #a1)>
+<show kill exec (union @#000 #a1)>
+<show kill exec (union @#010 #a1)>
+<show kill exec (union @#110 #a1)>
 ```
 
 More examples can be found in `examples/`.
