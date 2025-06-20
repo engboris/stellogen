@@ -44,10 +44,7 @@ type env =
   ; types : (ident * (ident * ident option) list) list
   }
 
-let initial_env =
-  { objs = [ (const "^empty", Raw []) ]
-  ; types = [ (const "^empty", [ (const "^empty", None) ]) ]
-  }
+let initial_env = { objs = []; types = [] }
 
 type declaration =
   | Def of ident * sgen_expr

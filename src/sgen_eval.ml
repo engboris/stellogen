@@ -14,8 +14,7 @@ let add_type env x e = List.Assoc.add ~equal:equal_ray env.types x e
 
 let get_type env x = List.Assoc.find ~equal:equal_ray env.types x
 
-let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t =
-  function
+let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
   | Raw g -> Raw (f g) |> Result.return
   | Id x when is_reserved x -> Ok (Id x)
   | Id x -> begin
@@ -127,7 +126,9 @@ and eval_sgen_expr ~notyping (env : env) :
     end
   end
   | Union es ->
-    let* eval_es = List.map ~f:(eval_sgen_expr ~notyping env) es |> Result.all in
+    let* eval_es =
+      List.map ~f:(eval_sgen_expr ~notyping env) es |> Result.all
+    in
     let* mcs = Ok eval_es in
     Ok (List.concat mcs)
   | Exec e ->
@@ -146,13 +147,13 @@ and eval_sgen_expr ~notyping (env : env) :
     end
   | Focus e ->
     let* eval_e = eval_sgen_expr ~notyping env e in
-    (eval_e |> remove_mark_all |> focus) |> Result.return
+    eval_e |> remove_mark_all |> focus |> Result.return
   | Kill e ->
     let* eval_e = eval_sgen_expr ~notyping env e in
-    (eval_e |> remove_mark_all |> kill |> focus) |> Result.return
+    eval_e |> remove_mark_all |> kill |> focus |> Result.return
   | Clean e ->
     let* eval_e = eval_sgen_expr ~notyping env e in
-    (eval_e |> remove_mark_all |> clean |> focus) |> Result.return
+    eval_e |> remove_mark_all |> clean |> focus |> Result.return
   | Process [] -> Ok []
   | Process (h :: t) ->
     let* eval_e = eval_sgen_expr ~notyping env h in
@@ -167,26 +168,23 @@ and eval_sgen_expr ~notyping (env : env) :
           acc |> remove_mark_all |> clean |> focus |> Result.return
         | _ ->
           let origin = acc |> remove_mark_all |> focus in
-            eval_sgen_expr ~notyping env
-              (Focus (Exec (Union [ x; Raw origin ])))
-          )
+          eval_sgen_expr ~notyping env (Focus (Exec (Union [ x; Raw origin ]))) )
     in
     res |> Result.return
   | Subst (e, Extend pf) ->
     let* eval_e = eval_sgen_expr ~notyping env e in
-    (List.map eval_e ~f:(map_mstar ~f:(fun r -> gfunc pf [ r ])))
-    |> Result.return
+    List.map eval_e ~f:(map_mstar ~f:(fun r -> gfunc pf [ r ])) |> Result.return
   | Subst (e, Reduce pf) ->
     let* eval_e = eval_sgen_expr ~notyping env e in
-      (List.map eval_e
-         ~f:
-           (map_mstar ~f:(fun r ->
-              match r with
-              | StellarRays.Func (pf', ts)
-                when StellarSig.equal_idfunc (snd pf) (snd pf')
-                     && List.length ts = 1 ->
-                List.hd_exn ts
-              | _ -> r ) ) )
+    List.map eval_e
+      ~f:
+        (map_mstar ~f:(fun r ->
+           match r with
+           | StellarRays.Func (pf', ts)
+             when StellarSig.equal_idfunc (snd pf) (snd pf')
+                  && List.length ts = 1 ->
+             List.hd_exn ts
+           | _ -> r ) )
     |> Result.return
   | Subst (e, SVar (x, r)) ->
     let* subst = subst_vars env (x, None) r e in
@@ -202,8 +200,7 @@ and eval_sgen_expr ~notyping (env : env) :
     match eval_e with
     | [ Marked { content = [ r ]; bans = _ } ]
     | [ Unmarked { content = [ r ]; bans = _ } ] ->
-      r |> expr_of_ray |> Expr.sgen_expr_of_expr
-      |> eval_sgen_expr ~notyping env
+      r |> expr_of_ray |> Expr.sgen_expr_of_expr |> eval_sgen_expr ~notyping env
     | _ -> failwith "error: only rays can be evaluated." )
 
 and expr_of_ray = function
@@ -234,8 +231,7 @@ let rec eval_decl ~typecheckonly ~notyping env :
     | Some e -> eval_decl ~typecheckonly ~notyping env (Show e)
   end
   | Show (Raw mcs) ->
-    mcs |> remove_mark_all
-    |> string_of_constellation |> Stdlib.print_string;
+    mcs |> remove_mark_all |> string_of_constellation |> Stdlib.print_string;
     Stdlib.print_newline ();
     Stdlib.flush Stdlib.stdout;
     Ok env
@@ -257,8 +253,7 @@ let rec eval_decl ~typecheckonly ~notyping env :
   | Run e ->
     let _ = eval_sgen_expr ~notyping env (Exec e) in
     Ok env
-  | Expect (_x, _mcs) -> Ok { objs = []; types = [] }
-    (* TODO *)
+  | Expect (_x, _mcs) -> Ok { objs = []; types = [] } (* TODO *)
   | Use path ->
     let path = List.map path ~f:string_of_ray in
     let formatted_filename = String.concat ~sep:"/" path ^ ".sg" in
