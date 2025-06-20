@@ -1,6 +1,12 @@
 open Base
 open Lsc_ast
 
+type err =
+  | IllFormedChecker
+  | ReservedWord of string
+  | UnknownID of string
+  | LscError of Lsc_err.err_effect
+
 type ident = StellarRays.term
 
 type idvar = string * int option
@@ -48,7 +54,6 @@ type declaration =
   | Show of sgen_expr
   | Trace of sgen_expr
   | Run of sgen_expr
-  | Typedecl of ident * (ident * ident option) list
   | Expect of ident * sgen_expr
   | Use of ident list
 

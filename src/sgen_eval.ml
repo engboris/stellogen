@@ -2,7 +2,6 @@ open Base
 open Lsc_ast
 open Lsc_err
 open Sgen_ast
-open Sgen_err
 open Out_channel
 
 let ( let* ) x f = Result.bind x ~f
@@ -114,15 +113,6 @@ let rec pp_err e : (string, err) Result.t =
     |> Result.return
   | UnknownID x ->
     Printf.sprintf "%s: identifier '%s' not found.\n" (red "UnknownID Error") x
-    |> Result.return
-  | TestFailed (x, t, id, got, exp) ->
-    Printf.sprintf "%s: %s.\nChecking %s :: %s\n* got: %s\n* expected: %s\n"
-      (red "TestFailed Error")
-      ( if equal_string id "_" then "unique test of '" ^ t ^ "' failed"
-        else "test '" ^ id ^ "' failed" )
-      x t
-      (got |> List.map ~f:remove_mark |> string_of_constellation)
-      (exp |> List.map ~f:remove_mark |> string_of_constellation)
     |> Result.return
   | LscError e -> pp_err_effect e |> Result.return
 
@@ -267,8 +257,6 @@ let rec eval_decl ~typecheckonly ~notyping env :
   | Run e ->
     let _ = eval_sgen_expr ~notyping env (Exec e) in
     Ok env
-  | Typedecl _ when notyping -> Ok env
-  | Typedecl (x, ts) -> Ok { objs = env.objs; types = add_type env x ts }
   | Expect (_x, _mcs) -> Ok { objs = []; types = [] }
     (* TODO *)
   | Use path ->

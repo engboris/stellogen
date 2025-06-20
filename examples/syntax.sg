@@ -86,38 +86,14 @@
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]])
 
-'manual typing
+'manual type checking
 (:= 0 (+nat 0))
-(:= expect <eval exec (union #checker @[-expect])>)
-(== res_int #expect)
-(:= res_int @(exec (union @#0 #nat)))
+(== test ok)
+(:= test @(exec (union @#0 #nat)))
 
-'''
-'(:: 0 (nat | checker))
-'(:= 0 (+nat 0))
-
-(:: 1 (nat / checker))
-(def 1
-  (const (star (+nat (s 0)))))
-
-'plural typing
-(def nat2
-  (const (star (-nat X) ok)))
-
-(:: 2 nat)
-(:: 2 nat2)
-(def 2
-  (const (star (+nat <s s /0>))))
-
-(:: 3 nat nat2)
-(def 3
-  (const (star (+nat <s s s /0>))))
-
-(:: 4 (nat / checker) (nat2 / checker))
-(def 4
-  (const (star (+nat <s s s s /0>))))
+(:= 2 <+nat s s 0>)
+(== test ok)
+(:= test @(exec (union @#0 #nat)))
 
 'import file
 '(use examples automata)
-
-'''
