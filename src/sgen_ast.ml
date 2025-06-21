@@ -40,6 +40,6 @@ type declaration =
   | Trace of sgen_expr
   | Run of sgen_expr
   | Expect of ident * sgen_expr * ident
-  | Use of ident list
+  | Use of ident
 
 type program = declaration list

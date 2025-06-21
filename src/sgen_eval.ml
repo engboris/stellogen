@@ -238,8 +238,12 @@ let rec eval_decl ~typecheckonly ~notyping env :
       Error (ExpectError (eval_x, eval_e, message))
     else Ok env
   | Use path ->
-    let path = List.map path ~f:string_of_ray in
-    let formatted_filename = String.concat ~sep:"/" path ^ ".sg" in
+    let open Lsc_ast.StellarRays in
+    let formatted_filename : string =
+      match path with
+      | Func ((Null, f), [ s ]) when equal_string f "%string" -> string_of_ray s
+      | path -> string_of_ray path ^ ".sg"
+    in
     let lexbuf =
       Sedlexing.Utf8.from_channel (Stdlib.open_in formatted_filename)
     in

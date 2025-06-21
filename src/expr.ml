@@ -172,7 +172,7 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   (* linear exec *)
   | List [ Symbol k; g ] when equal_string k "linexec" ->
     Exec (true, sgen_expr_of_expr g)
-  (* linear exec *)
+  (* eval *)
   | List [ Symbol k; g ] when equal_string k "eval" ->
     Eval (sgen_expr_of_expr g)
   (* KEEP LAST -- raw constellation *)
@@ -204,6 +204,8 @@ let decl_of_expr : expr -> declaration = function
     Expect (ray_of_expr x, sgen_expr_of_expr g, const "default")
   | List [ Symbol k; x; g; m ] when equal_string k expect_op ->
     Expect (ray_of_expr x, sgen_expr_of_expr g, ray_of_expr m)
+  (* use *)
+  | List [ Symbol k; r ] when equal_string k "use" -> Use (ray_of_expr r)
   | _ -> failwith "error: invalid declaration"
 
 let program_of_expr = List.map ~f:decl_of_expr

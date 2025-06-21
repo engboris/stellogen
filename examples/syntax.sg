@@ -113,4 +113,4 @@
 (== test ok)
 
 'import file
-'(use examples automata)
+'(use "examples/automata.sg")
