@@ -4,7 +4,7 @@ open Expr.Raw
 
 %token <string> VAR
 %token <string> SYM
-%token STRMARK
+%token <string> STRING
 %token AT
 %token BAR
 %token LPAR RPAR
@@ -39,6 +39,7 @@ let params :=
 let expr :=
   | ~=SYM; <Symbol>
   | ~=VAR; <Var>
+  | ~=STRING; <String>
   | UNQUOTE; ~=expr; <Unquote>
   | AT; ~=expr; <Focus>
   | ~=pars(expr+); <List>

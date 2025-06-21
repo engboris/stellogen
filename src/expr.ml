@@ -8,6 +8,7 @@ module Raw = struct
   type t =
     | Symbol of string
     | Var of ident
+    | String of string
     | Focus of t
     | Unquote of t
     | List of t list
@@ -32,6 +33,8 @@ let unquote_op = "#"
 
 let focus_op = "@"
 
+let string_op = primitive "string"
+
 let def_op = ":="
 
 let expect_op = "=="
@@ -55,6 +58,7 @@ let rec to_string : expr -> string = function
 let rec expand_macro : Raw.t -> expr = function
   | Raw.Symbol s -> Symbol s
   | Raw.Var x -> Var x
+  | Raw.String s -> List [ Symbol string_op; Symbol s ]
   | Raw.Unquote e' -> Unquote (expand_macro e')
   | Raw.Focus e' -> List [ Symbol focus_op; expand_macro e' ]
   | Raw.List es -> List (List.map ~f:expand_macro es)

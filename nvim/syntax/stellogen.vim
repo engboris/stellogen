@@ -1,6 +1,6 @@
 syn clear
 
-syn keyword sgKeyword kill clean eval show use exec spec linear trace process run union
+syn keyword sgKeyword kill clean eval show use exec spec linexec trace process run union
 syn match sgComment "\s*'[^'].*$"
 syn match sgId "#\%(\l\|\d\)\w*"
 syn region sgComment start="'''" end="'''" contains=NONE

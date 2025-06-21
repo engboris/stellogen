@@ -1,32 +1,48 @@
-'static definition of constellation
-(:= x [
-  [+a]
+'define ray
+(:= a (-f X))
+
+'define star
+(:= b [(-f X)])
+
+'define constellation
+(:= c [
+  @[+a] 'focus
   [-a b]])
 
-(:= y #x)
+'full focus
+(show @[ [a] [b] [c] ])
 
-(:= z (-f X))
+'identifier
+(:= x #a)
+
+'union
+(:= x (union #a #b))
 
 'string literals
-'(:= w ["hello world"])
+(:= s ["hello world"])
 
 'cons
-(:= w [(+w [0 1 0 1 e])])
+' [0 1 e] == %cons(0 (%cons 1 %nil))
+(:= w (+w [0 1 0 1]))
 
-'print result of execution
+'stack
+' <s s 0> == (s (s 0))
+(:= n (+nat <s s 0>))
+
+'execution
 (:= x [(+f X) X])
 (:= y (-f a))
+(:= ex (exec (union #x #y)))    'non-linear
+(:= ex (linexec (union #x #y))) 'linear
+
+'show constellation
 <show exec (union @#x #y)>
+(show [ [a] [b] [c] ])
+(show #s)
 
 'complex identifiers
 (:= (f a b) [(function a b)])
 (show #(f a b))
-
-'show (literal) contellations
-(show [ [a] [b] [c] ])
-
-'full focus
-(show @[ [a] [b] [c] ])
 
 'inequality constraints
 (:= ineq [
@@ -39,7 +55,7 @@
 'interactive debugging of execution
 '(trace #ineq)
 
-'dynamic definition of constellation
+'process
 (:= c (process
   (+n0 0)                 'base constellation
   [(-n0 X) (+n1 (s X))]   'interacts with previous
@@ -77,14 +93,15 @@
 '  [#1=>[(+f X) X)]]
 '  [#2=>(-f a)]>
 
-'checkers & typechecking
-(:= checker [
-  [+interaction (union @#tested #test)]
-  [+expect ok]])
-
+'define type
 (spec nat [
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]])
+
+'expect
+(:= x 0)
+(== x 0)
+'(== x 1)
 
 'manual type checking
 (:= 0 (+nat 0))

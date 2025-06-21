@@ -40,10 +40,34 @@ and read lexbuf =
   | '|' -> BAR
   | '\'' -> comment lexbuf
   | "'''" -> comments lexbuf
-  | '"' -> STRMARK
+  | '"' -> string_literal lexbuf
   | space | newline -> read lexbuf
   | eof -> EOF
   | _ ->
     raise
       (SyntaxError
          ("Unexpected character '" ^ Utf8.lexeme lexbuf ^ "' during lexing") )
+
+and string_literal lexbuf =
+  let buffer = Buffer.create 32 in
+  let rec loop () =
+    match%sedlex lexbuf with
+    | '"' -> STRING (Buffer.contents buffer)
+    | '\\', any ->
+        let escaped =
+          match%sedlex lexbuf with
+          | 'n' -> '\n'
+          | 't' -> '\t'
+          | '\\' -> '\\'
+          | '"' -> '"'
+          | _ -> failwith "Unknown escape sequence"
+        in
+        Buffer.add_char buffer escaped;
+        loop ()
+    | eof -> failwith "Unterminated string literal"
+    | any ->
+        Buffer.add_string buffer (Sedlexing.Utf8.lexeme lexbuf);
+        loop ()
+    | _ -> failwith "Invalid character in string literal"
+  in
+  loop ()

@@ -27,12 +27,10 @@ and substitution =
   | SGal of ident * sgen_expr
 
 type err =
-  | ReservedWord of string
   | ExpectError of marked_constellation * marked_constellation * ident
   | UnknownID of string
 
-type env =
-  { objs : (ident * sgen_expr) list }
+type env = { objs : (ident * sgen_expr) list }
 
 let initial_env = { objs = [] }
 

@@ -95,9 +95,6 @@ let pp_err e : (string, err) Result.t =
   let open Lsc_ast.StellarRays in
   let open Printf in
   match e with
-  | ReservedWord x ->
-    sprintf "%s: identifier '%s' is reserved.\n" (red "ReservedWord Error") x
-    |> Result.return
   | ExpectError (x, e, Func ((Null, f), [])) when equal_string f "default" ->
     sprintf "%s:\n* expected: %s\n* got: %s\n" (red "Expect Error")
       (x |> remove_mark_all |> string_of_constellation)
