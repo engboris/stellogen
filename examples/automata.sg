@@ -4,8 +4,8 @@
   [(-i [1 X]) (+i X)]])
 
 'input words
-(:: e binary)
 (:= e (+i e))
+(:: e binary)
 
 (:= 000 (+i [0 0 0 e]))
 (:: 000 binary)

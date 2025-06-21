@@ -32,11 +32,9 @@ type err =
   | UnknownID of string
 
 type env =
-  { objs : (ident * sgen_expr) list
-  ; types : (ident * (ident * ident option) list) list
-  }
+  { objs : (ident * sgen_expr) list }
 
-let initial_env = { objs = []; types = [] }
+let initial_env = { objs = [] }
 
 type declaration =
   | Def of ident * sgen_expr

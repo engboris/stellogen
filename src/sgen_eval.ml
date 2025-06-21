@@ -9,10 +9,6 @@ let add_obj env x e = List.Assoc.add ~equal:equal_ray env.objs x e
 
 let get_obj env x = List.Assoc.find ~equal:equal_ray env.objs x
 
-let add_type env x e = List.Assoc.add ~equal:equal_ray env.types x e
-
-let get_type env x = List.Assoc.find ~equal:equal_ray env.types x
-
 let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
   | Raw g -> Raw (f g) |> Result.return
   | Id x -> begin
@@ -209,7 +205,7 @@ and string_of_type_expr (t, ck) =
 let rec eval_decl ~typecheckonly ~notyping env :
   declaration -> (env, err) Result.t = function
   | Def (x, e) ->
-    let env = { objs = add_obj env x e; types = env.types } in
+    let env = { objs = add_obj env x e } in
     Ok env
   | Show _ when typecheckonly -> Ok env
   | Show (Id x) -> begin
