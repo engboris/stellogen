@@ -1,19 +1,13 @@
 open Base
 open Lsc_ast
 
-type err =
-  | ReservedWord of string
-  | UnknownID of string
-
 type ident = StellarRays.term
 
 type idvar = string * int option
 
 type idfunc = polarity * string
 
-type ray_prefix = StellarRays.fmark * idfunc
-
-and sgen_expr =
+type sgen_expr =
   | Raw of marked_constellation
   | Id of ident
   | Exec of bool * sgen_expr
@@ -26,15 +20,16 @@ and sgen_expr =
   | Eval of sgen_expr
 
 and substitution =
-  | Extend of ray_prefix
-  | Reduce of ray_prefix
+  | Extend of idfunc
+  | Reduce of idfunc
   | SVar of string * StellarRays.term
-  | SFunc of (StellarRays.fmark * idfunc) * (StellarRays.fmark * idfunc)
+  | SFunc of idfunc * idfunc
   | SGal of ident * sgen_expr
 
-let reserved_words = [ const "clean"; const "kill" ]
-
-let is_reserved = List.mem reserved_words ~equal:equal_ray
+type err =
+  | ReservedWord of string
+  | ExpectError of marked_constellation * marked_constellation * ident
+  | UnknownID of string
 
 type env =
   { objs : (ident * sgen_expr) list
@@ -48,7 +43,7 @@ type declaration =
   | Show of sgen_expr
   | Trace of sgen_expr
   | Run of sgen_expr
-  | Expect of ident * sgen_expr
+  | Expect of ident * sgen_expr * ident
   | Use of ident list
 
 type program = declaration list

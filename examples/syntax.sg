@@ -88,12 +88,12 @@
 
 'manual type checking
 (:= 0 (+nat 0))
-(== test ok)
 (:= test @(exec (union @#0 #nat)))
+(== test ok)
 
 (:= 2 <+nat s s 0>)
-(== test ok)
 (:= test @(exec (union @#0 #nat)))
+(== test ok)
 
 'import file
 '(use examples automata)

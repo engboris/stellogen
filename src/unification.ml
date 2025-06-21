@@ -17,24 +17,14 @@ end
    --------------------------------------- *)
 
 module Make (Sig : Signature) = struct
-  type fmark =
-    | Noisy
-    | Muted
-
   type term =
     | Var of Sig.idvar
-    | Func of (fmark * Sig.idfunc) * term list
-
-  let equal_mark m m' =
-    match (m, m') with Noisy, Noisy | Muted, Muted -> true | _ -> false
-
-  let equal_func (m, f) (m', f') = equal_mark m m' && Sig.equal_idfunc f f'
+    | Func of Sig.idfunc * term list
 
   let rec equal_term t u =
     match (t, u) with
     | Var x, Var y -> Sig.equal_idvar x y
-    | Func ((Muted, f), ts), Func ((Muted, g), us)
-    | Func ((Noisy, f), ts), Func ((Noisy, g), us) -> begin
+    | Func (f, ts), Func (g, us) -> begin
       try
         Sig.equal_idfunc f g
         && List.for_all2_exn ~f:(fun t u -> equal_term t u) ts us
@@ -80,7 +70,9 @@ module Make (Sig : Signature) = struct
   let subst sub = map Fn.id (apply sub)
 
   let replace_func from_pf to_pf =
-    map (fun pf -> if equal_func pf from_pf then to_pf else pf) (fun x -> Var x)
+    map
+      (fun pf -> if Sig.equal_idfunc pf from_pf then to_pf else pf)
+      (fun x -> Var x)
 
   let replace_funcs fsub t =
     List.fold_left fsub ~init:t ~f:(fun acc (from_pf, to_pf) ->
@@ -106,13 +98,6 @@ module Make (Sig : Signature) = struct
       ~init:[] ts
     |> List.rev
 
-  let signals = ref []
-
-  (* FIXME: doesn't work as expected *)
-  let emit_signals sub =
-    let new_signals = List.map ~f:(fun (_, t) -> t) sub in
-    signals := new_signals @ !signals
-
   let rec solve sub : problem -> substitution option = function
     | [] -> Some sub
     (* Clear *)
@@ -120,18 +105,9 @@ module Make (Sig : Signature) = struct
     (* Orient + Replace *)
     | (Var x, t) :: pbs | (t, Var x) :: pbs -> elim x t pbs sub
     (* Open *)
-    | (Func ((m, f), ts), Func ((m', g), us)) :: pbs
-      when equal_mark m m' && Sig.compatible f g
-           && List.length ts = List.length us -> begin
-      match solve sub (List.zip_exn ts us @ pbs) with
-      | None -> None
-      | Some s -> begin
-        match m with
-        | Noisy ->
-          emit_signals s;
-          Some s
-        | _ -> Some s
-      end
+    | (Func (f, ts), Func (g, us)) :: pbs
+      when Sig.compatible f g && List.length ts = List.length us -> begin
+      solve sub (List.zip_exn ts us @ pbs)
     end
     | _ -> None
 

@@ -80,12 +80,11 @@ let symbol_of_str (s : string) : idfunc =
   | _ -> (Null, s)
 
 let rec ray_of_expr : expr -> ray = function
-  | Symbol s -> to_func ((Muted, symbol_of_str s), [])
+  | Symbol s -> to_func (symbol_of_str s, [])
   | Var s -> to_var s
-  | Unquote e -> to_func ((Muted, (Null, "#")), [ ray_of_expr e ])
+  | Unquote e -> to_func ((Null, "#"), [ ray_of_expr e ])
   | List [] -> failwith "error: ray cannot be empty"
-  | List (Symbol h :: t) ->
-    to_func ((Muted, symbol_of_str h), List.map ~f:ray_of_expr t)
+  | List (Symbol h :: t) -> to_func (symbol_of_str h, List.map ~f:ray_of_expr t)
   | List (_ :: _) -> failwith "error: ray must start with constant"
 
 let bans_of_expr : expr list -> ban list =
@@ -190,9 +189,6 @@ let decl_of_expr : expr -> declaration = function
     Def (ray_of_expr x, sgen_expr_of_expr g)
   | List [ Symbol k; x; g ] when equal_string k "spec" ->
     Def (ray_of_expr x, sgen_expr_of_expr g)
-  (* type declaration :: *)
-  (* | List [ Symbol k; x; g ] when equal_string k typedef_op ->
-    Typedecl (ray_of_expr x, typedecl_of_expr g) *)
   (* show *)
   | List [ Symbol k; g ] when equal_string k "show" ->
     Show (sgen_expr_of_expr g)
@@ -201,7 +197,9 @@ let decl_of_expr : expr -> declaration = function
     Trace (sgen_expr_of_expr g)
   (* expect *)
   | List [ Symbol k; x; g ] when equal_string k expect_op ->
-    Expect (ray_of_expr x, sgen_expr_of_expr g)
+    Expect (ray_of_expr x, sgen_expr_of_expr g, const "default")
+  | List [ Symbol k; x; g; m ] when equal_string k expect_op ->
+    Expect (ray_of_expr x, sgen_expr_of_expr g, ray_of_expr m)
   | _ -> failwith "error: invalid declaration"
 
 let program_of_expr = List.map ~f:decl_of_expr

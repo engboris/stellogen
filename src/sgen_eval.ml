@@ -15,7 +15,6 @@ let get_type env x = List.Assoc.find ~equal:equal_ray env.types x
 
 let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
   | Raw g -> Raw (f g) |> Result.return
-  | Id x when is_reserved x -> Ok (Id x)
   | Id x -> begin
     match get_obj env x with
     | None -> Error (UnknownID (string_of_ray x))
@@ -62,7 +61,6 @@ let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
 let rec replace_id env (_from : ident) (_to : sgen_expr) e :
   (sgen_expr, err) Result.t =
   match e with
-  | Id x when is_reserved x -> Ok (Id x)
   | Id x when equal_ray x _from -> Ok _to
   | Exec (b, e) ->
     let* g = replace_id env _from _to e in
@@ -96,18 +94,28 @@ let subst_vars env _from _to =
 let subst_funcs env _from _to =
   map_sgen_expr env ~f:(subst_all_funcs [ (_from, _to) ])
 
-let rec pp_err e : (string, err) Result.t =
+let pp_err e : (string, err) Result.t =
   let red text = "\x1b[31m" ^ text ^ "\x1b[0m" in
+  let open Lsc_ast.StellarRays in
+  let open Printf in
   match e with
   | ReservedWord x ->
-    Printf.sprintf "%s: identifier '%s' is reserved.\n"
-      (red "ReservedWord Error") x
+    sprintf "%s: identifier '%s' is reserved.\n" (red "ReservedWord Error") x
     |> Result.return
+  | ExpectError (x, e, Func ((Null, f), [])) when equal_string f "default" ->
+    sprintf "%s:\n* expected: %s\n* got: %s\n" (red "Expect Error")
+      (x |> remove_mark_all |> string_of_constellation)
+      (e |> remove_mark_all |> string_of_constellation)
+    |> Result.return
+  | ExpectError (_x, _e, Func ((Null, f), [ t ])) when equal_string f "error" ->
+    sprintf "%s: %s\n" (red "Expect Error") (string_of_ray t) |> Result.return
+  | ExpectError (_x, _e, message) ->
+    sprintf "%s\n" (string_of_ray message) |> Result.return
   | UnknownID x ->
-    Printf.sprintf "%s: identifier '%s' not found.\n" (red "UnknownID Error") x
+    sprintf "%s: identifier '%s' not found.\n" (red "UnknownID Error") x
     |> Result.return
 
-and eval_sgen_expr ~notyping (env : env) :
+let rec eval_sgen_expr ~notyping (env : env) :
   sgen_expr -> (marked_constellation, err) Result.t = function
   | Raw mcs -> Ok mcs
   | Id x -> begin
@@ -143,13 +151,14 @@ and eval_sgen_expr ~notyping (env : env) :
       List.fold_left t ~init:(Ok init) ~f:(fun acc x ->
         let* acc = acc in
         match x with
-        | Id (Func ((Muted, (Null, "kill")), [])) ->
+        | Id (Func ((Null, "kill"), [])) ->
           acc |> remove_mark_all |> kill |> focus |> Result.return
-        | Id (Func ((Muted, (Null, "clean")), [])) ->
+        | Id (Func ((Null, "clean"), [])) ->
           acc |> remove_mark_all |> clean |> focus |> Result.return
         | _ ->
           let origin = acc |> remove_mark_all |> focus in
-          eval_sgen_expr ~notyping env (Focus (Exec (false, Union [ x; Raw origin ]))) )
+          eval_sgen_expr ~notyping env
+            (Focus (Exec (false, Union [ x; Raw origin ]))) )
     in
     res |> Result.return
   | Subst (e, Extend pf) ->
@@ -162,8 +171,7 @@ and eval_sgen_expr ~notyping (env : env) :
         (map_mstar ~f:(fun r ->
            match r with
            | StellarRays.Func (pf', ts)
-             when StellarSig.equal_idfunc (snd pf) (snd pf')
-                  && List.length ts = 1 ->
+             when StellarSig.equal_idfunc pf pf' && List.length ts = 1 ->
              List.hd_exn ts
            | _ -> r ) )
     |> Result.return
@@ -188,8 +196,7 @@ and expr_of_ray = function
   | Var (x, None) -> Expr.Var x
   | Var (x, Some i) -> Expr.Var (x ^ Int.to_string i)
   | Func (pf, []) -> Symbol (Lsc_ast.string_of_polsym pf)
-  | Func ((Muted, (Null, k)), [ r ]) when equal_string k "#" ->
-    Unquote (expr_of_ray r)
+  | Func ((Null, k), [ r ]) when equal_string k "#" -> Unquote (expr_of_ray r)
   | Func (pf, args) ->
     Expr.List
       (Symbol (Lsc_ast.string_of_polsym pf) :: List.map ~f:expr_of_ray args)
@@ -201,7 +208,6 @@ and string_of_type_expr (t, ck) =
 
 let rec eval_decl ~typecheckonly ~notyping env :
   declaration -> (env, err) Result.t = function
-  | Def (x, _) when is_reserved x -> Error (ReservedWord (string_of_ray x))
   | Def (x, e) ->
     let env = { objs = add_obj env x e; types = env.types } in
     Ok env
@@ -231,7 +237,13 @@ let rec eval_decl ~typecheckonly ~notyping env :
   | Run e ->
     let _ = eval_sgen_expr ~notyping env (Exec (false, e)) in
     Ok env
-  | Expect (_x, _mcs) -> Ok { objs = []; types = [] } (* TODO *)
+  | Expect (x, e, message) ->
+    let* eval_x = eval_sgen_expr ~notyping env (Id x) in
+    let* eval_e = eval_sgen_expr ~notyping env e in
+    let normalize x = x |> remove_mark_all |> unmark_all in
+    if not @@ equal_mconstellation (normalize eval_e) (normalize eval_x) then
+      Error (ExpectError (eval_x, eval_e, message))
+    else Ok env
   | Use path ->
     let path = List.map path ~f:string_of_ray in
     let formatted_filename = String.concat ~sep:"/" path ^ ".sg" in

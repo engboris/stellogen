@@ -70,7 +70,7 @@ let rec compare_ray r1 r2 =
     String.compare (x ^ i') (y ^ j')
   | Func _, Var _ -> 1
   | Var _, Func _ -> -1
-  | Func ((_, pf1), args1), Func ((_, pf2), args2) -> begin
+  | Func (pf1, args1), Func (pf2, args2) -> begin
     match (pf1, pf2) with
     | pf1, pf2 when StellarSig.equal_idfunc pf1 pf2 ->
       List.compare compare_ray args1 args2
@@ -103,17 +103,13 @@ let neg f = (Neg, f)
 
 let null f = (Null, f)
 
-let muted pf = (Muted, pf)
-
-let noisy pf = (Noisy, pf)
-
 let gfunc c ts = Func (c, ts)
 
-let pfunc f ts = gfunc (muted (pos f)) ts
+let pfunc f ts = gfunc (pos f) ts
 
-let nfunc f ts = gfunc (muted (neg f)) ts
+let nfunc f ts = gfunc (neg f) ts
 
-let func f ts = gfunc (muted (null f)) ts
+let func f ts = gfunc (null f) ts
 
 let var x = Var x
 
@@ -124,7 +120,7 @@ let nconst f = nfunc f []
 let const f = func f []
 
 let is_polarised r : bool =
-  let aux = function _, (Pos, _) | _, (Neg, _) -> true | _ -> false in
+  let aux = function Pos, _ | Neg, _ -> true | _ -> false in
   exists_func aux r
 
 let replace_indices (i : int) : ray -> ray =
@@ -139,10 +135,7 @@ let raymatcher r r' : substitution option =
 
 let string_of_polarity = function Pos -> "+" | Neg -> "-" | Null -> ""
 
-let string_of_polsym (m, (p, f)) =
-  match m with
-  | Noisy -> string_of_polarity p ^ "#" ^ f
-  | Muted -> string_of_polarity p ^ f
+let string_of_polsym (p, f) = string_of_polarity p ^ f
 
 let string_of_var (x, i) =
   match i with None -> x | Some i' -> x ^ Int.to_string i'
@@ -150,9 +143,9 @@ let string_of_var (x, i) =
 let rec string_of_ray = function
   | Var xi -> string_of_var xi
   | Func (pf, []) -> string_of_polsym pf
-  | Func ((_, (Null, ":")), [ Func ((_, (Null, ":")), [ r1; r2 ]); r3 ]) ->
+  | Func ((Null, "$cons"), [ Func ((Null, "$cons"), [ r1; r2 ]); r3 ]) ->
     "(" ^ string_of_ray r1 ^ ":" ^ string_of_ray r2 ^ "):" ^ string_of_ray r3
-  | Func ((_, (Null, ":")), [ r1; r2 ]) ->
+  | Func ((Null, "$cons"), [ r1; r2 ]) ->
     string_of_ray r1 ^ ":" ^ string_of_ray r2
   | Func (pf, ts) ->
     string_of_polsym pf ^ surround "(" ")"
@@ -367,8 +360,8 @@ let coherent_bans bans =
 
 (* interaction between one selected ray and one selected action *)
 let rec interaction ~showtrace ~queue repl1 repl2
-  (selected_action, other_actions) (selected_ray, other_rays, bans) :
-  star list =
+  (selected_action, other_actions) (selected_ray, other_rays, bans) : star list
+    =
   match selected_action.content with
   | [] -> []
   | r' :: s' when not (is_polarised r') ->
@@ -473,11 +466,11 @@ let rec select_ray ~linear ~showtrace ~queue actions other_states
         actions
     with
     (* interaction did nothing (no partner), try other rays *)
-    | ([], new_actions) ->
+    | [], new_actions ->
       select_ray ~linear ~showtrace ~queue:(selected_ray :: queue) new_actions
         other_states (other_rays, bans)
     (* interaction returns a result, keep it for the next round *)
-    | (new_stars, new_actions) -> (Some new_stars, new_actions))
+    | new_stars, new_actions -> (Some new_stars, new_actions) )
 
 let rec select_star ~linear ~showtrace ~queue actions :
   star list -> star list option * star list = function
@@ -489,20 +482,19 @@ let rec select_star ~linear ~showtrace ~queue actions :
         (selected_state.content, selected_state.bans)
     with
     (* no success with this star, try other stars *)
-    | (None, new_actions) ->
+    | None, new_actions ->
       select_star ~linear ~showtrace new_actions
         ~queue:(selected_state :: queue) other_states
     (* got new stars to add, construct the result for the next round *)
-    | (Some new_stars, new_actions) ->
-      (Some (List.rev queue @ other_states @ new_stars), new_actions))
+    | Some new_stars, new_actions ->
+      (Some (List.rev queue @ other_states @ new_stars), new_actions) )
 
 let string_of_cfg (actions, states) : string =
   Printf.sprintf ">> actions: %s\n>> states: %s\n"
     (string_of_constellation actions)
     (string_of_constellation states)
 
-let exec ?(showtrace = false) ?(linear = false) mcs :
-  constellation =
+let exec ?(showtrace = false) ?(linear = false) mcs : constellation =
   (* do a sequence of rounds with a single interaction on state per round *)
   let rec loop ((actions, states) as cfg) =
     if showtrace then begin
@@ -510,8 +502,8 @@ let exec ?(showtrace = false) ?(linear = false) mcs :
       pause ()
     end;
     match select_star ~linear ~showtrace ~queue:[] actions states with
-    | (None, _) -> states (* no more possible interaction *)
-    | (Some res, new_actions) -> loop (new_actions, res)
+    | None, _ -> states (* no more possible interaction *)
+    | Some res, new_actions -> loop (new_actions, res)
   in
   let cfg = extract_intspace mcs in
   if showtrace then
