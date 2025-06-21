@@ -108,37 +108,35 @@ let pp_err e : (string, err) Result.t =
     sprintf "%s: identifier '%s' not found.\n" (red "UnknownID Error") x
     |> Result.return
 
-let rec eval_sgen_expr ~notyping (env : env) :
+let rec eval_sgen_expr (env : env) :
   sgen_expr -> (marked_constellation, err) Result.t = function
   | Raw mcs -> Ok mcs
   | Id x -> begin
     begin
       match get_obj env x with
       | None -> Error (UnknownID (string_of_ray x))
-      | Some g -> eval_sgen_expr ~notyping env g
+      | Some g -> eval_sgen_expr env g
     end
   end
   | Union es ->
-    let* eval_es =
-      List.map ~f:(eval_sgen_expr ~notyping env) es |> Result.all
-    in
+    let* eval_es = List.map ~f:(eval_sgen_expr env) es |> Result.all in
     let* mcs = Ok eval_es in
     Ok (List.concat mcs)
   | Exec (b, e) ->
-    let* eval_e = eval_sgen_expr ~notyping env e in
+    let* eval_e = eval_sgen_expr env e in
     Ok (exec ~linear:b ~showtrace:false eval_e |> unmark_all)
   | Focus e ->
-    let* eval_e = eval_sgen_expr ~notyping env e in
+    let* eval_e = eval_sgen_expr env e in
     eval_e |> remove_mark_all |> focus |> Result.return
   | Kill e ->
-    let* eval_e = eval_sgen_expr ~notyping env e in
+    let* eval_e = eval_sgen_expr env e in
     eval_e |> remove_mark_all |> kill |> focus |> Result.return
   | Clean e ->
-    let* eval_e = eval_sgen_expr ~notyping env e in
+    let* eval_e = eval_sgen_expr env e in
     eval_e |> remove_mark_all |> clean |> focus |> Result.return
   | Process [] -> Ok []
   | Process (h :: t) ->
-    let* eval_e = eval_sgen_expr ~notyping env h in
+    let* eval_e = eval_sgen_expr env h in
     let init = eval_e |> remove_mark_all |> focus in
     let* res =
       List.fold_left t ~init:(Ok init) ~f:(fun acc x ->
@@ -150,15 +148,14 @@ let rec eval_sgen_expr ~notyping (env : env) :
           acc |> remove_mark_all |> clean |> focus |> Result.return
         | _ ->
           let origin = acc |> remove_mark_all |> focus in
-          eval_sgen_expr ~notyping env
-            (Focus (Exec (false, Union [ x; Raw origin ]))) )
+          eval_sgen_expr env (Focus (Exec (false, Union [ x; Raw origin ]))) )
     in
     res |> Result.return
   | Subst (e, Extend pf) ->
-    let* eval_e = eval_sgen_expr ~notyping env e in
+    let* eval_e = eval_sgen_expr env e in
     List.map eval_e ~f:(map_mstar ~f:(fun r -> gfunc pf [ r ])) |> Result.return
   | Subst (e, Reduce pf) ->
-    let* eval_e = eval_sgen_expr ~notyping env e in
+    let* eval_e = eval_sgen_expr env e in
     List.map eval_e
       ~f:
         (map_mstar ~f:(fun r ->
@@ -170,19 +167,19 @@ let rec eval_sgen_expr ~notyping (env : env) :
     |> Result.return
   | Subst (e, SVar (x, r)) ->
     let* subst = subst_vars env (x, None) r e in
-    eval_sgen_expr ~notyping env subst
+    eval_sgen_expr env subst
   | Subst (e, SFunc (pf1, pf2)) ->
     let* subst = subst_funcs env pf1 pf2 e in
-    eval_sgen_expr ~notyping env subst
+    eval_sgen_expr env subst
   | Subst (e, SGal (x, _to)) ->
     let* fill = replace_id env x _to e in
-    eval_sgen_expr ~notyping env fill
+    eval_sgen_expr env fill
   | Eval e -> (
-    let* eval_e = eval_sgen_expr ~notyping env e in
+    let* eval_e = eval_sgen_expr env e in
     match eval_e with
     | [ Marked { content = [ r ]; bans = _ } ]
     | [ Unmarked { content = [ r ]; bans = _ } ] ->
-      r |> expr_of_ray |> Expr.sgen_expr_of_expr |> eval_sgen_expr ~notyping env
+      r |> expr_of_ray |> Expr.sgen_expr_of_expr |> eval_sgen_expr env
     | _ -> failwith "error: only rays can be evaluated." )
 
 and expr_of_ray = function
@@ -194,21 +191,14 @@ and expr_of_ray = function
     Expr.List
       (Symbol (Lsc_ast.string_of_polsym pf) :: List.map ~f:expr_of_ray args)
 
-and string_of_type_expr (t, ck) =
-  match ck with
-  | None -> Printf.sprintf "%s" (string_of_ray t)
-  | Some xck -> Printf.sprintf "%s [%s]" (string_of_ray t) (string_of_ray xck)
-
-let rec eval_decl ~typecheckonly ~notyping env :
-  declaration -> (env, err) Result.t = function
+let rec eval_decl env : declaration -> (env, err) Result.t = function
   | Def (x, e) ->
     let env = { objs = add_obj env x e } in
     Ok env
-  | Show _ when typecheckonly -> Ok env
   | Show (Id x) -> begin
     match get_obj env x with
     | None -> Error (UnknownID (string_of_ray x))
-    | Some e -> eval_decl ~typecheckonly ~notyping env (Show e)
+    | Some e -> eval_decl env (Show e)
   end
   | Show (Raw mcs) ->
     mcs |> remove_mark_all |> string_of_constellation |> Stdlib.print_string;
@@ -216,23 +206,21 @@ let rec eval_decl ~typecheckonly ~notyping env :
     Stdlib.flush Stdlib.stdout;
     Ok env
   | Show e ->
-    let* eval_e = eval_sgen_expr ~notyping env e in
+    let* eval_e = eval_sgen_expr env e in
     List.map eval_e ~f:remove_mark
     |> string_of_constellation |> Stdlib.print_string;
     Stdlib.print_newline ();
     Ok env
-  | Trace _ when typecheckonly -> Ok env
   | Trace e ->
-    let* eval_e = eval_sgen_expr ~notyping env e in
+    let* eval_e = eval_sgen_expr env e in
     let _ = exec ~showtrace:true eval_e in
     Ok env
-  | Run _ when typecheckonly -> Ok env
   | Run e ->
-    let _ = eval_sgen_expr ~notyping env (Exec (false, e)) in
+    let _ = eval_sgen_expr env (Exec (false, e)) in
     Ok env
   | Expect (x, e, message) ->
-    let* eval_x = eval_sgen_expr ~notyping env (Id x) in
-    let* eval_e = eval_sgen_expr ~notyping env e in
+    let* eval_x = eval_sgen_expr env (Id x) in
+    let* eval_e = eval_sgen_expr env e in
     let normalize x = x |> remove_mark_all |> unmark_all in
     if not @@ equal_mconstellation (normalize eval_e) (normalize eval_x) then
       Error (ExpectError (eval_x, eval_e, message))
@@ -254,15 +242,15 @@ let rec eval_decl ~typecheckonly ~notyping env :
     let expr = Sgen_parsing.parse_with_error lexbuf in
     let expanded = List.map ~f:Expr.expand_macro expr in
     let p = Expr.program_of_expr expanded in
-    let* env = eval_program ~typecheckonly ~notyping p in
+    let* env = eval_program p in
     Ok env
 
-and eval_program ~typecheckonly ~notyping (p : program) =
+and eval_program (p : program) =
   match
     List.fold_left
       ~f:(fun acc x ->
         let* acc = acc in
-        eval_decl ~typecheckonly ~notyping acc x )
+        eval_decl acc x )
       ~init:(Ok initial_env) p
   with
   | Ok env -> Ok env
