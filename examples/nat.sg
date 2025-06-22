@@ -1,42 +1,35 @@
-(spec nat
-  (const
-    (star (-nat 0) ok)
-    (star (-nat (s N)) (+nat N))))
+(spec nat [
+  [(-nat 0) ok]
+  [(-nat (s N)) (+nat N)]])
 
-(def fchecker
-  (galaxy
-    (interaction (union @#tested #test))
-    (expect (const (star arg out)))))
+(new-declaration (:: tested test)
+  (:= test @(exec (union @#tested #test)))
+  (== test ok))
 
-(spec (arrow nat nat)
-  (const
-    (star (+nat X) arg)
-    (star (-nat X) out)))
+(new-declaration (:: tested test fchecker)
+  (:= test @(exec (union @#tested #test)))
+  (== test [arg out]))
 
+(spec (arrow nat nat) [
+  [(+nat X) arg]
+  [(-nat X) out]])
+
+(:= 0 (+nat 0))
 (:: 0 nat)
-(def 0
-  (const (star (+nat 0))))
 
+(:= 1 (+nat (s 0)))
 (:: 1 nat)
-(def 1
-  (const
-    (star (+nat (s 0)))))
 
+(:= 2 <+nat s s 0>)
 (:: 2 nat)
-(def 2
-  (const
-    (star <+nat s s /0>)))
 
-(:: add1 ((arrow nat nat) / fchecker))
-(def add1
-  (const
-    (star (-nat X) (+nat (s X)))))
+(:= add1 [(-nat X) (+nat (s X))])
+(:: add1 (arrow nat nat) fchecker)
 
-(def is_empty
-  (const
-    (star (-nat 0) (res 1))
-    (star (-nat (s _)) (res 0))))
+(:= is_empty [
+  [(-nat 0) (res 1)]
+  [(-nat (s _)) (res 0)]])
 
-(show-exec (union @#add1 #2))
-(show-exec (union #is_empty @#0))
-(show-exec (union #is_empty @#1))
+<show exec (union @#add1 #2)>
+<show exec (union #is_empty @#0)>
+<show exec (union #is_empty @#1)>

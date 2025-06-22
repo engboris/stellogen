@@ -1,35 +1,27 @@
 ' unary addition
-(def add
-  (const
-    (star (+add 0 Y Y))
-    (star (-add X Y Z) (+add (s X) Y (s Z)))))
+(:= add [
+  [(+add 0 Y Y)]
+  [(-add X Y Z) (+add (s X) Y (s Z))]])
 
 ' 2 + 2 = R
-(def query
-  (const
-    (star (-add <s s /0> <s s /0> R) R)))
+(:= query [(-add <s s 0> <s s 0> R) R])
 
-(show-exec (union #add @#query))
+<show exec (union #add @#query)>
 
-(def graph
-  (const
-    (star (+from 1) (+to 2))
-    (star (+from 1) (+to 3))
-    (star (+from 3) (+to 2))
-    (star (+from 3) (+to 4))))
-    '(star (+from 4) (+to 3))
+(:= graph [
+  [(+from 1) (+to 2)]
+  [(+from 1) (+to 3)]
+  [(+from 3) (+to 2)]
+  '[(+from 4) (+to 3)]
+  [(+from 3) (+to 4)]])
 
-(def composition
-  (const
-    (star (-to X) (-from X))))
+(:= composition [(-to X) (-from X)])
 
 ' is there a path between 1 and 4?
-(def query
-  (const
-    (@star (-from 1))
-    (star (-to 4) ok)))
+(:= query [
+  @[(-from 1)]
+  [(-to 4) ok]])
 
-(show-exec (process
+<show exec (process
   #query
-  (union #graph #composition)
-  &kill))
+  (union #graph #composition))>

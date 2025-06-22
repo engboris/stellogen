@@ -142,9 +142,9 @@ let rec eval_sgen_expr (env : env) :
       List.fold_left t ~init:(Ok init) ~f:(fun acc x ->
         let* acc = acc in
         match x with
-        | Id (Func ((Null, "kill"), [])) ->
+        | Id (Func ((Null, "&kill"), [])) ->
           acc |> remove_mark_all |> kill |> focus |> Result.return
-        | Id (Func ((Null, "clean"), [])) ->
+        | Id (Func ((Null, "&clean"), [])) ->
           acc |> remove_mark_all |> clean |> focus |> Result.return
         | _ ->
           let origin = acc |> remove_mark_all |> focus in

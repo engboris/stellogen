@@ -1,56 +1,40 @@
 ' Turing machine accepting words with as many 'a' as 'b'
-(def mt
-  (galaxy
-    (initial
-      (const
-        (star (-i [C W]) (+m q0 [e e] C W))
-        (star (-i e) (+m q0 e e e))))
-    (accept
-      (const
-        (star (-m q0 L e R) (+m qa L e R))
-        (star (-m qa L e R) accept)))
-    (initial_skip
-      (const
-        (star (-m q0 L sep [C R]) (+m q0 [sep L] C R))))
-    (mark
-      (const
-        (star (-m q0 L a [C R]) (+m q2 [sep L] C R))
-        (star (-m q0 L b [C R]) (+m q3 [sep L] C R))))
-    (skip
-      (const
-        (star (-m q2 L a [C R])   (+m q2 [a L] C R))
-        (star (-m q2 L sep [C R]) (+m q2 [sep L] C R))
-        (star (-m q3 L b [C R])   (+m q3 [b L] C R))
-        (star (-m q3 L sep [C R]) (+m q3 [sep L] C R))))
-    (join
-      (const
-        (star (-m q2 [C L] b R) (+m q1 L C [sep R]))
-        (star (-m q3 [C L] a R) (+m q1 L C [sep R]))))
-    (return
-      (const
-        (star (-m q1 [C L] a R)   (+m q1 L C [a R]))
-        (star (-m q1 [C L] b R)   (+m q1 L C [b R]))
-        (star (-m q1 [C L] sep R) (+m q1 L C [sep R]))
-        (star (-m q1 L e [C R])   (+m q0 [e L] C R))))
-    (reject
-      (const
-        (star (-m q2 L e R) (+m qr L e R))
-        (star (-m q3 L e R) (+m qr L e R))
-        (star (-m qr L C R) reject)))))
+(:= mt [
+  'initial
+  [(-i [C|W]) (+m q0 [e e] C W)]
+  [(-i [])     (+m q0 e e e)]
+  'accept
+  [(-m q0 L e R) (+m qa L e R)]
+  [(-m qa L e R) accept]
+  'initial skip
+  [(-m q0 L sep [C|R]) (+m q0 [sep|L] C R)]
+  'mark
+  [(-m q0 L a [C|R]) (+m q2 [sep|L] C R)]
+  [(-m q0 L b [C|R]) (+m q3 [sep|L] C R)]
+  'skip
+  [(-m q2 L a [C|R])   (+m q2 [a|L] C R)]
+  [(-m q2 L sep [C|R]) (+m q2 [sep|L] C R)]
+  [(-m q3 L b [C|R])   (+m q3 [b|L] C R)]
+  [(-m q3 L sep [C|R]) (+m q3 [sep|L] C R)]
+  'join
+  [(-m q2 [C|L] b R) (+m q1 L C [sep|R])]
+  [(-m q3 [C|L] a R) (+m q1 L C [sep|R])]
+  'return
+  [(-m q1 [C|L] a R)   (+m q1 L C [a|R])]
+  [(-m q1 [C|L] b R)   (+m q1 L C [b|R])]
+  [(-m q1 [C|L] sep R) (+m q1 L C [sep|R])]
+  [(-m q1 L e [C|R])   (+m q0 [e|L] C R)]
+  'reject
+  [(-m q2 L e R) (+m qr L e R)]
+  [(-m q3 L e R) (+m qr L e R)]
+  [(-m qr L C R) reject]])
 
-(show (kill (exec
-      (union @(const (star (+i [a e e]))) #mt))))
-(show (kill (exec
-      (union @(const (star (+i [b e e]))) #mt))))
-(show (kill (exec
-      (union @(const (star (+i [a b b e e]))) #mt))))
-(show (kill (exec
-      (union @(const (star (+i [e e]))) #mt))))
-(show (kill (exec
-      (union @(const (star (+i [a b e e]))) #mt))))
-(show (kill (exec
-      (union @(const (star (+i [a a b b e e]))) #mt))))
-(show (kill (exec
-      (union @(const (star (+i [a b b a e e]))) #mt))))
-(show (kill (exec
-      (union @(const (star (+i [a b a b e e]))) #mt))))
+<show kill exec (union @(+i [a e e]) #mt)>
+<show kill exec (union @(+i [b e e]) #mt)>
+<show kill exec (union @(+i [a b b e e]) #mt)>
+
+<show kill exec (union @(+i [e e]) #mt)>
+<show kill exec (union @(+i [a b e e]) #mt)>
+<show kill exec (union @(+i [a a b b e e]) #mt)>
+<show kill exec (union @(+i [a b b a e e]) #mt)>
+<show kill exec (union @(+i [a b a b e e]) #mt)>

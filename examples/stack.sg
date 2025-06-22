@@ -1,21 +1,18 @@
-(show-exec (process
-  (const (star (+stack0 e)))
+<show exec (process
+  (+stack0 [])
   'push 1 then 0
-  (const
-    (star (-stack0 X) (+stack1 [1 X]))
-    (star (-stack1 X) (+stack2 [0 X])))
+  [(-stack0 X) (+stack1 [1|X])]
+  [(-stack1 X) (+stack2 [0|X])]
 
   'pop & save
-  (const (star (-stack2 [C X]) (+stack3 X) (+save C)))
+  [(-stack2 [C|X]) (+stack3 X) (+save C)]
 
   'conditional duplication
-  (const
-    (star (-stack3 [0 X]) (+stack4 [0 0 X]))
-    (star (-stack3 [1 X]) (+stack4 [1 1 X])))
+  [(-stack3 [0|X]) (+stack4 [0 0|X])]
+  [(-stack3 [1|X]) (+stack4 [1 1|X])]
 
   'freeze information
-  (const (star (-stack4 X) (stack X)))
+  [(-save C) (save C)]
 
-  (const (star (-save C) (save C)))
-  'kill remaining polarized stars
-  &kill))
+  'clean
+  [(-stack4 _)])>

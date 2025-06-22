@@ -36,31 +36,41 @@ philosophy).
 Finite state machine
 
 ```
+(new-declaration (:: tested test)
+  (:= test @(exec (union @#tested #test)))
+  (== test ok))
+
 (spec binary [
-  [(-i e) ok]
-  [(-i [0 X]) (+i X)]
-  [(-i [1 X]) (+i X)]])
+  [(-i []) ok]
+  [(-i [0|X]) (+i X)]
+  [(-i [1|X]) (+i X)]])
 
 'input words
+(:= e (+i []))
 (:: e binary)
-(:= e (+i e))
 
+(:= 0 (+i [0]))
+(:: 0 binary)
+
+(:= 000 (+i [0 0 0]))
 (:: 000 binary)
-(:= 000 (+i [0 0 0 e]))
 
+(:= 010 (+i [0 1 0]))
 (:: 010 binary)
-(:= 010 (+i [0 1 0 e]))
 
+(:= 110 (+i [1 1 0]))
 (:: 110 binary)
-(:= 110 (+i [1 1 0 e]))
 
+'''
+automaton accepting words ending with 00
+'''
 (:= a1 [
   [(-i W) (+a W q0)]
-  [(-a e q2) accept]
-  [(-a [0 W] q0) (+a W q0)]
-  [(-a [0 W] q0) (+a W q1)]
-  [(-a [1 W] q0) (+a W q0)]
-  [(-a [0 W] q1) (+a W q2)]])
+  [(-a [] q2) accept]
+  [(-a [0|W] q0) (+a W q0)]
+  [(-a [0|W] q0) (+a W q1)]
+  [(-a [1|W] q0) (+a W q0)]
+  [(-a [0|W] q1) (+a W q2)]])
 
 <show kill exec (union @#e #a1)>
 <show kill exec (union @#000 #a1)>

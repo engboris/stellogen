@@ -1,8 +1,10 @@
-(spec u4
-  (const
-    (star (-b 1 _) (-b 2 _) (-b 3 _) (-b 4 _) ok)))
+(spec u4 [(-b 1 _) (-b 2 _) (-b 3 _) (-b 4 _) ok])
 
-(def checker
+(new-declaration (:: tested test)
+  (:= test @(exec (process #test #test)))
+  (== test ok))
+
+(:= checker
   (galaxy
     (interaction
       (process

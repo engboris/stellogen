@@ -1,32 +1,26 @@
-(def checker
-  (galaxy
-    (interaction (union @#tested #test))
-    (expect (const (star ok)))))
+(new-declaration (:: tested test)
+  (:= test @(exec (union @#tested #test)))
+  (== test ok))
 
-(spec direction
-  (const
-    (star -north ok)
-    (star -south ok)
-    (star -west ok)
-    (star -east ok)))
+(spec direction [
+  [-north ok]
+  [-south ok]
+  [-west ok]
+  [-east ok]])
 
-(:: n (direction / checker))
-(def n
-  (const (star +north)))
+(:= n +north)
+(:: n direction)
 
-(spec result
-  (const
-    (star (-ok X) ok)
-    (star (-error X) ok)))
+(spec result [
+  [(-ok X) ok]
+  [(-error X) ok]])
 
-(:: x (result / checker))
-(def x
-  (const (star (+ok a))))
+(:= x (+ok a))
+(:: x result)
 
 'pattern matching
-(def get_ok
-  (const
-    (star (-ok X) X)
-    (star (-error X) (+error X))))
+(:= get_ok [
+  [(-ok X) X]
+  [(-error X) (+error X)]])
 
-(show-exec (union #get_ok @#x))
+<show exec (union #get_ok @#x)>
