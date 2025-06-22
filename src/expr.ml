@@ -15,6 +15,7 @@ module Raw = struct
     | Stack of t list
     | Cons of t list
     | ConsWithParams of t list * t list
+    | ConsWithBase of t list * t
 end
 
 type expr =
@@ -62,8 +63,9 @@ let rec expand_macro : Raw.t -> expr = function
   | Raw.Unquote e' -> Unquote (expand_macro e')
   | Raw.Focus e' -> List [ Symbol focus_op; expand_macro e' ]
   | Raw.List es -> List (List.map ~f:expand_macro es)
-  | Raw.Cons es ->
-    List.fold_left es ~init:(Symbol nil_op) ~f:(fun acc e ->
+  | Raw.Cons es -> expand_macro (Raw.ConsWithBase (es, Symbol nil_op))
+  | Raw.ConsWithBase (es, base) ->
+    List.fold_left es ~init:(expand_macro base) ~f:(fun acc e ->
       List [ Symbol cons_op; expand_macro e; acc ] )
   | Raw.ConsWithParams (es, ps) ->
     List [ Symbol params_op; expand_macro (Cons es); expand_macro (List ps) ]

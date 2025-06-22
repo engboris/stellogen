@@ -48,7 +48,7 @@
 (:= ineq [
   [(+f a)]
   [(+f b)]
-  @[(-f X) (-f Y) (r X Y) | (!= X Y)]])
+  @[(-f X) (-f Y) (r X Y) || (!= X Y)]])
 (show #ineq)
 <show exec #ineq>
 

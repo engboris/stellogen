@@ -97,8 +97,8 @@ let pp_err e : (string, err) Result.t =
   match e with
   | ExpectError (x, e, Func ((Null, f), [])) when equal_string f "default" ->
     sprintf "%s:\n* expected: %s\n* got: %s\n" (red "Expect Error")
-      (x |> remove_mark_all |> string_of_constellation)
       (e |> remove_mark_all |> string_of_constellation)
+      (x |> remove_mark_all |> string_of_constellation)
     |> Result.return
   | ExpectError (_x, _e, Func ((Null, f), [ t ])) when equal_string f "error" ->
     sprintf "%s: %s\n" (red "Expect Error") (string_of_ray t) |> Result.return

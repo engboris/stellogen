@@ -34,7 +34,7 @@ let expr_file :=
   | es=expr+; EOF; { es }
 
 let params :=
-  | BAR; ~=expr+; <>
+  | BAR; BAR; ~=expr+; <>
 
 let expr :=
   | ~=SYM; <Symbol>
@@ -46,3 +46,4 @@ let expr :=
   | LANGLE; es=revlist(expr); RANGLE; <Stack>
   | LBRACK; es=revlist(expr); RBRACK; <Cons>
   | LBRACK; ~=revlist(expr); ~=params; RBRACK; <ConsWithParams>
+  | LBRACK; ~=revlist(expr); BAR; ~=expr; RBRACK; <ConsWithBase>

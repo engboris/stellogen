@@ -143,9 +143,9 @@ let string_of_var (x, i) =
 let rec string_of_ray = function
   | Var xi -> string_of_var xi
   | Func (pf, []) -> string_of_polsym pf
-  | Func ((Null, "$cons"), [ Func ((Null, "$cons"), [ r1; r2 ]); r3 ]) ->
+  | Func ((Null, "%cons"), [ Func ((Null, "%cons"), [ r1; r2 ]); r3 ]) ->
     "(" ^ string_of_ray r1 ^ ":" ^ string_of_ray r2 ^ "):" ^ string_of_ray r3
-  | Func ((Null, "$cons"), [ r1; r2 ]) ->
+  | Func ((Null, "%cons"), [ r1; r2 ]) ->
     string_of_ray r1 ^ ":" ^ string_of_ray r2
   | Func (pf, ts) ->
     string_of_polsym pf ^ surround "(" ")"
