@@ -72,6 +72,43 @@ let rec expand_macro : Raw.t -> expr = function
     List.fold_left t ~init:(expand_macro h) ~f:(fun acc e ->
       List [ expand_macro e; acc ] )
 
+let rec equal_expr x y =
+  match (x, y) with
+  | Var x1, Var x2 | Symbol x1, Symbol x2 -> equal_string x1 x2
+  | Unquote e1, Unquote e2 -> equal_expr e1 e2
+  | List es1, List es2 -> begin
+    try List.for_all2_exn es1 es2 ~f:equal_expr with _ -> false
+  end
+  | _ -> false
+
+let rec replace_id xfrom xto = function
+  | Symbol s -> Symbol s
+  | Var x -> Var x
+  | Unquote e when equal_expr e xfrom -> xto
+  | Unquote e -> Unquote e
+  | List es -> List (List.map ~f:(replace_id xfrom xto) es)
+
+let unfold_decl_def (env : (string * (expr list * expr list)) list) es :
+  expr list =
+  List.fold_left es ~init:(env, []) ~f:(fun (env, acc) -> function
+    | List (Symbol "new-declaration" :: List (Symbol k :: args) :: content) ->
+      ((k, (args, content)) :: env, acc)
+    | List (Symbol k :: args)
+      when List.Assoc.find ~equal:equal_string env k |> Option.is_some ->
+      let syntax_args, content =
+        List.Assoc.find_exn ~equal:equal_string env k
+      in
+      if List.length syntax_args <> List.length args then
+        failwith ("Error: not enough args given in macro call " ^ k)
+      else
+        let replace_ids e =
+          List.fold_left (List.zip_exn syntax_args args) ~init:e
+            ~f:(fun acc (xfrom, xto) -> replace_id xfrom (Unquote xto) acc )
+        in
+        (env, (List.map ~f:replace_ids content |> List.rev) @ acc)
+    | e -> (env, e :: acc) )
+  |> snd |> List.rev
+
 (* ---------------------------------------
    Constellation of Expr
    --------------------------------------- *)
@@ -155,26 +192,19 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   | List [ Symbol k; g ] when equal_string k focus_op ->
     Focus (sgen_expr_of_expr g)
   (* union *)
-  | List (Symbol k :: gs) when equal_string k "union" ->
-    Union (List.map ~f:sgen_expr_of_expr gs)
+  | List (Symbol "union" :: gs) -> Union (List.map ~f:sgen_expr_of_expr gs)
   (* process *)
-  | List (Symbol k :: gs) when equal_string k "process" ->
-    Process (List.map ~f:sgen_expr_of_expr gs)
+  | List (Symbol "process" :: gs) -> Process (List.map ~f:sgen_expr_of_expr gs)
   (* kill *)
-  | List [ Symbol k; g ] when equal_string k "kill" ->
-    Kill (sgen_expr_of_expr g)
+  | List [ Symbol "kill"; g ] -> Kill (sgen_expr_of_expr g)
   (* clean *)
-  | List [ Symbol k; g ] when equal_string k "clean" ->
-    Clean (sgen_expr_of_expr g)
+  | List [ Symbol "clean"; g ] -> Clean (sgen_expr_of_expr g)
   (* exec *)
-  | List [ Symbol k; g ] when equal_string k "exec" ->
-    Exec (false, sgen_expr_of_expr g)
+  | List [ Symbol "exec"; g ] -> Exec (false, sgen_expr_of_expr g)
   (* linear exec *)
-  | List [ Symbol k; g ] when equal_string k "linexec" ->
-    Exec (true, sgen_expr_of_expr g)
+  | List [ Symbol "linexec"; g ] -> Exec (true, sgen_expr_of_expr g)
   (* eval *)
-  | List [ Symbol k; g ] when equal_string k "eval" ->
-    Eval (sgen_expr_of_expr g)
+  | List [ Symbol "eval"; g ] -> Eval (sgen_expr_of_expr g)
   (* KEEP LAST -- raw constellation *)
   | List g -> Raw (constellation_of_expr (List g))
 
@@ -182,23 +212,16 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
    Stellogen program of Expr
    --------------------------------------- *)
 
-(* let typedecl_of_expr : expr -> type_declaration = function
-  | Symbol k when equal_string k nil_op -> []
-  | List [ Symbol k; h; t ] when equal_string k cons_op ->
-*)
-
 let decl_of_expr : expr -> declaration = function
   (* definition := *)
   | List [ Symbol k; x; g ] when equal_string k def_op ->
     Def (ray_of_expr x, sgen_expr_of_expr g)
-  | List [ Symbol k; x; g ] when equal_string k "spec" ->
-    Def (ray_of_expr x, sgen_expr_of_expr g)
+  | List [ Symbol "spec"; x; g ] -> Def (ray_of_expr x, sgen_expr_of_expr g)
+  | List [ Symbol "exec"; x; g ] -> Def (ray_of_expr x, sgen_expr_of_expr g)
   (* show *)
-  | List [ Symbol k; g ] when equal_string k "show" ->
-    Show (sgen_expr_of_expr g)
+  | List [ Symbol "show"; g ] -> Show (sgen_expr_of_expr g)
   (* trace *)
-  | List [ Symbol k; g ] when equal_string k "trace" ->
-    Trace (sgen_expr_of_expr g)
+  | List [ Symbol "trace"; g ] -> Trace (sgen_expr_of_expr g)
   (* expect *)
   | List [ Symbol k; x; g ] when equal_string k expect_op ->
     Expect (ray_of_expr x, sgen_expr_of_expr g, const "default")
@@ -206,6 +229,8 @@ let decl_of_expr : expr -> declaration = function
     Expect (ray_of_expr x, sgen_expr_of_expr g, ray_of_expr m)
   (* use *)
   | List [ Symbol k; r ] when equal_string k "use" -> Use (ray_of_expr r)
-  | _ -> failwith "error: invalid declaration"
+  | e -> failwith ("error: invalid declaration ^ " ^ to_string e)
 
 let program_of_expr = List.map ~f:decl_of_expr
+
+let preprocess e = e |> List.map ~f:expand_macro |> unfold_decl_def []

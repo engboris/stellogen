@@ -9,13 +9,13 @@ let parse_and_eval input_file =
   in
   Sedlexing.set_position lexbuf (start_pos input_file);
   let expr = Sgen_parsing.parse_with_error lexbuf in
-  let expanded = List.map ~f:Expr.expand_macro expr in
+  let preprocessed = Expr.preprocess expr in
   Stdlib.print_string
-    (List.map ~f:Expr.to_string expanded |> String.concat ~sep:"\n");
+    (List.map ~f:Expr.to_string preprocessed |> String.concat ~sep:"\n");
   Stdlib.print_newline ();
   Stdlib.print_string "----------------";
   Stdlib.flush Stdlib.stdout;
-  let p = Expr.program_of_expr expanded in
+  let p = Expr.program_of_expr preprocessed in
   Stdlib.print_string "\n";
   let _ = Stellogen.Sgen_eval.eval_program p in
   ()

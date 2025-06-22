@@ -10,7 +10,7 @@
   [-a b]])
 
 'full focus
-(show @[ [a] [b] [c] ])
+(:= f @[ [a] [b] [c] ])
 
 'identifier
 (:= x #a)
@@ -19,7 +19,7 @@
 (:= x (union #a #b))
 
 'string literals
-(:= s ["hello world"])
+(:= s "hello world")
 
 'cons
 ' [0 1 e] == %cons(0 (%cons 1 %nil))
@@ -32,11 +32,11 @@
 'execution
 (:= x [(+f X) X])
 (:= y (-f a))
-(:= ex (exec (union #x #y)))    'non-linear
-(:= ex (linexec (union #x #y))) 'linear
+(:= ex (linexec (union @#x #y))) 'linear
+(:= ex (exec (union @#x #y)))    'non-linear
 
 'show constellation
-<show exec (union @#x #y)>
+(show #ex)
 (show [ [a] [b] [c] ])
 (show #s)
 
@@ -103,14 +103,16 @@
 (== x 0)
 '(== x 1)
 
-'manual type checking
-(:= 0 (+nat 0))
-(:= test @(exec (union @#0 #nat)))
-(== test ok)
-
+'type checking
 (:= 2 <+nat s s 0>)
-(:= test @(exec (union @#0 #nat)))
+(:= test @(exec (union @#2 #nat)))
 (== test ok)
 
 'import file
 '(use "examples/automata.sg")
+
+'declaration definition
+(new-declaration (:: tested test)
+  (:= test @(exec (union @#tested #test)))
+  (== test ok))
+(:: 2 nat)

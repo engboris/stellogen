@@ -9,6 +9,36 @@ let add_obj env x e = List.Assoc.add ~equal:equal_ray env.objs x e
 
 let get_obj env x = List.Assoc.find ~equal:equal_ray env.objs x
 
+let rec replace_id (xfrom : ident) (xto : sgen_expr) e :
+  (sgen_expr, err) Result.t =
+  match e with
+  | Id x when equal_ray x xfrom -> Ok xto
+  | Exec (b, e) ->
+    let* g = replace_id xfrom xto e in
+    Exec (b, g) |> Result.return
+  | Kill e ->
+    let* g = replace_id xfrom xto e in
+    Kill g |> Result.return
+  | Clean e ->
+    let* g = replace_id xfrom xto e in
+    Clean g |> Result.return
+  | Union es ->
+    let* gs = List.map ~f:(replace_id xfrom xto) es |> Result.all in
+    Union gs |> Result.return
+  | Focus e ->
+    let* g = replace_id xfrom xto e in
+    Focus g |> Result.return
+  | Subst (e, subst) ->
+    let* g = replace_id xfrom xto e in
+    Subst (g, subst) |> Result.return
+  | Process gs ->
+    let* procs = List.map ~f:(replace_id xfrom xto) gs |> Result.all in
+    Process procs |> Result.return
+  | Eval e ->
+    let* g = replace_id xfrom xto e in
+    Eval g |> Result.return
+  | Raw _ | Id _ -> e |> Result.return
+
 let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
   | Raw g -> Raw (f g) |> Result.return
   | Id x -> begin
@@ -53,36 +83,6 @@ let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
   | Eval e ->
     let* map_e = map_sgen_expr env ~f e in
     Eval map_e |> Result.return
-
-let rec replace_id env (_from : ident) (_to : sgen_expr) e :
-  (sgen_expr, err) Result.t =
-  match e with
-  | Id x when equal_ray x _from -> Ok _to
-  | Exec (b, e) ->
-    let* g = replace_id env _from _to e in
-    Exec (b, g) |> Result.return
-  | Kill e ->
-    let* g = replace_id env _from _to e in
-    Kill g |> Result.return
-  | Clean e ->
-    let* g = replace_id env _from _to e in
-    Clean g |> Result.return
-  | Union es ->
-    let* gs = List.map ~f:(replace_id env _from _to) es |> Result.all in
-    Union gs |> Result.return
-  | Focus e ->
-    let* g = replace_id env _from _to e in
-    Focus g |> Result.return
-  | Subst (e, subst) ->
-    let* g = replace_id env _from _to e in
-    Subst (g, subst) |> Result.return
-  | Process gs ->
-    let* procs = List.map ~f:(replace_id env _from _to) gs |> Result.all in
-    Process procs |> Result.return
-  | Eval e ->
-    let* g = replace_id env _from _to e in
-    Eval g |> Result.return
-  | Raw _ | Id _ -> e |> Result.return
 
 let subst_vars env _from _to =
   map_sgen_expr env ~f:(subst_all_vars [ (_from, _to) ])
@@ -172,7 +172,7 @@ let rec eval_sgen_expr (env : env) :
     let* subst = subst_funcs env pf1 pf2 e in
     eval_sgen_expr env subst
   | Subst (e, SGal (x, _to)) ->
-    let* fill = replace_id env x _to e in
+    let* fill = replace_id x _to e in
     eval_sgen_expr env fill
   | Eval e -> (
     let* eval_e = eval_sgen_expr env e in
@@ -240,8 +240,8 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     in
     Sedlexing.set_position lexbuf (start_pos formatted_filename);
     let expr = Sgen_parsing.parse_with_error lexbuf in
-    let expanded = List.map ~f:Expr.expand_macro expr in
-    let p = Expr.program_of_expr expanded in
+    let preprocessed = Expr.preprocess expr in
+    let p = Expr.program_of_expr preprocessed in
     let* env = eval_program p in
     Ok env
 
