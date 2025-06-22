@@ -27,7 +27,7 @@ and read lexbuf =
     ->
     let lexeme = Utf8.lexeme lexbuf in
     begin
-      match lexeme.[0] with ('_' | 'A' .. 'Z') -> VAR lexeme | _ -> SYM lexeme
+      match lexeme.[0] with '_' | 'A' .. 'Z' -> VAR lexeme | _ -> SYM lexeme
     end
   | '(' -> LPAR
   | ')' -> RPAR

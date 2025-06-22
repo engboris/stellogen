@@ -124,7 +124,7 @@ let symbol_of_str (s : string) : idfunc =
 
 let rec ray_of_expr : expr -> ray = function
   | Symbol s -> to_func (symbol_of_str s, [])
-  | Var "_" -> to_var ("_"^(fresh_placeholder ()))
+  | Var "_" -> to_var ("_" ^ fresh_placeholder ())
   | Var s -> to_var s
   | Unquote e -> to_func ((Null, "#"), [ ray_of_expr e ])
   | List [] -> failwith "error: ray cannot be empty"
