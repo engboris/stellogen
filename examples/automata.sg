@@ -1,7 +1,3 @@
-(new-declaration (:: tested test)
-  (:= test @(exec (union @#tested #test)))
-  (== test ok))
-
 (spec binary [
   [(-i []) ok]
   [(-i [0|X]) (+i X)]

@@ -1,18 +1,10 @@
-(spec nat [
-  [(-nat 0) ok]
-  [(-nat (s N)) (+nat N)]])
-
 (new-declaration (:: tested test)
   (:= test @(exec (union @#tested #test)))
   (== test ok))
 
-(new-declaration (:: tested test fchecker)
-  (:= test @(exec (union @#tested #test)))
-  (== test [arg out]))
-
-(spec (arrow nat nat) [
-  [(+nat X) arg]
-  [(-nat X) out]])
+(spec nat [
+  [(-nat 0) ok]
+  [(-nat (s N)) (+nat N)]])
 
 (:= 0 (+nat 0))
 (:: 0 nat)
@@ -24,7 +16,6 @@
 (:: 2 nat)
 
 (:= add1 [(-nat X) (+nat (s X))])
-(:: add1 (arrow nat nat) fchecker)
 
 (:= is_empty [
   [(-nat 0) (res 1)]
