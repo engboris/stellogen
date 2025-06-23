@@ -186,8 +186,7 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   | Var _ | Symbol _ ->
     Raw [ Unmarked { content = [ ray_of_expr e ]; bans = [] } ]
   (* star *)
-  | List (Symbol s :: _) when equal_string s params_op ->
-    Raw [ star_of_expr e ]
+  | List (Symbol s :: _) when equal_string s params_op -> Raw [ star_of_expr e ]
   | List [ Symbol s; h; t ]
     when equal_string s cons_op && (not @@ is_cons h) && (not @@ contains_cons t)
     ->
