@@ -1,40 +1,30 @@
 ' id id
-(def id
-  (const
-    (star (+id (exp [l X] d)) (+id [r X]))))
+(:= id [(+id (exp [l|X] d)) (+id [r|X])])
 
-(def id_arg
-  (const
-    (star (ida (exp [l X] Y)) (+arg (exp [l r X] Y)))))
+(:= id_arg [(ida (exp [l|X] Y)) (+arg (exp [l r|X] Y))])
 
-(def linker
-  (const
-    (star (-id X) (-arg X))
-    (@star (+arg [r X]) (out X))))
+(:= linker [
+  [(-id X) (-arg X)]
+  @[(+arg [r|X]) (out X)]])
 
-(show-exec (union (union #id #id_arg) #linker))
+<show exec (union #id #id_arg #linker)>
 
 ' id x
-(def var_x
-  (const
-    (star (x (exp X Y)) (+arg (exp [l X] Y)))))
+(:= var_x [(x (exp X Y)) (+arg (exp [l|X] Y))])
 
-(def linker
-  (const
-    (star (-id X) (-arg X))
-    (@star (+arg [r X]) (out X))))
+(:= linker [
+  [(-id X) (-arg X)]
+  @[(+arg [r|X]) (out X)]])
 
-(show-exec (union (union #id #var_x) #linker))
+<show exec (union #id #var_x #linker)>
 
 ' lproj x
-(def lproj
-  (const
-    (star (+lproj [l X])) 'weakening
-    (star (lproj (exp [r l X] d)) (+lproj [r r X]))))
+(:= lproj [
+  [(+lproj [l|X])] 'weakening
+  [(lproj (exp [r l|X] d)) (+lproj [r r|X])]])
 
-(def linker
-  (const
-    (star (-lproj X) (-arg X))
-    (@star (+arg [r X]) (out X))))
+(:= linker [
+  [(-lproj X) (-arg X)]
+  @[(+arg [r|X]) (out X)]])
 
-(show-exec (union (union #lproj #var_x) #linker))
+<show exec (union #lproj #var_x #linker)>

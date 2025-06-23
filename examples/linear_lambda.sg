@@ -1,56 +1,42 @@
+(new-declaration (:: tested test)
+  (:= test @(exec (union #tested #test)))
+  (== test ok))
+
 ' identity function (\x -> x)
-(def id
-  (const
-    (star (+id [l X]) (+id [r X]))))
+(:= id [(+id [l|X]) (+id [r|X])])
 
 ' id id
-(def id_arg
-  (const
-    (star (ida [l X]) (+arg [l r X]))))
+(:= id_arg [(ida [l|X]) (+arg [l r|X])])
 
-(def linker
-  (const
-    (star (-id X) (-arg X))
-    (@star (+arg [r X]) (out X))))
+(:= linker [
+  [(-id X) (-arg X)]
+  @[(+arg [r|X]) (out X)]])
 
-(show-exec (union (union #id #id_arg) #linker))
+<show exec (union #id #id_arg #linker)>
 
 ' id x
-(def x_arg
-  (const
-    (star (x X) (+arg [l X]))))
+(:= x_arg [(x X) (+arg [l X])])
 
-(def linker
-  (const
-    (star (-id X) (-arg X))
-    (@star (+arg [r X]) (out X))))
+(:= linker [
+  [(-id X) (-arg X)]
+  @[(+arg [r|X]) (out X)]])
 
-(show-exec (union (union #id #x_arg) #linker))
+<show exec (union #id #x_arg #linker)>
 
 ' linear types
-(spec (larrow a a)
-  (galaxy
-    (test1
-      (const
-        (star (-x X) (+parxy X))
-        (star (-y X))
-        (@star (-parxy X) ok)))
-    (test2
-      (const
-        (star (-x X))
-        (star (-y X) (+parxy X))
-        (@star (-parxy X) ok)))))
+(spec (larrow a a) [
+  [+test1 [
+    [(-x X) (+parxy X)]
+    [(-y X)]
+    @[(-parxy X) ok]]]
+  [+test2 [
+    [(-x X)]
+    [(-y X) (+parxy X)]
+    @[(-parxy X) ok]]]])
 
-(def adapter
-  (const
-    (star (-id [l X]) (+x X))
-    (star (-id [r X]) (+y X))))
+(:= adapter [
+  [(-id [l|X]) (+x X)]
+  [(-id [r|X]) (+y X)]])
 
-(def checker
-  (galaxy
-    (interaction (union #tested #test))
-    (expect (const (star ok)))))
-
-(:: vehicle ((larrow a a) / checker))
-(def vehicle
-  (union #id #adapter))
+(:= vehicle (union #id #adapter))
+'TODO (:: vehicle (larrow a a))

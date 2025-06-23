@@ -44,7 +44,7 @@ let params_op = primitive "params"
 
 let ineq_op = "!="
 
-let incomp_op = "!@"
+let incomp_op = "slice"
 
 let string_of_list lmark rmark l =
   l |> String.concat ~sep:" " |> fun l' ->
@@ -129,7 +129,8 @@ let rec ray_of_expr : expr -> ray = function
   | Unquote e -> to_func ((Null, "#"), [ ray_of_expr e ])
   | List [] -> failwith "error: ray cannot be empty"
   | List (Symbol h :: t) -> to_func (symbol_of_str h, List.map ~f:ray_of_expr t)
-  | List (_ :: _) -> failwith "error: ray must start with constant"
+  | List (_ :: _) as e ->
+    failwith ("error: ray " ^ to_string e ^ " must start with constant")
 
 let bans_of_expr : expr list -> ban list =
   let ban_of_expr = function
@@ -185,6 +186,8 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   | Var _ | Symbol _ ->
     Raw [ Unmarked { content = [ ray_of_expr e ]; bans = [] } ]
   (* star *)
+  | List (Symbol s :: _) when equal_string s params_op ->
+    Raw [ star_of_expr e ]
   | List [ Symbol s; h; t ]
     when equal_string s cons_op && (not @@ is_cons h) && (not @@ contains_cons t)
     ->
@@ -232,7 +235,7 @@ let decl_of_expr : expr -> declaration = function
     Expect (ray_of_expr x, sgen_expr_of_expr g, ray_of_expr m)
   (* use *)
   | List [ Symbol k; r ] when equal_string k "use" -> Use (ray_of_expr r)
-  | e -> failwith ("error: invalid declaration ^ " ^ to_string e)
+  | e -> failwith ("error: invalid declaration " ^ to_string e)
 
 let program_of_expr = List.map ~f:decl_of_expr
 
