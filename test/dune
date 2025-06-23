@@ -1,0 +1,13 @@
+(test
+ (name test)
+ (modules test)
+ (deps
+  (glob_files ./subjects/*.sg)
+  (glob_files ../examples/*.sg)
+  (glob_files ../exercises/solutions/*.sg))
+ (libraries alcotest base stellogen))
+
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))
