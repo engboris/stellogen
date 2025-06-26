@@ -1,5 +1,5 @@
-(new-declaration (:: tested test)
-  (:= test @(exec (union @#tested #test)))
+(new-declaration (:: Tested Test)
+  (:= test @(exec (union @#Tested #Test)))
   (== test ok))
 
 (spec binary [

@@ -186,7 +186,6 @@ and expr_of_ray = function
   | Var (x, None) -> Expr.Var x
   | Var (x, Some i) -> Expr.Var (x ^ Int.to_string i)
   | Func (pf, []) -> Symbol (Lsc_ast.string_of_polsym pf)
-  | Func ((Null, k), [ r ]) when equal_string k "#" -> Unquote (expr_of_ray r)
   | Func (pf, args) ->
     Expr.List
       (Symbol (Lsc_ast.string_of_polsym pf) :: List.map ~f:expr_of_ray args)

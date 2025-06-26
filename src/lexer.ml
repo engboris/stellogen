@@ -36,7 +36,7 @@ and read lexbuf =
   | '<' -> LANGLE
   | '>' -> RANGLE
   | '@' -> AT
-  | '#' -> UNQUOTE
+  | '#' -> SHARP
   | '|' -> BAR
   | '\'' -> comment lexbuf
   | "'''" -> comments lexbuf

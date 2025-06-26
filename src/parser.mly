@@ -10,7 +10,7 @@ open Expr.Raw
 %token LPAR RPAR
 %token LBRACK RBRACK
 %token LANGLE RANGLE
-%token UNQUOTE
+%token SHARP
 %token EOF
 
 %start <Expr.Raw.t list> expr_file
@@ -40,7 +40,7 @@ let expr :=
   | ~=SYM; <Symbol>
   | ~=VAR; <Var>
   | ~=STRING; <String>
-  | UNQUOTE; ~=expr; <Unquote>
+  | SHARP; ~=expr; <Call>
   | AT; ~=expr; <Focus>
   | ~=pars(expr+); <List>
   | LANGLE; es=revlist(expr); RANGLE; <Stack>

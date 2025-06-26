@@ -1,5 +1,5 @@
-(new-declaration (:: tested test)
-  (:= test @(exec (union #tested #test)))
+(new-declaration (:: Tested Test)
+  (:= test @(exec (union #Tested #Test)))
   (== test ok))
 
 ' test of linear identity
@@ -52,8 +52,8 @@
   [(-1 [g|X]) (-2 [g|X]) (+3 [g|X])]
   @[(-3 [g|X]) ok]])
 
-(new-declaration (::lin tested test)
-  (:= test @(linexec (union #tested #test)))
+(new-declaration (::lin Tested Test)
+  (:= test @(linexec (union #Tested #Test)))
   (== test ok))
 
 ' does not typecheck

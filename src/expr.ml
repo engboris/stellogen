@@ -10,7 +10,7 @@ module Raw = struct
     | Var of ident
     | String of string
     | Focus of t
-    | Unquote of t
+    | Call of t
     | List of t list
     | Stack of t list
     | Cons of t list
@@ -21,7 +21,6 @@ end
 type expr =
   | Symbol of string
   | Var of ident
-  | Unquote of expr
   | List of expr list
 
 let primitive = String.append "%"
@@ -30,7 +29,7 @@ let nil_op = primitive "nil"
 
 let cons_op = primitive "cons"
 
-let unquote_op = "#"
+let call_op = "#"
 
 let focus_op = "@"
 
@@ -53,14 +52,13 @@ let string_of_list lmark rmark l =
 let rec to_string : expr -> string = function
   | Symbol s -> s
   | Var x -> x
-  | Unquote e -> Printf.sprintf "%s%s" unquote_op (to_string e)
   | List es -> es |> List.map ~f:to_string |> string_of_list "(" ")"
 
 let rec expand_macro : Raw.t -> expr = function
   | Raw.Symbol s -> Symbol s
   | Raw.Var x -> Var x
   | Raw.String s -> List [ Symbol string_op; Symbol s ]
-  | Raw.Unquote e' -> Unquote (expand_macro e')
+  | Raw.Call e' -> List [ Symbol call_op; expand_macro e' ]
   | Raw.Focus e' -> List [ Symbol focus_op; expand_macro e' ]
   | Raw.List es -> List (List.map ~f:expand_macro es)
   | Raw.Cons es -> expand_macro (Raw.ConsWithBase (es, Symbol nil_op))
@@ -77,24 +75,27 @@ let rec expand_macro : Raw.t -> expr = function
 let rec equal_expr x y =
   match (x, y) with
   | Var x1, Var x2 | Symbol x1, Symbol x2 -> equal_string x1 x2
-  | Unquote e1, Unquote e2 -> equal_expr e1 e2
   | List es1, List es2 -> begin
     try List.for_all2_exn es1 es2 ~f:equal_expr with _ -> false
   end
   | _ -> false
 
-let rec replace_id xfrom xto = function
-  | Symbol s -> Symbol s
-  | Var x -> Var x
-  | Unquote e when equal_expr e xfrom -> xto
-  | Unquote e -> Unquote e
+let rec replace_id (xfrom : ident) xto e =
+  match e with
+  | Var x when equal_string x xfrom -> xto
+  | Symbol _ | Var _ -> e
   | List es -> List (List.map ~f:(replace_id xfrom xto) es)
 
-let unfold_decl_def (env : (string * (expr list * expr list)) list) es :
+let unfold_decl_def (env : (string * (string list * expr list)) list) es :
   expr list =
   List.fold_left es ~init:(env, []) ~f:(fun (env, acc) -> function
     | List (Symbol "new-declaration" :: List (Symbol k :: args) :: content) ->
-      ((k, (args, content)) :: env, acc)
+      let var_args =
+        List.map args ~f:(function
+          | Var x -> x
+          | _ -> failwith "error: syntax declaration must contain variables" )
+      in
+      ((k, (var_args, content)) :: env, acc)
     | List (Symbol k :: args)
       when List.Assoc.find ~equal:equal_string env k |> Option.is_some ->
       let syntax_args, content =
@@ -105,7 +106,7 @@ let unfold_decl_def (env : (string * (expr list * expr list)) list) es :
       else
         let replace_ids e =
           List.fold_left (List.zip_exn syntax_args args) ~init:e
-            ~f:(fun acc (xfrom, xto) -> replace_id xfrom (Unquote xto) acc )
+            ~f:(fun acc (xfrom, xto) -> replace_id xfrom xto acc )
         in
         (env, (List.map ~f:replace_ids content |> List.rev) @ acc)
     | e -> (env, e :: acc) )
@@ -126,7 +127,6 @@ let rec ray_of_expr : expr -> ray = function
   | Symbol s -> to_func (symbol_of_str s, [])
   | Var "_" -> to_var ("_" ^ fresh_placeholder ())
   | Var s -> to_var s
-  | Unquote e -> to_func ((Null, "#"), [ ray_of_expr e ])
   | List [] -> failwith "error: ray cannot be empty"
   | List (Symbol h :: t) -> to_func (symbol_of_str h, List.map ~f:ray_of_expr t)
   | List (_ :: _) as e ->
@@ -146,7 +146,6 @@ let rec raylist_of_expr (e : expr) : ray list =
   match e with
   | Symbol k when equal_string k nil_op -> []
   | Symbol _ | Var _ -> [ ray_of_expr e ]
-  | Unquote e -> failwith ("error: cannot unquote star " ^ to_string e)
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
     ray_of_expr h :: raylist_of_expr t
   | e -> failwith ("error: unhandled star " ^ to_string e)
@@ -162,7 +161,6 @@ let rec constellation_of_expr : expr -> marked_constellation = function
   | Symbol k when equal_string k nil_op -> []
   | Symbol s -> [ Unmarked { content = [ var (s, None) ]; bans = [] } ]
   | Var x -> [ Unmarked { content = [ var (x, None) ]; bans = [] } ]
-  | Unquote e -> failwith ("error: can't unquote constellation" ^ to_string e)
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
     star_of_expr h :: constellation_of_expr t
   | List g -> [ Unmarked { content = [ ray_of_expr (List g) ]; bans = [] } ]
@@ -192,7 +190,7 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
     ->
     Raw [ star_of_expr e ]
   (* id *)
-  | Unquote g -> Id (ray_of_expr g)
+  | List [ Symbol k; g ] when equal_string k call_op -> Id (ray_of_expr g)
   (* focus @ *)
   | List [ Symbol k; g ] when equal_string k focus_op ->
     Focus (sgen_expr_of_expr g)
