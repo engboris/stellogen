@@ -22,7 +22,7 @@
 (:= s "hello world")
 
 'cons
-' [0 1 e] == %cons(0 (%cons 1 %nil))
+' [0 1] == %cons(0 (%cons 1 %nil))
 (:= w (+w [0 1 0 1]))
 
 'stack
@@ -64,20 +64,21 @@
 
 'constellation with fields
 (:= g [
-  [+test1 [(+f a) ok]]
-  [+test2 [(+f b) ok]]])
+  [(+field test1) [(+f a) ok]]
+  [(+field test2) [(+f b) ok]]])
 (show #g)
 
 'field access and evaluation
-<show eval exec (union #g @[-test1])>
-<show eval exec (union #g @[-test2])>
+(:= (get G X) <eval exec (union #G @[(-field X)])>)
+(show #(get g test1))
+(show #(get g test2))
 
 'nested fields
 (:= g1 [
-  [+test1 [
-    [+test2 [(+f c) ok]]]]])
-(:= g2 <eval exec (union #g1 @[-test1])>)
-<show eval exec (union #g2 @[-test2])>
+  [(+field test1) [
+    [(+field test2) [(+f c) ok]]]]])
+(:= g2 <eval exec (union #g1 @[(-field test1)])>)
+<show eval exec (union #g2 @[(-field test2)])>
 
 'extend rays with a head function symbol
 '<show exec [[(+f X)] [(f X)]][=>+a]>

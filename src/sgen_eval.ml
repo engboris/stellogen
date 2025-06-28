@@ -5,9 +5,21 @@ open Out_channel
 
 let ( let* ) x f = Result.bind x ~f
 
-let add_obj env x e = List.Assoc.add ~equal:equal_ray env.objs x e
+let unifiable r r' = StellarRays.solution [ (r, r') ] |> Option.is_some
 
-let get_obj env x = List.Assoc.find ~equal:equal_ray env.objs x
+let find_with_solution env x =
+  let rec aux = function
+    | [] -> None
+    | (key, value) :: rest -> (
+      match StellarRays.solution [ (key, x) ] with
+      | Some subst -> Some (value, subst)
+      | None -> aux rest )
+  in
+  aux env.objs
+
+let add_obj env x e = List.Assoc.add ~equal:unifiable env.objs x e
+
+let get_obj env x = find_with_solution env x
 
 let rec replace_id (xfrom : ident) (xto : sgen_expr) e :
   (sgen_expr, err) Result.t =
@@ -41,11 +53,7 @@ let rec replace_id (xfrom : ident) (xto : sgen_expr) e :
 
 let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
   | Raw g -> Raw (f g) |> Result.return
-  | Id x -> begin
-    match get_obj env x with
-    | None -> Error (UnknownID (string_of_ray x))
-    | Some g -> map_sgen_expr env ~f g
-  end
+  | Id x -> Id x |> Result.return
   | Exec (b, e) ->
     let* map_e = map_sgen_expr env ~f e in
     Exec (b, map_e) |> Result.return
@@ -112,11 +120,14 @@ let rec eval_sgen_expr (env : env) :
   sgen_expr -> (marked_constellation, err) Result.t = function
   | Raw mcs -> Ok mcs
   | Id x -> begin
-    begin
-      match get_obj env x with
-      | None -> Error (UnknownID (string_of_ray x))
-      | Some g -> eval_sgen_expr env g
-    end
+    match get_obj env x with
+    | None -> Error (UnknownID (string_of_ray x))
+    | Some (g, subst) ->
+      let result =
+        List.fold_result subst ~init:g ~f:(fun g_acc (xfrom, xto) ->
+          subst_vars env xfrom xto g_acc )
+      in
+      Result.bind result ~f:(eval_sgen_expr env)
   end
   | Union es ->
     let* eval_es = List.map ~f:(eval_sgen_expr env) es |> Result.all in
@@ -180,7 +191,11 @@ let rec eval_sgen_expr (env : env) :
     | [ Marked { content = [ r ]; bans = _ } ]
     | [ Unmarked { content = [ r ]; bans = _ } ] ->
       r |> expr_of_ray |> Expr.sgen_expr_of_expr |> eval_sgen_expr env
-    | _ -> failwith "error: only rays can be evaluated." )
+    | e ->
+      failwith
+        ( "eval error: "
+        ^ string_of_constellation (remove_mark_all e)
+        ^ " is not a ray." ) )
 
 and expr_of_ray = function
   | Var (x, None) -> Expr.Var x
@@ -194,11 +209,6 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
   | Def (x, e) ->
     let env = { objs = add_obj env x e } in
     Ok env
-  | Show (Id x) -> begin
-    match get_obj env x with
-    | None -> Error (UnknownID (string_of_ray x))
-    | Some e -> eval_decl env (Show e)
-  end
   | Show (Raw mcs) ->
     mcs |> remove_mark_all |> string_of_constellation |> Stdlib.print_string;
     Stdlib.print_newline ();

@@ -13,6 +13,7 @@ module Raw = struct
     | Call of t
     | List of t list
     | Stack of t list
+    | Group of t list
     | Cons of t list
     | ConsWithParams of t list * t list
     | ConsWithBase of t list * t
@@ -44,6 +45,8 @@ let params_op = primitive "params"
 let ineq_op = "!="
 
 let incomp_op = "slice"
+
+let group_op = "%group"
 
 let string_of_list lmark rmark l =
   l |> String.concat ~sep:" " |> fun l' ->

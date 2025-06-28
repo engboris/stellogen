@@ -9,6 +9,7 @@ open Expr.Raw
 %token BAR
 %token LPAR RPAR
 %token LBRACK RBRACK
+%token LBRACE RBRACE
 %token LANGLE RANGLE
 %token SHARP
 %token EOF
@@ -45,5 +46,6 @@ let expr :=
   | ~=pars(expr+); <List>
   | LANGLE; es=revlist(expr); RANGLE; <Stack>
   | LBRACK; es=revlist(expr); RBRACK; <Cons>
+  | LBRACE; es=revlist(expr); RBRACE; <Group>
   | LBRACK; ~=revlist(expr); ~=params; RBRACK; <ConsWithParams>
   | LBRACK; ~=revlist(expr); BAR; ~=expr; RBRACK; <ConsWithBase>
