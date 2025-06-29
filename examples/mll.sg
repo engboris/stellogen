@@ -1,61 +1,62 @@
-'''test of linear identity'''
-spec "a -o a" = galaxy
-  testrl =
-    -1(X) -2(X) +c5(X);
-    -3(X); -4(X) +c6(X);
-    -c5(X) +7(X); -c6(X);
-    @-7(X) ok.
-  testrr =
-    -1(X) -2(X) +c5(X);
-    -3(X); -4(X) +c6(X);
-    -c5(X); +7(X) -c6(X);
-    @-7(X) ok.
-  testll =
-    -1(X) -2(X) +c5(X);
-    -4(X); -3(X) +c6(X);
-    -c5(X) +7(X); -c6(X);
-    @-7(X) ok.
-  testlr =
-    -1(X) -2(X) +c5(X);
-    -4(X); -3(X) +c6(X);
-    -c5(X); +7(X) -c6(X);
-    @-7(X) ok.
-end
+(new-declaration (:: Tested Test)
+  (== @(exec { #Tested #Test }) ok))
 
-checker = galaxy
-  interaction = #tested #test.
-  expect = ok.
-end
+' test of linear identity
+(spec (larrow a a) {
+  [+testrl [
+    [(-1 X) (-2 X) (+c5 X)]
+    [(-3 X)] [(-4 X) (+c6 X)]
+    [(-c5 X) (+7 X)] [(-c6 X)]
+    @[(-7 X) ok]]]
+  [+testrr [
+    [(-1 X) (-2 X) (+c5 X)]
+    [(-3 X)] [(-4 X) (+c6 X)]
+    [(-c5 X)] [(+7 X) (-c6 X)]
+    @[(-7 X) ok]]]
+  [+testll [
+    [(-1 X) (-2 X) (+c5 X)]
+    [(-4 X)] [(-3 X) (+c6 X)]
+    [(-c5 X) (+7 X)] [(-c6 X)]
+    @[(-7 X) ok]]]
+  [+testlr [
+    [(-1 X) (-2 X) (+c5 X)]
+    [(-4 X)] [(-3 X) (+c6 X)]
+    [(-c5 X)] [(+7 X) (-c6 X)]
+    @[(-7 X) ok]]]})
 
-id :: "a -o a" [checker].
-id =
-  -5(l:X) +1(X);
-  -5(r:X) +2(X);
-  -6(l:X) +3(X);
-  -6(r:X) +4(X);
-  +5(l:X) +6(l:X);
-  +5(r:X) +6(r:X).
+(:= id {
+  [(-5 [l|X]) (+1 X)]
+  [(-5 [r|X]) (+2 X)]
+  [(-6 [l|X]) (+3 X)]
+  [(-6 [r|X]) (+4 X)]
+  [(+5 [l|X]) (+6 [l|X])]
+  [(+5 [r|X]) (+6 [r|X])]})
+'TODO (:: id (larrow a a))
 
-'''cut-elimination'''
-ps1 = galaxy
-  vehicle = +7(l:X) +7(r:X); 3(X) +8(l:X); @+8(r:X) 6(X).
-  cuts = -7(X) -8(X).
-end
+'cut-elimination
+(:= ps1 {
+  [+vehicle [
+    [(+7 [l|X]) (+7 [r|X])]
+    @[(3 X) (+8 [l|X])]
+    [(+8 [r|X]) (6 X)]]]
+  [+cuts [
+    [(-7 X) (-8 X)]]]})
 
-show-exec #ps1->vehicle #ps1->cuts.
+(:= vehicle <eval exec { #ps1 @[-vehicle] }>)
+(:= cuts    <eval exec { #ps1 @[-cuts] }>)
 
-spec "a * b" =
-  -1(g:X) -2(g:X) +3(g:X);
-  @-3(g:X) ok.
+<show exec { #vehicle #cuts }>
 
-linear = galaxy
-  interaction = linear-exec #tested #test end.
-  expect = ok.
-end
+(spec (tens a b) {
+  [(-1 [g|X]) (-2 [g|X]) (+3 [g|X])]
+  @[(-3 [g|X]) ok]})
 
-'does not typecheck
-'vehicle :: "a * a" [linear].
-vehicle =
-  +3(l:X) +3(r:X);
-  -3(l:X) +1(g:X);
-  -3(r:X) +2(g:X).
+(new-declaration (::lin Tested Test)
+  (== @(linexec { #Tested #Test }) ok))
+
+' does not typecheck
+' (::lin vehicle ((tens a a) linear))
+(:= vehicle {
+  [(+3 [l|X]) (+3 [r|X])]
+  [(-3 [l|X]) (+1 [g|X])]
+  [(-3 [r|X]) (+2 [g|X])]})

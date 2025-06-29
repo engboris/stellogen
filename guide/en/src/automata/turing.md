@@ -1,1 +1,0 @@
-# Machines de Turing (TODO)

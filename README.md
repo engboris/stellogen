@@ -9,15 +9,15 @@ It has been designed from concepts of Girard's transcendental syntax.
 
 ## Key characteristics
 
-- dynamically/statically **typed** but without primitive types nor type systems,
-by using very flexible assert-like expressions defining *sets of tests* to pass;
-- everything is based on **term unification**.
+- **typable** but without primitive types nor type systems
+- both computation and typing are based on basic **term unification** between
+blocks of terms.
 
 It is multi-paradigm:
-- _logic programs_ called "constellations" are the elementary bricks of
-computation and typing;
-- _functional programs_ correspond to logic programs enforcing an order of
-interaction;
+- _logic programs_ called "constellations" are the elementary blocks of
+programming;
+- _functional programs_ correspond to layered constellations enforcing an order
+of interaction;
 - _imperative programs_ are iterative recipes constructing constellations;
 - _objects_ are ways to structure constellations.
 
@@ -28,7 +28,6 @@ It draws (or try to draw) inspiration from:
 - Smalltalk (for message-passing, object-oriented paradigm and minimalism);
 - Coq (for proof-as-program paradigm and iterative programming with tactics);
 - Scheme/Racket (for minimalism and metaprogramming);
-- Haskell/Ruby/Lua (for syntax);
 - Shen (for its optional type systems and its "power and responsibility"
 philosophy).
 
@@ -37,39 +36,46 @@ philosophy).
 Finite state machine
 
 ```
-spec binary =
-  -i(e) ok;
-  -i(0:X) +i(X);
-  -i(1:X) +i(X).
+(new-declaration (:: tested test)
+(:= test @(exec { @#tested #test }))
+  (== test ok))
 
-e :: binary.
-e = +i(e).
+(spec binary {
+  [(-i []) ok]
+  [(-i [0|X]) (+i X)]
+  [(-i [1|X]) (+i X)]})
 
-000 :: binary.
-000 = +i(0:0:0:e).
+'input words
+(:= e (+i []))
+(:: e binary)
 
-010 :: binary.
-010 = +i(0:1:0:e).
+(:= 0 (+i [0]))
+(:: 0 binary)
 
-110 :: binary.
-110 = +i(1:1:0:e).
+(:= 000 (+i [0 0 0]))
+(:: 000 binary)
 
-a1 = galaxy
-  initial =
-    -i(W) +a(W q0).
-  final =
-    -a(e q2) accept.
-  transitions =
-    -a(0:W q0) +a(W q0);
-    -a(0:W q0) +a(W q1);
-    -a(1:W q0) +a(W q0);
-    -a(0:W q1) +a(W q2).
-end
+(:= 010 (+i [0 1 0]))
+(:: 010 binary)
 
-show process #e.   #a1. &kill. end
-show process #000. #a1. &kill. end
-show process #010. #a1. &kill. end
-show process #110. #a1. &kill. end
+(:= 110 (+i [1 1 0]))
+(:: 110 binary)
+
+'''
+automaton accepting words ending with 00
+'''
+(:= a1 {
+  [(-i W) (+a W q0)]
+  [(-a [] q2) accept]
+  [(-a [0|W] q0) (+a W q0)]
+  [(-a [0|W] q0) (+a W q1)]
+  [(-a [1|W] q0) (+a W q0)]
+  [(-a [0|W] q1) (+a W q2)]})
+
+<show kill exec { @#e #a1 }>
+<show kill exec { @#000 #a1 }>
+<show kill exec { @#010 #a1 }>
+<show kill exec { @#110 #a1 }>
 ```
 
 More examples can be found in `examples/`.
