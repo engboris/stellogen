@@ -1,10 +1,9 @@
 (new-declaration (:: Tested Test)
-  (:= test @(exec (union @#Tested #Test)))
-  (== test ok))
+  (== @(exec { @#Tested #Test }) ok))
 
-(spec nat [
+(spec nat {
   [(-nat 0) ok]
-  [(-nat (s N)) (+nat N)]])
+  [(-nat (s N)) (+nat N)]})
 
 (:= 0 (+nat 0))
 (:: 0 nat)
@@ -17,10 +16,10 @@
 
 (:= add1 [(-nat X) (+nat (s X))])
 
-(:= is_empty [
+(:= is_empty {
   [(-nat 0) (res 1)]
-  [(-nat (s _)) (res 0)]])
+  [(-nat (s _)) (res 0)]})
 
-<show exec (union @#add1 #2)>
-<show exec (union #is_empty @#0)>
-<show exec (union #is_empty @#1)>
+<show exec { @#add1 #2 }>
+<show exec { #is_empty @#0 }>
+<show exec { #is_empty @#1 }>

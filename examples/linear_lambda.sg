@@ -1,6 +1,5 @@
 (new-declaration (:: Tested Test)
-  (:= test @(exec (union #Tested #Test)))
-  (== test ok))
+  (== @(exec { #Tested #Test }) ok))
 
 ' identity function (\x -> x)
 (:= id [(+id [l|X]) (+id [r|X])])
@@ -12,7 +11,7 @@
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]])
 
-<show exec (union #id #id_arg #linker)>
+<show exec { #id #id_arg #linker }>
 
 ' id x
 (:= x_arg [(x X) (+arg [l X])])
@@ -21,10 +20,10 @@
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]])
 
-<show exec (union #id #x_arg #linker)>
+<show exec { #id #x_arg #linker }>
 
 ' linear types
-(spec (larrow a a) [
+(spec (larrow a a) {
   [+test1 [
     [(-x X) (+parxy X)]
     [(-y X)]
@@ -32,11 +31,11 @@
   [+test2 [
     [(-x X)]
     [(-y X) (+parxy X)]
-    @[(-parxy X) ok]]]])
+    @[(-parxy X) ok]]]})
 
-(:= adapter [
+(:= adapter {
   [(-id [l|X]) (+x X)]
-  [(-id [r|X]) (+y X)]])
+  [(-id [r|X]) (+y X)]})
 
-(:= vehicle (union #id #adapter))
+(:= vehicle { #id #adapter })
 'TODO (:: vehicle (larrow a a))

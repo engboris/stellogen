@@ -1,26 +1,25 @@
 (new-declaration (:: Tested Test)
-  (:= test @(exec (union @#Tested #Test)))
-  (== test ok))
+  (== @(exec { @#Tested #Test }) ok))
 
-(spec direction [
+(spec direction {
   [-north ok]
   [-south ok]
   [-west ok]
-  [-east ok]])
+  [-east ok]})
 
 (:= n +north)
 (:: n direction)
 
-(spec result [
+(spec result {
   [(-ok X) ok]
-  [(-error X) ok]])
+  [(-error X) ok]})
 
 (:= x (+ok a))
 (:: x result)
 
 'pattern matching
-(:= get_ok [
+(:= get_ok {
   [(-ok X) X]
-  [(-error X) (+error X)]])
+  [(-error X) (+error X)]})
 
-<show exec (union #get_ok @#x)>
+<show exec { #get_ok @#x }>

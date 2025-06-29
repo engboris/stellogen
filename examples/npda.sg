@@ -1,11 +1,10 @@
 (new-declaration (:: Tested Test)
-  (:= test @(exec (union @#Tested #Test)))
-  (== test ok))
+  (== @(exec { @#Tested #Test }) ok))
 
-(spec binary [
+(spec binary {
   [(-i []) ok]
   [(-i [0|X]) (+i X)]
-  [(-i [1|X]) (+i X)]])
+  [(-i [1|X]) (+i X)]})
 
 'input words
 (:= e (+i []))
@@ -20,20 +19,23 @@
 (:= 1110 (+i [1 1 1 0]))
 (:: 1110 binary)
 
-(:= a1 [
-  'initial
-  [(-i W) (+a W [] q0)]
-  'final
-  [(-a [] [] q0) accept]
-  [(-a [] [] q1) accept]
-  'transitions
-  [(-a [0|W] S q0) (+a W [0|S] q0)]
-  [(-a [1|W] S q0) (+a W [1|S] q0)]
-  [(-a W S q0) (+a W S q1)]
-  [(-a [0|W] [0|S] q1) (+a W S q1)]
-  [(-a [1|W] [1|S] q1) (+a W S q1)]])
+(:= (initial Q) [(-i W) (+a W [] Q)])
+(:= (accept Q) [(-a [] [] Q) accept])
+(:= (if read C1 on Q1 then Q2 and push C2) [(-a [C1|W] S Q1) (+a W [C2|S] Q2)])
+(:= (if read C1 with C2 on Q1 then Q2) [(-a [C1|W] [C2|S] Q1) (+a W S Q2)])
+(:= (if on Q1 then Q2) [(-a W S Q1) (+a W S Q2)])
 
-<show kill exec (union @#e #a1)>
-<show kill exec (union @#0000 #a1)>
-<show kill exec (union @#0110 #a1)>
-<show kill exec (union @#1110 #a1)>
+(:= a1 {
+  #(initial q0)
+  #(accept q0)
+  #(accept q1)
+  #(if read 0 on q0 then q0 and push 0)
+  #(if read 1 on q0 then q0 and push 1)
+  #(if on q0 then q1)
+  #(if read 0 with 0 on q1 then q1)
+  #(if read 1 with 1 on q1 then q1)})
+
+<show kill exec { @#e #a1 }>
+<show kill exec { @#0000 #a1 }>
+<show kill exec { @#0110 #a1 }>
+<show kill exec { @#1110 #a1 }>

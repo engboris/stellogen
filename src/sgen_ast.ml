@@ -11,7 +11,7 @@ type sgen_expr =
   | Raw of marked_constellation
   | Id of ident
   | Exec of bool * sgen_expr
-  | Union of sgen_expr list
+  | Group of sgen_expr list
   | Subst of sgen_expr * substitution
   | Focus of sgen_expr
   | Clean of sgen_expr
@@ -39,7 +39,7 @@ type declaration =
   | Show of sgen_expr
   | Trace of sgen_expr
   | Run of sgen_expr
-  | Expect of ident * sgen_expr * ident
+  | Expect of sgen_expr * sgen_expr * ident
   | Use of ident
 
 type program = declaration list

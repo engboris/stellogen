@@ -37,13 +37,13 @@ Finite state machine
 
 ```
 (new-declaration (:: tested test)
-  (:= test @(exec (union @#tested #test)))
+(:= test @(exec { @#tested #test }))
   (== test ok))
 
-(spec binary [
+(spec binary {
   [(-i []) ok]
   [(-i [0|X]) (+i X)]
-  [(-i [1|X]) (+i X)]])
+  [(-i [1|X]) (+i X)]})
 
 'input words
 (:= e (+i []))
@@ -64,18 +64,18 @@ Finite state machine
 '''
 automaton accepting words ending with 00
 '''
-(:= a1 [
+(:= a1 {
   [(-i W) (+a W q0)]
   [(-a [] q2) accept]
   [(-a [0|W] q0) (+a W q0)]
   [(-a [0|W] q0) (+a W q1)]
   [(-a [1|W] q0) (+a W q0)]
-  [(-a [0|W] q1) (+a W q2)]])
+  [(-a [0|W] q1) (+a W q2)]})
 
-<show kill exec (union @#e #a1)>
-<show kill exec (union @#000 #a1)>
-<show kill exec (union @#010 #a1)>
-<show kill exec (union @#110 #a1)>
+<show kill exec { @#e #a1 }>
+<show kill exec { @#000 #a1 }>
+<show kill exec { @#010 #a1 }>
+<show kill exec { @#110 #a1 }>
 ```
 
 More examples can be found in `examples/`.

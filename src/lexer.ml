@@ -23,7 +23,7 @@ and comments lexbuf =
 
 and read lexbuf =
   match%sedlex lexbuf with
-  | ( Compl (Chars "'\" \t\n\r()<>[]{}|@#%")
+  | ( Compl (Chars "'\" \t\n\r()<>[]{}|@#")
     , Star (Compl (Chars " \t\n\r()<>[]{}|")) ) ->
     let lexeme = Utf8.lexeme lexbuf in
     begin

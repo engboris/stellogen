@@ -5,18 +5,18 @@
 (:= b [(-f X)])
 
 'define constellation
-(:= c [
+(:= c {
   @[+a] 'focus
-  [-a b]])
+  [-a b]})
 
 'full focus
-(:= f @[ [a] [b] [c] ])
+(:= f @{ [a] [b] [c] })
 
 'identifier
 (:= x #a)
 
-'union
-(:= x (union #a #b))
+'group
+(:= x { #a #b })
 
 'string literals
 (:= s "hello world")
@@ -32,12 +32,12 @@
 'execution
 (:= x [(+f X) X])
 (:= y (-f a))
-(:= ex (linexec (union @#x #y))) 'linear
-(:= ex (exec (union @#x #y)))    'non-linear
+(:= ex (linexec { @#x #y })) 'linear
+(:= ex (exec { @#x #y }))    'non-linear
 
 'show constellation
 (show #ex)
-(show [ [a] [b] [c] ])
+(show { [a] [b] [c] })
 (show #s)
 
 'complex identifiers
@@ -45,10 +45,10 @@
 (show #(f a b))
 
 'inequality constraints
-(:= ineq [
+(:= ineq {
   [(+f a)]
   [(+f b)]
-  @[(-f X) (-f Y) (r X Y) || (!= X Y)]])
+  @[(-f X) (-f Y) (r X Y) || (!= X Y)]})
 (show #ineq)
 <show exec #ineq>
 
@@ -63,22 +63,22 @@
 (show #c)
 
 'constellation with fields
-(:= g [
+(:= g {
   [(+field test1) [(+f a) ok]]
-  [(+field test2) [(+f b) ok]]])
+  [(+field test2) [(+f b) ok]]})
 (show #g)
 
 'field access and evaluation
-(:= (get G X) <eval exec (union #G @[(-field X)])>)
+(:= (get G X) <eval exec { #G @[(-field X)] }>)
 (show #(get g test1))
 (show #(get g test2))
 
 'nested fields
-(:= g1 [
+(:= g1 {
   [(+field test1) [
-    [(+field test2) [(+f c) ok]]]]])
-(:= g2 <eval exec (union #g1 @[(-field test1)])>)
-<show eval exec (union #g2 @[(-field test2)])>
+    [(+field test2) [(+f c) ok]]]]})
+(:= g2 <eval exec { #g1 @[(-field test1)] }>)
+<show eval exec { #g2 @[(-field test2)] }>
 
 'extend rays with a head function symbol
 '<show exec [[(+f X)] [(f X)]][=>+a]>
@@ -95,25 +95,23 @@
 '  [#2=>(-f a)]>
 
 'define type
-(spec nat [
+(spec nat {
   [(-nat 0) ok]
-  [(-nat (s N)) (+nat N)]])
+  [(-nat (s N)) (+nat N)]})
 
 'expect
-(:= x 0)
-(== x 0)
+(:= #x 0)
+(== #x 0)
 '(== x 1)
 
 'type checking
 (:= 2 <+nat s s 0>)
-(:= test @(exec (union @#2 #nat)))
-(== test ok)
+(== @(exec { @#2 #nat }) ok)
 
 'import file
 '(use "examples/automata.sg")
 
 'declaration definition
 (new-declaration (:: Tested Test)
-  (:= test @(exec (union @#Tested #Test)))
-  (== test ok))
+  (== @(exec { @#Tested #Test }) ok))
 (:: 2 nat)

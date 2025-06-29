@@ -34,9 +34,9 @@ let rec replace_id (xfrom : ident) (xto : sgen_expr) e :
   | Clean e ->
     let* g = replace_id xfrom xto e in
     Clean g |> Result.return
-  | Union es ->
+  | Group es ->
     let* gs = List.map ~f:(replace_id xfrom xto) es |> Result.all in
-    Union gs |> Result.return
+    Group gs |> Result.return
   | Focus e ->
     let* g = replace_id xfrom xto e in
     Focus g |> Result.return
@@ -63,9 +63,9 @@ let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
   | Clean e ->
     let* map_e = map_sgen_expr env ~f e in
     Clean map_e |> Result.return
-  | Union es ->
+  | Group es ->
     let* map_es = List.map ~f:(map_sgen_expr env ~f) es |> Result.all in
-    Union map_es |> Result.return
+    Group map_es |> Result.return
   | Subst (e, Extend pf) ->
     let* map_e = map_sgen_expr env ~f e in
     Subst (map_e, Extend pf) |> Result.return
@@ -129,7 +129,7 @@ let rec eval_sgen_expr (env : env) :
       in
       Result.bind result ~f:(eval_sgen_expr env)
   end
-  | Union es ->
+  | Group es ->
     let* eval_es = List.map ~f:(eval_sgen_expr env) es |> Result.all in
     let* mcs = Ok eval_es in
     Ok (List.concat mcs)
@@ -159,7 +159,7 @@ let rec eval_sgen_expr (env : env) :
           acc |> remove_mark_all |> clean |> focus |> Result.return
         | _ ->
           let origin = acc |> remove_mark_all |> focus in
-          eval_sgen_expr env (Focus (Exec (false, Union [ x; Raw origin ]))) )
+          eval_sgen_expr env (Focus (Exec (false, Group [ x; Raw origin ]))) )
     in
     res |> Result.return
   | Subst (e, Extend pf) ->
@@ -227,12 +227,12 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
   | Run e ->
     let _ = eval_sgen_expr env (Exec (false, e)) in
     Ok env
-  | Expect (x, e, message) ->
-    let* eval_x = eval_sgen_expr env (Id x) in
-    let* eval_e = eval_sgen_expr env e in
+  | Expect (e1, e2, message) ->
+    let* eval_e1 = eval_sgen_expr env e1 in
+    let* eval_e2 = eval_sgen_expr env e2 in
     let normalize x = x |> remove_mark_all |> unmark_all in
-    if not @@ equal_mconstellation (normalize eval_e) (normalize eval_x) then
-      Error (ExpectError (eval_x, eval_e, message))
+    if not @@ equal_mconstellation (normalize eval_e1) (normalize eval_e2) then
+      Error (ExpectError (eval_e1, eval_e2, message))
     else Ok env
   | Use path ->
     let open Lsc_ast.StellarRays in

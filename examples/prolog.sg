@@ -1,27 +1,27 @@
 ' unary addition
-(:= add [
+(:= add {
   [(+add 0 Y Y)]
-  [(-add X Y Z) (+add (s X) Y (s Z))]])
+  [(-add X Y Z) (+add (s X) Y (s Z))]})
 
 ' 2 + 2 = R
 (:= query [(-add <s s 0> <s s 0> R) R])
 
-<show exec (union #add @#query)>
+<show exec { #add @#query }>
 
-(:= graph [
+(:= graph {
   [(+from 1) (+to 2)]
   [(+from 1) (+to 3)]
   [(+from 3) (+to 2)]
   '[(+from 4) (+to 3)]
-  [(+from 3) (+to 4)]])
+  [(+from 3) (+to 4)]})
 
 (:= composition [(-to X) (-from X)])
 
 ' is there a path between 1 and 4?
-(:= query [
+(:= query {
   @[(-from 1)]
-  [(-to 4) ok]])
+  [(-to 4) ok]})
 
 <show exec (process
   #query
-  (union #graph #composition))>
+  { #graph #composition })>

@@ -1,8 +1,8 @@
 ' Turing machine accepting words with as many 'a' as 'b'
-(:= mt [
+(:= mt {
   'initial
   [(-i [C|W]) (+m q0 [e e] C W)]
-  [(-i [])     (+m q0 e e e)]
+  [(-i [])    (+m q0 e e e)]
   'accept
   [(-m q0 L e R) (+m qa L e R)]
   [(-m qa L e R) accept]
@@ -27,14 +27,14 @@
   'reject
   [(-m q2 L e R) (+m qr L e R)]
   [(-m q3 L e R) (+m qr L e R)]
-  [(-m qr L C R) reject]])
+  [(-m qr L C R) reject]})
 
-<show kill exec (union @(+i [a e e]) #mt)>
-<show kill exec (union @(+i [b e e]) #mt)>
-<show kill exec (union @(+i [a b b e e]) #mt)>
+<show kill exec { @(+i [a e e]) #mt}>
+<show kill exec { @(+i [b e e]) #mt}>
+<show kill exec { @(+i [a b b e e]) #mt}>
 
-<show kill exec (union @(+i [e e]) #mt)>
-<show kill exec (union @(+i [a b e e]) #mt)>
-<show kill exec (union @(+i [a a b b e e]) #mt)>
-<show kill exec (union @(+i [a b b a e e]) #mt)>
-<show kill exec (union @(+i [a b a b e e]) #mt)>
+<show kill exec { @(+i [e e]) #mt}>
+<show kill exec { @(+i [a b e e]) #mt}>
+<show kill exec { @(+i [a a b b e e]) #mt}>
+<show kill exec { @(+i [a b b a e e]) #mt}>
+<show kill exec { @(+i [a b a b e e]) #mt}>

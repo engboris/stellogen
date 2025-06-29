@@ -1,12 +1,12 @@
 '''
 FIXME
 '''
-(:= semantics [
+(:= semantics {
   [(+1 1)]
   [(+0 0)]
   [(+s X X X)]
   [(+not 1 0)] [(+not 0 1)]
-  [(+and 1 X X)][(+and 0 X 0)]])
+  [(+and 1 X X)][(+and 0 X 0)]})
 
 <show exec (process
   'inputs
@@ -23,15 +23,15 @@ FIXME
 
 <show exec (process
   'inputs
-  [
+  {
     [(-0 X) (+c0 X)]
-    [(-0 X) (+c1 X)]]
+    [(-0 X) (+c1 X)]}
   'layer 1
-  [
+  {
     [(-c0 X) (-not X R) (+c2 R)]
-    [(-c1 X) (-not X R) (+c3 R)]]
+    [(-c1 X) (-not X R) (+c3 R)]}
   'layer 2
-  [(-c2 X) (-c3 Y) (-and X Y R) (+c4 R)]
+  {(-c2 X) (-c3 Y) (-and X Y R) (+c4 R)}
   'output
   [(-c4 R) R]
   'apply semantics

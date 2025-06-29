@@ -63,6 +63,7 @@ let rec expand_macro : Raw.t -> expr = function
   | Raw.String s -> List [ Symbol string_op; Symbol s ]
   | Raw.Call e' -> List [ Symbol call_op; expand_macro e' ]
   | Raw.Focus e' -> List [ Symbol focus_op; expand_macro e' ]
+  | Raw.Group es -> List (Symbol group_op :: List.map ~f:expand_macro es)
   | Raw.List es -> List (List.map ~f:expand_macro es)
   | Raw.Cons es -> expand_macro (Raw.ConsWithBase (es, Symbol nil_op))
   | Raw.ConsWithBase (es, base) ->
@@ -197,8 +198,9 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   (* focus @ *)
   | List [ Symbol k; g ] when equal_string k focus_op ->
     Focus (sgen_expr_of_expr g)
-  (* union *)
-  | List (Symbol "union" :: gs) -> Union (List.map ~f:sgen_expr_of_expr gs)
+  (* group *)
+  | List (Symbol k :: gs) when equal_string k group_op ->
+    Group (List.map ~f:sgen_expr_of_expr gs)
   (* process *)
   | List (Symbol "process" :: gs) -> Process (List.map ~f:sgen_expr_of_expr gs)
   (* kill *)
@@ -229,10 +231,10 @@ let decl_of_expr : expr -> declaration = function
   (* trace *)
   | List [ Symbol "trace"; g ] -> Trace (sgen_expr_of_expr g)
   (* expect *)
-  | List [ Symbol k; x; g ] when equal_string k expect_op ->
-    Expect (ray_of_expr x, sgen_expr_of_expr g, const "default")
-  | List [ Symbol k; x; g; m ] when equal_string k expect_op ->
-    Expect (ray_of_expr x, sgen_expr_of_expr g, ray_of_expr m)
+  | List [ Symbol k; g1; g2 ] when equal_string k expect_op ->
+    Expect (sgen_expr_of_expr g1, sgen_expr_of_expr g2, const "default")
+  | List [ Symbol k; g1; g2; m ] when equal_string k expect_op ->
+    Expect (sgen_expr_of_expr g1, sgen_expr_of_expr g2, ray_of_expr m)
   (* use *)
   | List [ Symbol k; r ] when equal_string k "use" -> Use (ray_of_expr r)
   | e -> failwith ("error: invalid declaration " ^ to_string e)
