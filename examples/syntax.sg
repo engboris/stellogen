@@ -74,9 +74,9 @@
 (show #(get g test2))
 
 'nested fields
-(:= g1 {
+(:= g1 [
   [(+field test1) [
-    [(+field test2) [(+f c) ok]]]]})
+    [(+field test2) [(+f c) ok]]]]])
 (:= g2 <eval exec { #g1 @[(-field test1)] }>)
 <show eval exec { #g2 @[(-field test2)] }>
 
@@ -100,7 +100,7 @@
   [(-nat (s N)) (+nat N)]})
 
 'expect
-(:= #x 0)
+(:= x 0)
 (== #x 0)
 '(== x 1)
 

@@ -4,11 +4,11 @@
 
 (spec nat [(-nat (s X)) (+nat X)])
 
-(:= tested @(linexec (union @#1 #nat)))
-(== tested (+nat 0))
+(:= tested @(linexec { @#1 #nat }))
+(== #tested (+nat 0))
 
-(:= tested @(linexec (union @#2 #nat)))
-(== tested (+nat (s 0)))
+(:= tested @(linexec { @#2 #nat }))
+(== #tested (+nat (s 0)))
 
-(:= tested @(linexec (union @#3 #nat)))
-(== tested (+nat <s s 0>))
+(:= tested @(linexec { @#3 #nat }))
+(== #tested (+nat <s s 0>))

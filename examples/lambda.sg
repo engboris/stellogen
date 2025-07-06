@@ -26,5 +26,3 @@
 (:= linker {
   [(-lproj X) (-arg X)]
   @[(+arg [r|X]) (out X)]})
-
-<show exec { #lproj #var_x #linker }>

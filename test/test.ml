@@ -22,8 +22,8 @@ let run_dir test_f directory =
 
 let () =
   Alcotest.run "Stellogen Test Suite"
-    [ (* ("Stellogen examples", run_dir sgen "../examples/")
+    [ ("Stellogen examples", run_dir sgen "../examples/")
+    ; (* ; ("Stellogen exercises solutions", run_dir sgen "../exercises/solutions/")
     ; *)
-      (* ; ("Stellogen exercises solutions", run_dir sgen "../exercises/solutions/")
-    ; *)
-      (* ("Stellogen syntax", run_dir sgen "./subjects/") *) ]
+      ("Stellogen syntax", run_dir sgen "./subjects/")
+    ]

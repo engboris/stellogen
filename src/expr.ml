@@ -189,10 +189,7 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
     Raw [ Unmarked { content = [ ray_of_expr e ]; bans = [] } ]
   (* star *)
   | List (Symbol s :: _) when equal_string s params_op -> Raw [ star_of_expr e ]
-  | List [ Symbol s; h; t ]
-    when equal_string s cons_op && (not @@ is_cons h) && (not @@ contains_cons t)
-    ->
-    Raw [ star_of_expr e ]
+  | List (Symbol s :: _) when equal_string s cons_op -> Raw [ star_of_expr e ]
   (* id *)
   | List [ Symbol k; g ] when equal_string k call_op -> Id (ray_of_expr g)
   (* focus @ *)
