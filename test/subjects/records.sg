@@ -1,0 +1,18 @@
+(:= g {
+  [+test1 1]
+  [+test2 {
+    [+test21 2]
+    [+test22 {
+      [+test3 3]}]}]})
+
+(:= x <eval exec { #g @[-test1] }>)
+(== #x 1)
+
+(:= x <eval exec { #g @[-test2] }>)
+(:= y <eval exec { #x @[-test21] }>)
+(== #y 2)
+
+(:= x <eval exec { #g @[-test2] }>)
+(:= y <eval exec { #x @[-test22] }>)
+(:= z <eval exec { #y @[-test3] }>)
+(== #z 3)

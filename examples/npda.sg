@@ -1,36 +1,41 @@
-spec binary =
-  -i(e) ok;
-  -i(0:X) +i(X);
-  -i(1:X) +i(X).
+(new-declaration (:: Tested Test)
+  (== @(exec { @#Tested #Test }) ok))
+
+(spec binary {
+  [(-i []) ok]
+  [(-i [0|X]) (+i X)]
+  [(-i [1|X]) (+i X)]})
 
 'input words
-e :: binary.
-e = +i(e).
+(:= e (+i []))
+(:: e binary)
 
-0000 :: binary.
-0000 = +i(0:0:0:0:e).
+(:= 0000 (+i [0 0 0 0]))
+(:: 0000 binary)
 
-0110 :: binary.
-0110 = +i(0:1:1:0:e).
+(:= 0110 (+i [0 1 1 0]))
+(:: 0110 binary)
 
-1110 :: binary.
-1110 = +i(1:1:1:0:e).
+(:= 1110 (+i [1 1 1 0]))
+(:: 1110 binary)
 
-a1 = galaxy
-  initial =
-    -i(W) +a(W e q0).
-  final =
-    -a(e e q0) accept;
-    -a(e e q1) accept.
-  transitions =
-    -a(0:W S q0) +a(W 0:S q0);
-    -a(1:W S q0) +a(W 1:S q0);
-    -a(W S q0) +a(W S q1);
-    -a(0:W 0:S q1) +a(W S q1);
-    -a(1:W 1:S q1) +a(W S q1).
-end
+(:= (initial Q) [(-i W) (+a W [] Q)])
+(:= (accept Q) [(-a [] [] Q) accept])
+(:= (if read C1 on Q1 then Q2 and push C2) [(-a [C1|W] S Q1) (+a W [C2|S] Q2)])
+(:= (if read C1 with C2 on Q1 then Q2) [(-a [C1|W] [C2|S] Q1) (+a W S Q2)])
+(:= (if on Q1 then Q2) [(-a W S Q1) (+a W S Q2)])
 
-show process #e.    #a1. &kill. end
-show process #0000. #a1. &kill. end
-show process #0110. #a1. &kill. end
-show process #1110. #a1. &kill. end
+(:= a1 {
+  #(initial q0)
+  #(accept q0)
+  #(accept q1)
+  #(if read 0 on q0 then q0 and push 0)
+  #(if read 1 on q0 then q0 and push 1)
+  #(if on q0 then q1)
+  #(if read 0 with 0 on q1 then q1)
+  #(if read 1 with 1 on q1 then q1)})
+
+<show kill exec { @#e #a1 }>
+<show kill exec { @#0000 #a1 }>
+<show kill exec { @#0110 #a1 }>
+<show kill exec { @#1110 #a1 }>

@@ -1,3 +1,0 @@
-[+add(0 Y Y)];
-[-add(X Y Z) +add(s(X) Y s(Z))];
-[@-add(s(s(0)) s(s(0)) R) R].

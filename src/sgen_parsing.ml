@@ -1,6 +1,6 @@
 open Lexing
-open Sgen_lexer
-open Sgen_parser
+open Lexer
+open Parser
 
 let print_position fmt (pos : Lexing.position) =
   Format.fprintf fmt "%s:%d:%d" pos.pos_fname pos.pos_lnum
@@ -8,7 +8,7 @@ let print_position fmt (pos : Lexing.position) =
 
 let parse_with_error lexbuf =
   let lexer = Sedlexing.with_tokenizer read lexbuf in
-  let parser = MenhirLib.Convert.Simplified.traditional2revised program in
+  let parser = MenhirLib.Convert.Simplified.traditional2revised expr_file in
   try parser lexer
   with SyntaxError msg ->
     let _start_pos, end_pos = Sedlexing.lexing_positions lexbuf in

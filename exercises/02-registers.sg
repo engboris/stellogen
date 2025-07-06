@@ -1,29 +1,28 @@
-show-exec process
+(show-exec (process
   'represents a register with value 0
-  +r0(0).
+  (const (star (+r0 0)))
 
   'update the value to 1
-  #your_answer.
-  #your_answer.
+  #your_answer
+  #your_answer
 
   'duplicate the register into two registers r1 and r2
-  #your_answer.
+  #your_answer
 
   'update r1 to 0
-  #your_answer.
-  #your_answer.
+  #your_answer
+  #your_answer
 
   'swap the value of r1 and r2
-  #your_answer.
-  #your_answer.
+  #your_answer
+  #your_answer
 
   'duplicate r1 and add a copy identifier as first argument
-  #your_answer.
+  #your_answer
 
   'update the two copies to 5 at once
-  #your_answer.
-  #your_answer.
+  #your_answer
+  #your_answer
 
   'duplicate each copy of r1 again with the same method
-  #your_answer.
-end
+  #your_answer))

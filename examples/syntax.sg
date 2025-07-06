@@ -1,113 +1,117 @@
-'static definition of constellation
-x = +a; -a b.
-y = #x.
-z = -f(X).
+'define ray
+(:= a (-f X))
 
-'string literals
-w = "hello world".
+'define star
+(:= b [(-f X)])
 
-'cons
-w = +w(0:1:0:1:e).
+'define constellation
+(:= c {
+  @[+a] 'focus
+  [-a b]})
 
 'full focus
-show-exec @#w #w.
+(:= f @{ [a] [b] [c] })
 
-'show (literal) contellations
-show a; b; c.
+'identifier
+(:= x #a)
 
-'print result of execution
-show-exec a; b; c.
-show exec a; b; c end.
+'group
+(:= x { #a #b })
 
-'inequality constraints
-ineq = +f(a); +f(b); @-f(X) -f(Y) r(X Y) | X!=Y.
+'string literals
+(:= s "hello world")
 
-'interactive debugging of execution
-'trace ineq.
+'cons
+' [0 1] == %cons(0 (%cons 1 %nil))
+(:= w (+w [0 1 0 1]))
 
-'dynamic definition of constellation
-c = process
-  +n0(0).           'base constellation
-  -n0(X) +n1(s(X)). 'interacts with previous
-  -n1(X) +n2(s(X)). 'interacts with previous
-end
+'stack
+' <s s 0> == (s (s 0))
+(:= n (+nat <s s 0>))
 
-'galaxy definition
-g = galaxy
-  test1 = +f(a) ok.
-  test2 = +f(b) ok.
-end
-show #g.
+'execution
+(:= x [(+f X) X])
+(:= y (-f a))
+(:= ex (linexec { @#x #y })) 'linear
+(:= ex (exec { @#x #y }))    'non-linear
 
-'reactive effects
-run +&print(X); -&print("hello world\n").
-
-'access to field of a galaxy
-show #g->test1.
-show #g->test2.
-
-'extend rays with a head function symbol
-show-exec (+f(X); f(X))[=>+a].
-show-exec (+f(X); f(X))[=>a].
-
-'remove head function symbol from a ray
-show-exec (+f(X); f(X))[+f=>].
-
-'substitutions
-show-exec (+f(X))[X=>+a(X)].
-show-exec (+f(X))[+f=>+g].
-show-exec (#1 #2)[#1=>+f(X) X][#2=>-f(a)].
-
-'checkers & typechecking
-checker = galaxy
-  interaction = (@#tested) #test.
-  expect = ok.
-end
-
-spec nat = galaxy
-  test =
-    -nat(0) ok;
-    -nat(s(N)) +nat(N).
-end
-
-0 :: nat [checker].
-0 = +nat(0).
-
-1 :: nat [checker].
-1 = +nat(s(0)).
-
-'plural typing
-nat2 = -nat(X) ok.
-2 :: nat.
-2 :: nat2.
-2 = +nat(s(s(0))).
-3 :: nat; nat2.
-3 = +nat(s(s(s(0)))).
-4 :: nat [checker]; nat2 [checker].
-4 = +nat(s(s(s(s(0))))).
-
-'galaxy with type declarations
-show galaxy
-  n1 :: nat.
-  n1 = +nat(0).
-  n2 :: nat.
-  n2 = +nat(s(s(0))).
-end
-
-interface nat_pair
-  n :: nat.
-  m :: nat.
-end
-
-g_pair :: nat_pair.
-g_pair = galaxy
-  n = +nat(0).
-  m = +nat(0).
-end
-
-'import file
-'use examples->automata.
+'show constellation
+(show #ex)
+(show { [a] [b] [c] })
+(show #s)
 
 'complex identifiers
-f(a b) = function(a b).
-show #f(a b).
+(:= (f a b) [(function a b)])
+(show #(f a b))
+
+'inequality constraints
+(:= ineq {
+  [(+f a)]
+  [(+f b)]
+  @[(-f X) (-f Y) (r X Y) || (!= X Y)]})
+(show #ineq)
+<show exec #ineq>
+
+'interactive debugging of execution
+'(trace #ineq)
+
+'process
+(:= c (process
+  (+n0 0)                 'base constellation
+  [(-n0 X) (+n1 (s X))]   'interacts with previous
+  [(-n1 X) (+n2 (s X))])) 'interacts with previous
+(show #c)
+
+'constellation with fields
+(:= g {
+  [(+field test1) [(+f a) ok]]
+  [(+field test2) [(+f b) ok]]})
+(show #g)
+
+'field access and evaluation
+(:= (get G X) <eval exec { #G @[(-field X)] }>)
+(show #(get g test1))
+(show #(get g test2))
+
+'nested fields
+(:= g1 [
+  [(+field test1) [
+    [(+field test2) [(+f c) ok]]]]])
+(:= g2 <eval exec { #g1 @[(-field test1)] }>)
+<show eval exec { #g2 @[(-field test2)] }>
+
+'extend rays with a head function symbol
+'<show exec [[(+f X)] [(f X)]][=>+a]>
+'<show exec [[(+f X)] [(f X)]][=>a]>
+
+'remove head function symbol from a ray
+'<show-exec [[(+f X)] [(f X)]][+f=>]>
+
+'substitutions
+'<show exec (+f X)[X=>(+a X)]>
+'<show exec (+f X)[+f=>+g]>
+'<show exec (union #1 #2)
+'  [#1=>[(+f X) X)]]
+'  [#2=>(-f a)]>
+
+'define type
+(spec nat {
+  [(-nat 0) ok]
+  [(-nat (s N)) (+nat N)]})
+
+'expect
+(:= x 0)
+(== #x 0)
+'(== x 1)
+
+'type checking
+(:= 2 <+nat s s 0>)
+(== @(exec { @#2 #nat }) ok)
+
+'import file
+'(use "examples/automata.sg")
+
+'declaration definition
+(new-declaration (:: Tested Test)
+  (== @(exec { @#Tested #Test }) ok))
+(:: 2 nat)
