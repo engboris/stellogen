@@ -36,9 +36,8 @@ philosophy).
 Finite state machine
 
 ```
-(new-declaration (:: tested test)
-(:= test @(exec { @#tested #test }))
-  (== test ok))
+(new-declaration (:: Tested Test)
+  (== @(exec { @#Tested #Test }) ok))
 
 (spec binary {
   [(-i []) ok]
@@ -64,13 +63,17 @@ Finite state machine
 '''
 automaton accepting words ending with 00
 '''
+(:= (initial Q) [(-i W) (+a W Q)])
+(:= (accept Q) [(-a [] Q) accept])
+(:= (if read C1 on Q1 then Q2) [(-a [C1|W] Q1) (+a W Q2)])
+
 (:= a1 {
-  [(-i W) (+a W q0)]
-  [(-a [] q2) accept]
-  [(-a [0|W] q0) (+a W q0)]
-  [(-a [0|W] q0) (+a W q1)]
-  [(-a [1|W] q0) (+a W q0)]
-  [(-a [0|W] q1) (+a W q2)]})
+  #(initial q0)
+  #(accept q2)
+  #(if read 0 on q0 then q0)
+  #(if read 0 on q0 then q1)
+  #(if read 1 on q0 then q0)
+  #(if read 0 on q1 then q2)})
 
 <show kill exec { @#e #a1 }>
 <show kill exec { @#000 #a1 }>
