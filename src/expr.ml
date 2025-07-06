@@ -173,15 +173,6 @@ let rec constellation_of_expr : expr -> marked_constellation = function
    Stellogen expr of Expr
    --------------------------------------- *)
 
-let is_cons = function
-  | List [ Symbol s; _; _ ] when equal_string s cons_op -> true
-  | _ -> false
-
-let rec contains_cons = function
-  | List [ Symbol s; h; t ] when equal_string s cons_op ->
-    is_cons h || contains_cons t
-  | _ -> false
-
 let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   match e with
   (* ray *)
