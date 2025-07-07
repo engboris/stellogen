@@ -11,7 +11,8 @@ let space = [%sedlex.regexp? Plus (' ' | '\t')]
 
 let newline = [%sedlex.regexp? '\r' | '\n' | "\r\n"]
 
-let push_delimiter sym pos = delimiters_stack := (sym, pos) :: !delimiters_stack
+let push_delimiter sym (pos : Lexing.position) =
+  delimiters_stack := (sym, pos) :: !delimiters_stack
 
 let opposite_delimiter c =
   match c with
@@ -28,16 +29,16 @@ let opposite_delimiter c =
       (Printf.sprintf "Compiler error: '%s' is not a delimiter."
          (String.make 1 c) )
 
-let pop_delimiter sym =
+let pop_delimiter sym (pos : Lexing.position) =
   match !delimiters_stack with
   | [] -> ()
-  | (c, pos) :: _ when not @@ Base.equal_char c sym ->
+  | (c, _) :: _ when not @@ Base.equal_char c sym ->
     let msg =
       Printf.sprintf "No opening delimiter for '%s'."
         (String.make 1 (opposite_delimiter sym))
     in
-    raise (LexerError (msg, pos))
-  | _ :: t -> delimiters_stack := t
+    raise (LexerError (msg, { pos with pos_cnum = pos.pos_cnum + 1 }))
+  | (_, sym_pos) :: t -> delimiters_stack := t
 
 let set_newline_pos lexbuf =
   let open Sedlexing in
@@ -89,25 +90,25 @@ and read lexbuf =
       push_delimiter '(' pos;
       LPAR
     | ')' ->
-      pop_delimiter '(';
+      pop_delimiter '(' pos;
       RPAR
     | '[' ->
       push_delimiter '[' pos;
       LBRACK
     | ']' ->
-      pop_delimiter '[';
+      pop_delimiter '[' pos;
       RBRACK
     | '{' ->
       push_delimiter '{' pos;
       LBRACE
     | '}' ->
-      pop_delimiter '{';
+      pop_delimiter '{' pos;
       RBRACE
     | '<' ->
       push_delimiter '<' pos;
       LANGLE
     | '>' ->
-      pop_delimiter '<';
+      pop_delimiter '<' pos;
       RANGLE
     | '@' -> AT
     | '#' -> SHARP

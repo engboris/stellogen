@@ -40,7 +40,6 @@ let get_line filename line_num =
 
 let unexpected_token_msg () =
   match !last_token with
-  | Some EOF -> Printf.sprintf "Unexpected end of file or unclosed symbol"
   | Some tok when is_end_delimiter tok ->
     Printf.sprintf "No opening delimiter for '%s'." (string_of_token tok)
   | Some tok -> Printf.sprintf "Unexpected symbol '%s'." (string_of_token tok)
@@ -57,17 +56,37 @@ let parse_with_error filename lexbuf =
   let lexer = Sedlexing.with_tokenizer read lexbuf in
   let parser = MenhirLib.Convert.Simplified.traditional2revised expr_file in
   try parser lexer with
-  | Parser.Error ->
-    let start_pos, _ = Sedlexing.lexing_positions lexbuf in
-    let header = Printf.sprintf "%d| " start_pos.pos_lnum in
-    let size_of_header = String.length header in
-    let column = start_pos.pos_cnum - start_pos.pos_bol + 1 in
-    Printf.eprintf "%s at line %d, column %d.\n%s\n%s\n%s%s\n"
-      (red "Syntax error") start_pos.pos_lnum column (unexpected_token_msg ())
-      (string_of_line filename header start_pos.pos_lnum)
-      (String.make size_of_header ' ')
-      (string_of_position (column - 1));
-    exit 1
+  | Parser.Error -> begin
+    match !last_token with
+    | Some EOF -> begin
+      match !delimiters_stack with
+      | [] ->
+        Printf.eprintf "%s: %s\n" (red "Syntax error") "unexpected end of file";
+        exit 1
+      | (c, pos) :: _ ->
+        let header = Printf.sprintf "%d| " pos.pos_lnum in
+        let size_of_header = String.length header in
+        let column = pos.pos_cnum - pos.pos_bol + 1 in
+        Printf.eprintf "%s at line %d, column %d.\n%s\n%s\n%s%s\n"
+          (red "Syntax error") pos.pos_lnum column
+          (Printf.sprintf "Unclosed delimiter '%s'." (String.make 1 c))
+          (string_of_line filename header pos.pos_lnum)
+          (String.make size_of_header ' ')
+          (string_of_position (column - 1));
+        exit 1
+    end
+    | _ ->
+      let start_pos, _ = Sedlexing.lexing_positions lexbuf in
+      let header = Printf.sprintf "%d| " start_pos.pos_lnum in
+      let size_of_header = String.length header in
+      let column = start_pos.pos_cnum - start_pos.pos_bol + 1 in
+      Printf.eprintf "%s at line %d, column %d.\n%s\n%s\n%s%s\n"
+        (red "Syntax error") start_pos.pos_lnum column (unexpected_token_msg ())
+        (string_of_line filename header start_pos.pos_lnum)
+        (String.make size_of_header ' ')
+        (string_of_position (column - 1));
+      exit 1
+  end
   | LexerError (msg, pos) ->
     let header = Printf.sprintf "%d| " pos.pos_lnum in
     let size_of_header = String.length header in
