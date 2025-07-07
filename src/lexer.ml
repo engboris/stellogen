@@ -11,10 +11,10 @@ let space = [%sedlex.regexp? Plus (' ' | '\t')]
 
 let newline = [%sedlex.regexp? '\r' | '\n' | "\r\n"]
 
-let push_delimiter sym pos = delimiters_stack := (sym, pos) ::
-  !delimiters_stack
+let push_delimiter sym pos = delimiters_stack := (sym, pos) :: !delimiters_stack
 
-let opposite_delimiter c = match c with
+let opposite_delimiter c =
+  match c with
   | '(' -> ')'
   | '[' -> ']'
   | '{' -> '}'
@@ -24,15 +24,18 @@ let opposite_delimiter c = match c with
   | '}' -> '{'
   | '>' -> '<'
   | _ ->
-    failwith (Printf.sprintf "Compiler error: '%s' is not a delimiter."
-    (String.make 1 c))
+    failwith
+      (Printf.sprintf "Compiler error: '%s' is not a delimiter."
+         (String.make 1 c) )
 
 let pop_delimiter sym =
   match !delimiters_stack with
   | [] -> ()
   | (c, pos) :: _ when not @@ Base.equal_char c sym ->
-    let msg = Printf.sprintf "No opening delimiter for '%s'."
-    (String.make 1 (opposite_delimiter sym)) in
+    let msg =
+      Printf.sprintf "No opening delimiter for '%s'."
+        (String.make 1 (opposite_delimiter sym))
+    in
     raise (LexerError (msg, pos))
   | _ :: t -> delimiters_stack := t
 
@@ -118,8 +121,10 @@ and read lexbuf =
       read lexbuf
     | eof -> EOF
     | _ ->
-      let msg = Printf.sprintf "Unexpected character '%s' during lexing"
-      (Utf8.lexeme lexbuf) in
+      let msg =
+        Printf.sprintf "Unexpected character '%s' during lexing"
+          (Utf8.lexeme lexbuf)
+      in
       raise (LexerError (msg, pos))
   in
   last_token := Some tok;
