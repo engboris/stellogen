@@ -248,7 +248,7 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
       { Lexing.pos_fname = filename; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
     in
     Sedlexing.set_position lexbuf (start_pos formatted_filename);
-    let expr = Sgen_parsing.parse_with_error lexbuf in
+    let expr = Sgen_parsing.parse_with_error formatted_filename lexbuf in
     let preprocessed = Expr.preprocess expr in
     let p = Expr.program_of_expr preprocessed in
     let* env = eval_program p in
