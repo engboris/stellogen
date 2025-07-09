@@ -1,5 +1,4 @@
 open Base
-open Pretty
 open Out_channel
 open In_channel
 
@@ -143,50 +142,48 @@ let string_of_var (x, i) =
 let rec string_of_ray = function
   | Var xi -> string_of_var xi
   | Func (pf, []) -> string_of_polsym pf
-  | Func ((Null, "%cons"), [ Func ((Null, "%cons"), [ r1; r2 ]); r3 ]) ->
-    "(" ^ string_of_ray r1 ^ ":" ^ string_of_ray r2 ^ "):" ^ string_of_ray r3
-  | Func ((Null, "%cons"), [ r1; r2 ]) ->
-    string_of_ray r1 ^ ":" ^ string_of_ray r2
   | Func (pf, ts) ->
-    string_of_polsym pf ^ surround "(" ")"
-    @@ string_of_list string_of_ray " " ts
+    Printf.sprintf "(%s %s)" (string_of_polsym pf)
+      (List.map ~f:string_of_ray ts |> String.concat ~sep:" ")
 
 let string_of_subst sub =
-  List.fold sub ~init:"" ~f:(fun _ (x, r) ->
-    string_of_var x ^ "->" ^ string_of_ray r )
-  |> surround "{" "}"
+  Printf.sprintf "{%s}"
+    (List.fold sub ~init:"" ~f:(fun _ (x, r) ->
+       string_of_var x ^ "->" ^ string_of_ray r ) )
 
 let string_of_ban = function
   | Ineq (b1, b2) ->
-    Printf.sprintf "%s!=%s" (string_of_ray b1) (string_of_ray b2)
+    Printf.sprintf "(!= %s %s)" (string_of_ray b1) (string_of_ray b2)
   | Incomp (b1, b2) ->
-    Printf.sprintf "%s:%s" (string_of_ray b1) (string_of_ray b2)
-
-let string_of_raylist : ray list -> string = string_of_list string_of_ray " "
+    Printf.sprintf "(slice %s %s)" (string_of_ray b1) (string_of_ray b2)
 
 let string_of_star s =
-  if List.is_empty s.content then "[]"
-  else
-    string_of_list string_of_ray " " s.content
-    ^
-    if List.is_empty s.bans then ""
-    else " | " ^ string_of_list string_of_ban " " s.bans
+  match s.content with
+  | [] -> "[]"
+  | [ r ] -> string_of_ray r
+  | _ ->
+    Printf.sprintf "[%s%s]"
+      (List.map ~f:string_of_ray s.content |> String.concat ~sep:" ")
+      ( if List.is_empty s.bans then ""
+        else
+          Printf.sprintf " | %s"
+            (List.map ~f:string_of_ban s.bans |> String.concat ~sep:" ") )
 
 let string_of_constellation = function
   | [] -> "{}"
-  | [ h ] -> string_of_star h ^ "."
+  | [ h ] -> Printf.sprintf "%s" (string_of_star h)
   | h :: t ->
-    let string_h = string_of_star h ^ "; " in
+    let string_h = "{ " ^ string_of_star h ^ " " in
     List.fold_left t
       ~init:(List.length t, string_h, String.length string_h)
       ~f:(fun (i, acc, size) s ->
         let string_s = string_of_star s in
         let new_size = size + String.length string_s in
         if equal_int i 1 then (0, acc ^ string_s, 0)
-        else if new_size < 80 then (i - 1, acc ^ string_s ^ "; ", new_size)
-        else (i - 1, acc ^ string_s ^ ";\n", 0) )
+        else if new_size < 80 then (i - 1, acc ^ string_s ^ " ", new_size)
+        else (i - 1, acc ^ string_s ^ " }\n", 0) )
     |> fun (_, x, _) ->
-    x |> fun x -> String.append x "."
+    x |> fun x -> String.append x " }"
 
 (* ---------------------------------------
    Operation on marked stars
@@ -372,7 +369,7 @@ let rec interaction ~showtrace ~queue repl1 repl2
     if showtrace then begin
       output_string stdout
       @@ Printf.sprintf "  try action: >>%s<< %s...\n" (string_of_ray r')
-           (string_of_raylist s')
+           (List.map ~f:string_of_ray s' |> String.concat ~sep:" ")
     end;
     match raymatcher (repl1 selected_ray) (repl2 r') with
     | None ->
@@ -424,7 +421,9 @@ let search_partners ~linear ~showtrace (selected_ray, other_rays, bans) actions
   : star list * star list =
   if showtrace then begin
     let str_ray = string_of_ray selected_ray in
-    let str_rays = string_of_raylist other_rays in
+    let str_rays =
+      List.map ~f:string_of_ray other_rays |> String.concat ~sep:" "
+    in
     Printf.sprintf "select state: >>%s<< %s" str_ray str_rays
     |> output_string stdout;
     pause ()
