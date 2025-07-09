@@ -48,14 +48,11 @@ let incomp_op = "slice"
 
 let group_op = "%group"
 
-let string_of_list lmark rmark l =
-  l |> String.concat ~sep:" " |> fun l' ->
-  Printf.sprintf "%s%s%s" lmark l' rmark
-
 let rec to_string : expr -> string = function
   | Symbol s -> s
   | Var x -> x
-  | List es -> es |> List.map ~f:to_string |> string_of_list "(" ")"
+  | List es ->
+    Printf.sprintf "(%s)" (List.map ~f:to_string es |> String.concat ~sep:" ")
 
 let rec expand_macro : Raw.t -> expr = function
   | Raw.Symbol s -> Symbol s
