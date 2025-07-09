@@ -149,11 +149,13 @@ Executables are in `_build/default/bin/`.
 Assume the executable is named `sgen.exe`. Interpreter Stellogen programs with:
 
 ```
-./sgen.exe <inputfile>
+./sgen.exe run <inputfile>
 ```
 
 or if you use Dune:
 
 ```
-dune exec sgen -- <inputfile>
+dune exec sgen run -- <inputfile>
 ```
+
+For other commands, use the `--help` flag at the end of the command.
