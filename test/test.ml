@@ -2,7 +2,7 @@ open Base
 
 let sgen filename () =
   let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in filename) in
-  let expr = Stellogen.Sgen_parsing.parse_with_error lexbuf in
+  let expr = Stellogen.Sgen_parsing.parse_with_error filename lexbuf in
   let preprocessed = Stellogen.Expr.preprocess expr in
   let p = Stellogen.Expr.program_of_expr preprocessed in
   Stellogen.Sgen_eval.eval_program p

@@ -28,24 +28,28 @@ let revlist(x) :=
 
 let pars(x) == ~=delimited(LPAR, x, RPAR); <>
 let bracks(x) == ~=delimited(LBRACK, x, RBRACK); <>
-let bracks_opt(x) == ~=delimited_opt(LBRACK, x, RBRACK); <>
+let braces(x) == ~=delimited(LBRACE, x, RBRACE); <>
+let angles(x) == ~=delimited(LANGLE, x, RANGLE); <>
 
 let expr_file :=
   | EOF; { [] }
-  | es=expr+; EOF; { es }
+  | es=expr_ext+; EOF; { es }
 
 let params :=
-  | BAR; BAR; ~=expr+; <>
+  | BAR; BAR; ~=expr_ext+; <>
 
-let expr :=
+let expr_ext :=
+  | ~=pars(expr_int+); <List>
+  | ~=angles(revlist(expr_int)); <Stack>
+  | ~=bracks(revlist(expr_int)); <Cons>
+  | ~=braces(revlist(expr_int)); <Group>
+  | LBRACK; ~=revlist(expr_int); ~=params; RBRACK; <ConsWithParams>
+  | LBRACK; ~=revlist(expr_int); BAR; ~=expr_int; RBRACK; <ConsWithBase>
+
+let expr_int :=
+  | ~=expr_ext; <>
+  | SHARP; ~=expr_int; <Call>
+  | AT; ~=expr_int; <Focus>
   | ~=SYM; <Symbol>
   | ~=VAR; <Var>
   | ~=STRING; <String>
-  | SHARP; ~=expr; <Call>
-  | AT; ~=expr; <Focus>
-  | ~=pars(expr+); <List>
-  | LANGLE; es=revlist(expr); RANGLE; <Stack>
-  | LBRACK; es=revlist(expr); RBRACK; <Cons>
-  | LBRACE; es=revlist(expr); RBRACE; <Group>
-  | LBRACK; ~=revlist(expr); ~=params; RBRACK; <ConsWithParams>
-  | LBRACK; ~=revlist(expr); BAR; ~=expr; RBRACK; <ConsWithBase>

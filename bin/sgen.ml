@@ -8,7 +8,7 @@ let parse_and_eval input_file =
     { Lexing.pos_fname = filename; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
   in
   Sedlexing.set_position lexbuf (start_pos input_file);
-  let expr = Sgen_parsing.parse_with_error lexbuf in
+  let expr = Sgen_parsing.parse_with_error input_file lexbuf in
   let preprocessed = Expr.preprocess expr in
   Stdlib.print_string
     (List.map ~f:Expr.to_string preprocessed |> String.concat ~sep:"\n");
