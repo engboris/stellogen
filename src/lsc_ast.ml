@@ -218,8 +218,6 @@ let map_mstar ~f : marked_star -> marked_star = function
 
 let subst_all_vars sub = List.map ~f:(map_mstar ~f:(subst sub))
 
-let subst_all_funcs sub = List.map ~f:(map_mstar ~f:(replace_funcs sub))
-
 let all_vars mcs : StellarSig.idvar list =
   List.map mcs ~f:(function Marked s | Unmarked s ->
     List.map s.content ~f:StellarRays.vars |> List.concat )
@@ -257,37 +255,6 @@ let remove_mark_all : marked_constellation -> constellation =
 
 let ident_counter = ref 0
 
-let connectable (s1 : star) (s2 : star) : bool =
-  let ( >>= ) = List.Monad_infix.( >>= ) in
-  begin
-    s1.content >>= fun r1 ->
-    s2.content >>= fun r2 ->
-    let renamed_r = replace_indices !ident_counter r1 in
-    let renamed_r' = replace_indices (!ident_counter + 1) r2 in
-    let matching = raymatcher renamed_r renamed_r' in
-    if Option.is_some matching then ident_counter := !ident_counter + 1;
-    [ matching ]
-  end
-  |> List.exists ~f:Option.is_some
-
-let rec saturation queue marked remains =
-  match queue with
-  | [] -> (marked, remains)
-  | h :: t ->
-    let marked', remains' = List.partition_tf remains ~f:(connectable h) in
-    saturation (marked' @ t) (h :: marked) remains'
-
-let cc_representatives from cs =
-  let rec selection reps marked remains =
-    match remains with
-    | [] -> (marked, reps)
-    | h :: t ->
-      let marked', remains' = List.partition_tf t ~f:(connectable h) in
-      let marked'', remains'' = saturation marked' marked remains' in
-      selection (h :: reps) marked'' remains''
-  in
-  selection [] from cs
-
 let classify =
   let rec aux (cs, space) = function
     | [] -> (List.rev cs, List.rev space)
@@ -297,8 +264,6 @@ let classify =
   aux ([], [])
 
 let extract_intspace (mcs : marked_constellation) =
-  (* auto-selection *)
-  (* let cs, marked = cc_representatives [] unmarked in *)
   ident_counter := 0;
   classify mcs
 
