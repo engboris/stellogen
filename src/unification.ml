@@ -52,11 +52,7 @@ module Make (Sig : Signature) = struct
 
   let exists_var pred = fold skip (fun y acc -> pred y || acc) false
 
-  let for_all_var pred = fold skip (fun y acc -> pred y && acc) true
-
   let exists_func pred = fold (fun y acc -> pred y || acc) skip false
-
-  let for_all_func pred = fold (fun y acc -> pred y && acc) skip true
 
   let occurs x = exists_var (fun y -> Sig.equal_idvar x y)
 
@@ -69,17 +65,8 @@ module Make (Sig : Signature) = struct
 
   let subst sub = map Fn.id (apply sub)
 
-  let replace_func from_pf to_pf =
-    map
-      (fun pf -> if Sig.equal_idfunc pf from_pf then to_pf else pf)
-      (fun x -> Var x)
-
-  let replace_funcs fsub t =
-    List.fold_left fsub ~init:t ~f:(fun acc (from_pf, to_pf) ->
-      replace_func from_pf to_pf acc )
-
   (* ---------------------------------------
-   A few useful functions
+   Unification algorithm
    --------------------------------------- *)
 
   let lift_pairl f (x, y) = (f x, y)
@@ -87,16 +74,6 @@ module Make (Sig : Signature) = struct
   let lift_pairr f (x, y) = (x, f y)
 
   let lift_pair f p = p |> lift_pairl f |> lift_pairr f
-
-  (* ---------------------------------------
-   Unification algorithm
-   --------------------------------------- *)
-
-  let extract_idfuncs ts =
-    List.fold_left
-      ~f:(fun acc x -> match x with Var _ -> acc | Func (f, _) -> f :: acc)
-      ~init:[] ts
-    |> List.rev
 
   let rec solve sub : problem -> substitution option = function
     | [] -> Some sub
