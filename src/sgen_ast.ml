@@ -12,19 +12,11 @@ type sgen_expr =
   | Id of ident
   | Exec of bool * sgen_expr
   | Group of sgen_expr list
-  | Subst of sgen_expr * substitution
   | Focus of sgen_expr
   | Clean of sgen_expr
   | Kill of sgen_expr
   | Process of sgen_expr list
   | Eval of sgen_expr
-
-and substitution =
-  | Extend of idfunc
-  | Reduce of idfunc
-  | SVar of string * StellarRays.term
-  | SFunc of idfunc * idfunc
-  | SGal of ident * sgen_expr
 
 type err =
   | ExpectError of marked_constellation * marked_constellation * ident

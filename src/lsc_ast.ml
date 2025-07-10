@@ -166,7 +166,7 @@ let string_of_star s =
       (List.map ~f:string_of_ray s.content |> String.concat ~sep:" ")
       ( if List.is_empty s.bans then ""
         else
-          Printf.sprintf " | %s"
+          Printf.sprintf " || %s"
             (List.map ~f:string_of_ban s.bans |> String.concat ~sep:" ") )
 
 let string_of_constellation = function
@@ -181,7 +181,7 @@ let string_of_constellation = function
         let new_size = size + String.length string_s in
         if equal_int i 1 then (0, acc ^ string_s, 0)
         else if new_size < 80 then (i - 1, acc ^ string_s ^ " ", new_size)
-        else (i - 1, acc ^ string_s ^ " }\n", 0) )
+        else (i - 1, acc ^ string_s ^ "...\n", 0) )
     |> fun (_, x, _) ->
     x |> fun x -> String.append x " }"
 
