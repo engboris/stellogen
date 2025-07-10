@@ -321,38 +321,25 @@ let coherent_bans bans =
   && coherent_incomp incomp
 
 (* interaction between one selected ray and one selected action *)
-let rec interaction ~showtrace ~queue repl1 repl2
-  (selected_action, other_actions) (selected_ray, other_rays, bans) : star list
-    =
+let rec interaction ~queue repl1 repl2 (selected_action, other_actions)
+  (selected_ray, other_rays, bans) : star list =
   match selected_action.content with
   | [] -> []
   | r' :: s' when not (is_polarised r') ->
-    interaction ~showtrace ~queue:(r' :: queue) repl1 repl2
+    interaction ~queue:(r' :: queue) repl1 repl2
       ({ content = s'; bans }, other_actions)
       (selected_ray, other_rays, bans)
   | r' :: s' -> (
-    if showtrace then begin
-      output_string stdout
-      @@ Printf.sprintf "  try action: >>%s<< %s...\n" (string_of_ray r')
-           (List.map ~f:string_of_ray s' |> String.concat ~sep:" ")
-    end;
     match raymatcher (repl1 selected_ray) (repl2 r') with
     | None ->
-      if showtrace then output_string stdout "failed.";
-      interaction ~showtrace ~queue:(r' :: queue) repl1 repl2
+      interaction ~queue:(r' :: queue) repl1 repl2
         ({ content = s'; bans }, other_actions)
         (selected_ray, other_rays, bans)
     (* if there is an actual connection between rays *)
     | Some theta ->
-      begin
-        if showtrace then
-          output_string stdout
-          @@ Printf.sprintf "success with %s." (string_of_subst theta);
-        if showtrace then pause ()
-      end;
       (* action is consumed when execution is linear *)
       let next =
-        interaction ~showtrace ~queue:(r' :: queue) repl1 repl2
+        interaction ~queue:(r' :: queue) repl1 repl2
           ({ content = s'; bans }, other_actions)
           (selected_ray, other_rays, bans)
       in
@@ -362,44 +349,21 @@ let rec interaction ~showtrace ~queue repl1 repl2
           theta
       in
       let res =
-        if coherent_bans after_fusion.bans then begin
-          let _ =
-            if showtrace then
-              output_string stdout
-              @@ Printf.sprintf "  add star %s." (string_of_star after_fusion)
-          in
-          after_fusion :: next
-        end
-        else begin
-          if showtrace then
-            output_string stdout
-            @@ Printf.sprintf "  result filtered out by constraint.";
-          next
-        end
+        if coherent_bans after_fusion.bans then after_fusion :: next else next
       in
-      if showtrace then pause ();
       ident_counter := !ident_counter + 2;
       res )
 
 (* search partner for a selected ray within a set of available actions *)
-let search_partners ~linear ~showtrace (selected_ray, other_rays, bans) actions
-  : star list * star list =
-  if showtrace then begin
-    let str_ray = string_of_ray selected_ray in
-    let str_rays =
-      List.map ~f:string_of_ray other_rays |> String.concat ~sep:" "
-    in
-    Printf.sprintf "select state: >>%s<< %s" str_ray str_rays
-    |> output_string stdout;
-    pause ()
-  end;
+let search_partners ~linear (selected_ray, other_rays, bans) actions :
+  star list * star list =
   let repl1 = replace_indices !ident_counter in
   let rec try_actions acc = function
     | [] -> ([], acc)
     | selected_action :: other_actions ->
       let repl2 = replace_indices (!ident_counter + 1) in
       let res =
-        interaction ~showtrace ~queue:[] repl1 repl2
+        interaction ~queue:[] repl1 repl2
           (selected_action, other_actions)
           (selected_ray, other_rays, bans)
       in
@@ -414,41 +378,38 @@ let search_partners ~linear ~showtrace (selected_ray, other_rays, bans) actions
   in
   try_actions [] actions
 
-let rec select_ray ~linear ~showtrace ~queue actions other_states
-  (selected_state, bans) : star list option * star list =
+let rec select_ray ~linear ~queue actions other_states (selected_state, bans) :
+  star list option * star list =
   match selected_state with
   | [] -> (None, actions)
   (* if unpolarized, no need to try, try other stars *)
   | r :: rs when not (is_polarised r) ->
-    select_ray ~linear ~showtrace ~queue:(r :: queue) actions other_states
-      (rs, bans)
+    select_ray ~linear ~queue:(r :: queue) actions other_states (rs, bans)
   | selected_ray :: other_rays -> (
     (* look for partners for the selected rays in actions *)
     match
-      search_partners ~linear ~showtrace
-        (selected_ray, queue @ other_rays, bans)
-        actions
+      search_partners ~linear (selected_ray, queue @ other_rays, bans) actions
     with
     (* interaction did nothing (no partner), try other rays *)
     | [], new_actions ->
-      select_ray ~linear ~showtrace ~queue:(selected_ray :: queue) new_actions
-        other_states (other_rays, bans)
+      select_ray ~linear ~queue:(selected_ray :: queue) new_actions other_states
+        (other_rays, bans)
     (* interaction returns a result, keep it for the next round *)
     | new_stars, new_actions -> (Some new_stars, new_actions) )
 
-let rec select_star ~linear ~showtrace ~queue actions :
+let rec select_star ~linear ~queue actions :
   star list -> star list option * star list = function
   | [] -> (None, actions)
   (* select a state star and try finding a partner for each ray *)
   | selected_state :: other_states -> (
     match
-      select_ray ~linear ~showtrace ~queue:[] actions other_states
+      select_ray ~linear ~queue:[] actions other_states
         (selected_state.content, selected_state.bans)
     with
     (* no success with this star, try other stars *)
     | None, new_actions ->
-      select_star ~linear ~showtrace new_actions
-        ~queue:(selected_state :: queue) other_states
+      select_star ~linear new_actions ~queue:(selected_state :: queue)
+        other_states
     (* got new stars to add, construct the result for the next round *)
     | Some new_stars, new_actions ->
       (Some (List.rev queue @ other_states @ new_stars), new_actions) )
@@ -458,23 +419,12 @@ let string_of_cfg (actions, states) : string =
     (string_of_constellation actions)
     (string_of_constellation states)
 
-let exec ?(showtrace = false) ?(linear = false) mcs : constellation =
+let exec ?(linear = false) mcs : constellation =
   (* do a sequence of rounds with a single interaction on state per round *)
-  let rec loop ((actions, states) as cfg) =
-    if showtrace then begin
-      output_string stdout @@ string_of_cfg cfg;
-      pause ()
-    end;
-    match select_star ~linear ~showtrace ~queue:[] actions states with
+  let rec loop (actions, states) =
+    match select_star ~linear ~queue:[] actions states with
     | None, _ -> states (* no more possible interaction *)
     | Some res, new_actions -> loop (new_actions, res)
   in
   let cfg = extract_intspace mcs in
-  if showtrace then
-    output_string stdout @@ Printf.sprintf "\n>> starting trace...\n";
-  let res = loop cfg in
-  if showtrace then begin
-    output_string stdout @@ Printf.sprintf ">> end trace.\n";
-    pause ()
-  end;
-  res
+  loop cfg

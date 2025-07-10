@@ -86,7 +86,7 @@ let rec eval_sgen_expr (env : env) :
     Ok (List.concat mcs)
   | Exec (b, e) ->
     let* eval_e = eval_sgen_expr env e in
-    Ok (exec ~linear:b ~showtrace:false eval_e |> unmark_all)
+    Ok (exec ~linear:b eval_e |> unmark_all)
   | Focus e ->
     let* eval_e = eval_sgen_expr env e in
     eval_e |> remove_mark_all |> focus |> Result.return
@@ -147,10 +147,6 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     List.map eval_e ~f:remove_mark
     |> string_of_constellation |> Stdlib.print_string;
     Stdlib.print_newline ();
-    Ok env
-  | Trace e ->
-    let* eval_e = eval_sgen_expr env e in
-    let _ = exec ~showtrace:true eval_e in
     Ok env
   | Run e ->
     let _ = eval_sgen_expr env (Exec (false, e)) in

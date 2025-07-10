@@ -213,8 +213,6 @@ let decl_of_expr : expr -> declaration = function
   | List [ Symbol "exec"; x; g ] -> Def (ray_of_expr x, sgen_expr_of_expr g)
   (* show *)
   | List [ Symbol "show"; g ] -> Show (sgen_expr_of_expr g)
-  (* trace *)
-  | List [ Symbol "trace"; g ] -> Trace (sgen_expr_of_expr g)
   (* expect *)
   | List [ Symbol k; g1; g2 ] when equal_string k expect_op ->
     Expect (sgen_expr_of_expr g1, sgen_expr_of_expr g2, const "default")
