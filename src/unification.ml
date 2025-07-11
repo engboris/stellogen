@@ -20,17 +20,7 @@ module Make (Sig : Signature) = struct
   type term =
     | Var of Sig.idvar
     | Func of Sig.idfunc * term list
-
-  let rec equal_term t u =
-    match (t, u) with
-    | Var x, Var y -> Sig.equal_idvar x y
-    | Func (f, ts), Func (g, us) -> begin
-      try
-        Sig.equal_idfunc f g
-        && List.for_all2_exn ~f:(fun t u -> equal_term t u) ts us
-      with _ -> false
-    end
-    | _ -> false
+  [@@deriving eq]
 
   type substitution = (Sig.idvar * term) list
 
@@ -48,7 +38,7 @@ module Make (Sig : Signature) = struct
     | Var x -> fbase x
     | Func (g, ts) -> Func (fnode g, List.map ~f:(map fnode fbase) ts)
 
-  let skip = fun _ acc -> acc
+  let skip _ acc = acc
 
   let exists_var pred = fold skip (fun y acc -> pred y || acc) false
 
@@ -69,11 +59,9 @@ module Make (Sig : Signature) = struct
    Unification algorithm
    --------------------------------------- *)
 
-  let lift_pairl f (x, y) = (f x, y)
+  let map_snd f (x, y) = (x, f y)
 
-  let lift_pairr f (x, y) = (x, f y)
-
-  let lift_pair f p = p |> lift_pairl f |> lift_pairr f
+  let map_pair f (x, y) = (f x, f y)
 
   let rec solve sub : problem -> substitution option = function
     | [] -> Some sub
@@ -82,18 +70,18 @@ module Make (Sig : Signature) = struct
     (* Orient + Replace *)
     | (Var x, t) :: pbs | (t, Var x) :: pbs -> elim x t pbs sub
     (* Open *)
-    | (Func (f, ts), Func (g, us)) :: pbs
-      when Sig.compatible f g && List.length ts = List.length us -> begin
-      solve sub (List.zip_exn ts us @ pbs)
-    end
+    | (Func (f, ts), Func (g, us)) :: pbs when Sig.compatible f g -> (
+      match List.zip ts us with
+      | Ok zipped -> solve sub (zipped @ pbs)
+      | Unequal_lengths -> None )
     | _ -> None
 
   (* Replace *)
   and elim x t pbs sub : substitution option =
     if occurs x t then None (* Circularity *)
     else
-      let new_prob = List.map ~f:(lift_pair (subst [ (x, t) ])) pbs in
-      let new_sub = (x, t) :: List.map ~f:(lift_pairr (subst [ (x, t) ])) sub in
+      let new_prob = List.map ~f:(map_pair (subst [ (x, t) ])) pbs in
+      let new_sub = (x, t) :: List.map ~f:(map_snd (subst [ (x, t) ])) sub in
       solve new_sub new_prob
 
   let solution : problem -> substitution option = solve []

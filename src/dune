@@ -2,7 +2,7 @@
  (name stellogen)
  (libraries base menhirLib)
  (preprocess
-  (pps sedlex.ppx)))
+  (pps sedlex.ppx ppx_deriving.show ppx_deriving.ord ppx_deriving.eq)))
 
 (env
  (dev

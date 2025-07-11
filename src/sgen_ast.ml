@@ -8,18 +8,16 @@ type idvar = string * int option
 type idfunc = polarity * string
 
 type sgen_expr =
-  | Raw of marked_constellation
+  | Raw of Marked.constellation
   | Id of ident
   | Exec of bool * sgen_expr
   | Group of sgen_expr list
   | Focus of sgen_expr
-  | Clean of sgen_expr
-  | Kill of sgen_expr
   | Process of sgen_expr list
   | Eval of sgen_expr
 
 type err =
-  | ExpectError of marked_constellation * marked_constellation * ident
+  | ExpectError of Marked.constellation * Marked.constellation * ident
   | UnknownID of string
 
 type env = { objs : (ident * sgen_expr) list }

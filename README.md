@@ -75,10 +75,12 @@ automaton accepting words ending with 00
   #(if read 1 on q0 then q0)
   #(if read 0 on q1 then q2)})
 
-<show kill exec { @#e #a1 }>
-<show kill exec { @#000 #a1 }>
-<show kill exec { @#010 #a1 }>
-<show kill exec { @#110 #a1 }>
+(:= kill (-a _ _))
+
+<show exec { @(exec { @#e #a1 }) #kill }>
+<show exec { @(exec { @#000 #a1 }) #kill }>
+<show exec { @(exec { @#010 #a1 }) #kill }>
+<show exec { @(exec { @#110 #a1 }) #kill }>
 ```
 
 More examples can be found in `examples/`.

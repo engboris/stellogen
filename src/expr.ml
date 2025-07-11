@@ -23,6 +23,7 @@ type expr =
   | Symbol of string
   | Var of ident
   | List of expr list
+[@@derive eq]
 
 let primitive = String.append "%"
 
@@ -72,14 +73,6 @@ let rec expand_macro : Raw.t -> expr = function
   | Raw.Stack (h :: t) ->
     List.fold_left t ~init:(expand_macro h) ~f:(fun acc e ->
       List [ expand_macro e; acc ] )
-
-let rec equal_expr x y =
-  match (x, y) with
-  | Var x1, Var x2 | Symbol x1, Symbol x2 -> equal_string x1 x2
-  | List es1, List es2 -> begin
-    try List.for_all2_exn es1 es2 ~f:equal_expr with _ -> false
-  end
-  | _ -> false
 
 let rec replace_id (xfrom : ident) xto e =
   match e with
@@ -151,20 +144,19 @@ let rec raylist_of_expr (e : expr) : ray list =
     ray_of_expr h :: raylist_of_expr t
   | e -> failwith ("error: unhandled star " ^ to_string e)
 
-let rec star_of_expr : expr -> marked_star = function
+let rec star_of_expr : expr -> Marked.star = function
   | List [ Symbol k; s ] when equal_string k focus_op ->
-    star_of_expr s |> Lsc_ast.remove_mark |> Lsc_ast.mark
+    star_of_expr s |> Marked.remove |> Marked.make_state
   | List [ Symbol k; s; List ps ] when equal_string k params_op ->
-    Unmarked { content = raylist_of_expr s; bans = bans_of_expr ps }
-  | e -> Unmarked { content = raylist_of_expr e; bans = [] }
+    Action { content = raylist_of_expr s; bans = bans_of_expr ps }
+  | e -> Action { content = raylist_of_expr e; bans = [] }
 
-let rec constellation_of_expr : expr -> marked_constellation = function
-  | Symbol k when equal_string k nil_op -> []
-  | Symbol s -> [ Unmarked { content = [ var (s, None) ]; bans = [] } ]
-  | Var x -> [ Unmarked { content = [ var (x, None) ]; bans = [] } ]
+let rec constellation_of_expr : expr -> Marked.constellation = function
+  | Symbol s -> [ Action { content = [ var (s, None) ]; bans = [] } ]
+  | Var x -> [ Action { content = [ var (x, None) ]; bans = [] } ]
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
     star_of_expr h :: constellation_of_expr t
-  | List g -> [ Unmarked { content = [ ray_of_expr (List g) ]; bans = [] } ]
+  | List g -> [ Action { content = [ ray_of_expr (List g) ]; bans = [] } ]
 
 (* ---------------------------------------
    Stellogen expr of Expr
@@ -172,9 +164,11 @@ let rec constellation_of_expr : expr -> marked_constellation = function
 
 let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   match e with
+  | Symbol k when equal_string k nil_op ->
+    Raw [ Action { content = []; bans = [] } ]
   (* ray *)
   | Var _ | Symbol _ ->
-    Raw [ Unmarked { content = [ ray_of_expr e ]; bans = [] } ]
+    Raw [ Action { content = [ ray_of_expr e ]; bans = [] } ]
   (* star *)
   | List (Symbol s :: _) when equal_string s params_op -> Raw [ star_of_expr e ]
   | List (Symbol s :: _) when equal_string s cons_op -> Raw [ star_of_expr e ]
@@ -188,10 +182,6 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
     Group (List.map ~f:sgen_expr_of_expr gs)
   (* process *)
   | List (Symbol "process" :: gs) -> Process (List.map ~f:sgen_expr_of_expr gs)
-  (* kill *)
-  | List [ Symbol "kill"; g ] -> Kill (sgen_expr_of_expr g)
-  (* clean *)
-  | List [ Symbol "clean"; g ] -> Clean (sgen_expr_of_expr g)
   (* exec *)
   | List [ Symbol "exec"; g ] -> Exec (false, sgen_expr_of_expr g)
   (* linear exec *)
