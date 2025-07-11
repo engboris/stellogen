@@ -144,19 +144,19 @@ let rec raylist_of_expr (e : expr) : ray list =
     ray_of_expr h :: raylist_of_expr t
   | e -> failwith ("error: unhandled star " ^ to_string e)
 
-let rec star_of_expr : expr -> marked_star = function
+let rec star_of_expr : expr -> Marked.star = function
   | List [ Symbol k; s ] when equal_string k focus_op ->
-    star_of_expr s |> Lsc_ast.remove_mark |> Lsc_ast.mark
+    star_of_expr s |> Marked.remove |> Marked.make_state
   | List [ Symbol k; s; List ps ] when equal_string k params_op ->
-    Unmarked { content = raylist_of_expr s; bans = bans_of_expr ps }
-  | e -> Unmarked { content = raylist_of_expr e; bans = [] }
+    Action { content = raylist_of_expr s; bans = bans_of_expr ps }
+  | e -> Action { content = raylist_of_expr e; bans = [] }
 
-let rec constellation_of_expr : expr -> marked_constellation = function
-  | Symbol s -> [ Unmarked { content = [ var (s, None) ]; bans = [] } ]
-  | Var x -> [ Unmarked { content = [ var (x, None) ]; bans = [] } ]
+let rec constellation_of_expr : expr -> Marked.constellation = function
+  | Symbol s -> [ Action { content = [ var (s, None) ]; bans = [] } ]
+  | Var x -> [ Action { content = [ var (x, None) ]; bans = [] } ]
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
     star_of_expr h :: constellation_of_expr t
-  | List g -> [ Unmarked { content = [ ray_of_expr (List g) ]; bans = [] } ]
+  | List g -> [ Action { content = [ ray_of_expr (List g) ]; bans = [] } ]
 
 (* ---------------------------------------
    Stellogen expr of Expr
@@ -165,10 +165,10 @@ let rec constellation_of_expr : expr -> marked_constellation = function
 let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   match e with
   | Symbol k when equal_string k nil_op ->
-    Raw [ Unmarked { content = []; bans = [] } ]
+    Raw [ Action { content = []; bans = [] } ]
   (* ray *)
   | Var _ | Symbol _ ->
-    Raw [ Unmarked { content = [ ray_of_expr e ]; bans = [] } ]
+    Raw [ Action { content = [ ray_of_expr e ]; bans = [] } ]
   (* star *)
   | List (Symbol s :: _) when equal_string s params_op -> Raw [ star_of_expr e ]
   | List (Symbol s :: _) when equal_string s cons_op -> Raw [ star_of_expr e ]

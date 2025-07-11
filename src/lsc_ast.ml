@@ -48,13 +48,15 @@ type ban =
   | Incomp of ray * ray
 [@@deriving eq]
 
-type star =
-  { content : ray list
-  ; bans : ban list
-  }
-[@@deriving eq]
+module Raw = struct
+  type star =
+    { content : ray list
+    ; bans : ban list
+    }
+  [@@deriving eq]
 
-type constellation = star list [@@deriving eq]
+  type constellation = star list [@@deriving eq]
+end
 
 let to_var x = Var (x, None)
 
@@ -104,25 +106,42 @@ let fresh_var vars =
    Operation on marked stars
    --------------------------------------- *)
 
-type marked_star =
-  | Marked of star
-  | Unmarked of star
-[@@deriving eq]
+module Marked = struct
+  type star =
+    | State of Raw.star
+    | Action of Raw.star
+  [@@deriving eq]
 
-type marked_constellation = marked_star list [@@deriving eq]
+  type constellation = star list [@@deriving eq]
 
-let map_mstar ~f : marked_star -> marked_star = function
-  | Marked s -> Marked { content = List.map ~f s.content; bans = s.bans }
-  | Unmarked s -> Unmarked { content = List.map ~f s.content; bans = s.bans }
+  let map ~f : star -> star = function
+    | State s -> State { content = List.map ~f s.content; bans = s.bans }
+    | Action s -> Action { content = List.map ~f s.content; bans = s.bans }
 
-let subst_all_vars sub = List.map ~f:(map_mstar ~f:(subst sub))
+  let make_action s = Action s
+  let make_state s = State s
+
+  let make_action_all = List.map ~f:make_action
+
+  let make_state_all =  List.map ~f:make_state
+
+  let remove : star -> Raw.star = function
+    | State s -> s
+    | Action s -> s
+
+  let remove_all = List.map ~f:remove
+
+  let normalize_all x = x |> remove_all |> make_action_all
+end
+
+let subst_all_vars sub = List.map ~f:(Marked.map ~f:(subst sub))
 
 let all_vars mcs : StellarSig.idvar list =
-  List.map mcs ~f:(function Marked s | Unmarked s ->
+  List.map mcs ~f:(function Marked.State s | Marked.Action s ->
     List.map s.content ~f:StellarRays.vars |> List.concat )
   |> List.concat
 
-let normalize_vars (mcs : marked_constellation) =
+let normalize_vars (mcs : Marked.constellation) =
   let vars = all_vars mcs in
   let new_x, new_i = fresh_var vars in
   let new_vars =
@@ -131,18 +150,3 @@ let normalize_vars (mcs : marked_constellation) =
   in
   let sub = List.zip_exn vars new_vars in
   subst_all_vars sub mcs
-
-let unmark = function s -> Unmarked s
-
-let mark = function s -> Marked s
-
-let focus = List.map ~f:(fun r -> mark r)
-
-let remove_mark : marked_star -> star = function
-  | Marked s -> s
-  | Unmarked s -> s
-
-let unmark_all = List.map ~f:(fun s -> Unmarked s)
-
-let remove_mark_all : marked_constellation -> constellation =
-  List.map ~f:remove_mark

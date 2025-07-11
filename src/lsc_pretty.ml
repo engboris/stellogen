@@ -1,6 +1,7 @@
 open Base
 open Lsc_ast
 open Lsc_ast.StellarRays
+open Lsc_ast.Raw
 
 let string_of_polarity = function Pos -> "+" | Neg -> "-" | Null -> ""
 

@@ -58,8 +58,8 @@ let pp_err e : (string, err) Result.t =
   match e with
   | ExpectError (x, e, Func ((Null, f), [])) when equal_string f "default" ->
     sprintf "%s:\n* expected: %s\n* got: %s\n" (red "Expect Error")
-      (e |> remove_mark_all |> string_of_constellation)
-      (x |> remove_mark_all |> string_of_constellation)
+      (e |> Marked.remove_all |> string_of_constellation)
+      (x |> Marked.remove_all |> string_of_constellation)
     |> Result.return
   | ExpectError (_x, _e, Func ((Null, f), [ t ])) when equal_string f "error" ->
     sprintf "%s: %s\n" (red "Expect Error") (string_of_ray t) |> Result.return
@@ -70,7 +70,7 @@ let pp_err e : (string, err) Result.t =
     |> Result.return
 
 let rec eval_sgen_expr (env : env) :
-  sgen_expr -> (marked_constellation, err) Result.t = function
+  sgen_expr -> (Marked.constellation, err) Result.t = function
   | Raw mcs -> Ok mcs
   | Id x -> begin
     match get_obj env x with
@@ -88,43 +88,43 @@ let rec eval_sgen_expr (env : env) :
     Ok (List.concat mcs)
   | Exec (b, e) ->
     let* eval_e = eval_sgen_expr env e in
-    Ok (exec ~linear:b eval_e |> unmark_all)
+    Ok (exec ~linear:b eval_e |> Marked.make_action_all)
   | Focus e ->
     let* eval_e = eval_sgen_expr env e in
-    eval_e |> remove_mark_all |> focus |> Result.return
+    eval_e |> Marked.remove_all |> Marked.make_state_all |> Result.return
   | Kill e ->
     let* eval_e = eval_sgen_expr env e in
-    eval_e |> remove_mark_all |> kill |> focus |> Result.return
+    eval_e |> Marked.remove_all |> kill |> Marked.make_state_all |> Result.return
   | Clean e ->
     let* eval_e = eval_sgen_expr env e in
-    eval_e |> remove_mark_all |> clean |> focus |> Result.return
+    eval_e |> Marked.remove_all |> clean |> Marked.make_state_all |> Result.return
   | Process [] -> Ok []
   | Process (h :: t) ->
     let* eval_e = eval_sgen_expr env h in
-    let init = eval_e |> remove_mark_all |> focus in
+    let init = eval_e |> Marked.remove_all |> Marked.make_state_all in
     let* res =
       List.fold_left t ~init:(Ok init) ~f:(fun acc x ->
         let* acc = acc in
         match x with
         | Id (Func ((Null, "&kill"), [])) ->
-          acc |> remove_mark_all |> kill |> focus |> Result.return
+          acc |> Marked.remove_all |> kill |> Marked.make_state_all |> Result.return
         | Id (Func ((Null, "&clean"), [])) ->
-          acc |> remove_mark_all |> clean |> focus |> Result.return
+          acc |> Marked.remove_all |> clean |> Marked.make_state_all |> Result.return
         | _ ->
-          let origin = acc |> remove_mark_all |> focus in
+          let origin = acc |> Marked.remove_all |> Marked.make_state_all in
           eval_sgen_expr env (Focus (Exec (false, Group [ x; Raw origin ]))) )
     in
     res |> Result.return
   | Eval e -> (
     let* eval_e = eval_sgen_expr env e in
     match eval_e with
-    | [ Marked { content = [ r ]; bans = _ } ]
-    | [ Unmarked { content = [ r ]; bans = _ } ] ->
+    | [ State { content = [ r ]; bans = _ } ]
+    | [ Action { content = [ r ]; bans = _ } ] ->
       r |> expr_of_ray |> Expr.sgen_expr_of_expr |> eval_sgen_expr env
     | e ->
       failwith
         ( "eval error: "
-        ^ string_of_constellation (remove_mark_all e)
+        ^ string_of_constellation (Marked.remove_all e)
         ^ " is not a ray." ) )
 
 and expr_of_ray = function
@@ -139,13 +139,13 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     let env = { objs = add_obj env x e } in
     Ok env
   | Show (Raw mcs) ->
-    mcs |> remove_mark_all |> string_of_constellation |> Stdlib.print_string;
+    mcs |> Marked.remove_all |> string_of_constellation |> Stdlib.print_string;
     Stdlib.print_newline ();
     Stdlib.flush Stdlib.stdout;
     Ok env
   | Show e ->
     let* eval_e = eval_sgen_expr env e in
-    List.map eval_e ~f:remove_mark
+    List.map eval_e ~f:Marked.remove
     |> string_of_constellation |> Stdlib.print_string;
     Stdlib.print_newline ();
     Ok env
@@ -155,8 +155,7 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
   | Expect (e1, e2, message) ->
     let* eval_e1 = eval_sgen_expr env e1 in
     let* eval_e2 = eval_sgen_expr env e2 in
-    let normalize x = x |> remove_mark_all |> unmark_all in
-    if not @@ equal_marked_constellation (normalize eval_e1) (normalize eval_e2)
+    if not @@ Marked.equal_constellation (Marked.normalize_all eval_e1) (Marked.normalize_all eval_e2)
     then Error (ExpectError (eval_e1, eval_e2, message))
     else Ok env
   | Use path ->

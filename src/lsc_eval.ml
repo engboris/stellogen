@@ -1,16 +1,19 @@
 open Base
 open Lsc_ast
 open Lsc_ast.StellarRays
+open Lsc_ast.Raw
 
 let ( let* ) x f = Result.bind x ~f
 
 type configuration = constellation * constellation
 
-let unpolarized_star s = List.for_all ~f:(Fn.compose not is_polarised) s.content
+let unpolarized_star s =
+  let open Raw in
+  List.for_all ~f:(Fn.compose not is_polarised) s.content
 
-let kill : constellation -> constellation = List.filter ~f:unpolarized_star
+let kill = List.filter ~f:unpolarized_star
 
-let clean : constellation -> constellation =
+let clean =
   List.filter ~f:(fun s -> List.is_empty s.content)
 
 let fmap_ban ~f = function
@@ -53,18 +56,18 @@ let ident_counter = ref 0
 let classify =
   let rec aux (cs, space) = function
     | [] -> (List.rev cs, List.rev space)
-    | Marked s :: t -> aux (cs, s :: space) t
-    | Unmarked s :: t -> aux (s :: cs, space) t
+    | Marked.State s :: t -> aux (cs, s :: space) t
+    | Marked.Action s :: t -> aux (s :: cs, space) t
   in
   aux ([], [])
 
-let extract_intspace (mcs : marked_constellation) =
+let extract_intspace (mcs : Marked.constellation) =
   ident_counter := 0;
   classify mcs
 
 (* interaction between one selected ray and one selected action *)
 let rec interaction ~queue repl1 repl2 (selected_action, other_actions)
-  (selected_ray, other_rays, bans) : star list =
+  (selected_ray, other_rays, bans) : constellation =
   match selected_action.content with
   | [] -> []
   | r' :: s' when not (is_polarised r') ->
