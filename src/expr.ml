@@ -23,6 +23,7 @@ type expr =
   | Symbol of string
   | Var of ident
   | List of expr list
+  [@@derive eq]
 
 let primitive = String.append "%"
 
@@ -72,14 +73,6 @@ let rec expand_macro : Raw.t -> expr = function
   | Raw.Stack (h :: t) ->
     List.fold_left t ~init:(expand_macro h) ~f:(fun acc e ->
       List [ expand_macro e; acc ] )
-
-let rec equal_expr x y =
-  match (x, y) with
-  | Var x1, Var x2 | Symbol x1, Symbol x2 -> equal_string x1 x2
-  | List es1, List es2 -> begin
-    try List.for_all2_exn es1 es2 ~f:equal_expr with _ -> false
-  end
-  | _ -> false
 
 let rec replace_id (xfrom : ident) xto e =
   match e with
@@ -159,7 +152,6 @@ let rec star_of_expr : expr -> marked_star = function
   | e -> Unmarked { content = raylist_of_expr e; bans = [] }
 
 let rec constellation_of_expr : expr -> marked_constellation = function
-  | Symbol k when equal_string k nil_op -> []
   | Symbol s -> [ Unmarked { content = [ var (s, None) ]; bans = [] } ]
   | Var x -> [ Unmarked { content = [ var (x, None) ]; bans = [] } ]
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
@@ -172,6 +164,8 @@ let rec constellation_of_expr : expr -> marked_constellation = function
 
 let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   match e with
+  | Symbol k when equal_string k nil_op ->
+    Raw [ Unmarked { content = []; bans = [] } ]
   (* ray *)
   | Var _ | Symbol _ ->
     Raw [ Unmarked { content = [ ray_of_expr e ]; bans = [] } ]

@@ -1,5 +1,7 @@
 open Base
 open Lsc_ast
+open Lsc_pretty
+open Lsc_eval
 open Sgen_ast
 open Out_channel
 
@@ -128,10 +130,9 @@ let rec eval_sgen_expr (env : env) :
 and expr_of_ray = function
   | Var (x, None) -> Expr.Var x
   | Var (x, Some i) -> Expr.Var (x ^ Int.to_string i)
-  | Func (pf, []) -> Symbol (Lsc_ast.string_of_polsym pf)
+  | Func (pf, []) -> Symbol (string_of_polsym pf)
   | Func (pf, args) ->
-    Expr.List
-      (Symbol (Lsc_ast.string_of_polsym pf) :: List.map ~f:expr_of_ray args)
+    Expr.List (Symbol (string_of_polsym pf) :: List.map ~f:expr_of_ray args)
 
 let rec eval_decl env : declaration -> (env, err) Result.t = function
   | Def (x, e) ->
@@ -155,8 +156,8 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     let* eval_e1 = eval_sgen_expr env e1 in
     let* eval_e2 = eval_sgen_expr env e2 in
     let normalize x = x |> remove_mark_all |> unmark_all in
-    if not @@ equal_mconstellation (normalize eval_e1) (normalize eval_e2) then
-      Error (ExpectError (eval_e1, eval_e2, message))
+    if not @@ equal_marked_constellation (normalize eval_e1) (normalize eval_e2)
+    then Error (ExpectError (eval_e1, eval_e2, message))
     else Ok env
   | Use path ->
     let open Lsc_ast.StellarRays in

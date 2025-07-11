@@ -1,35 +1,30 @@
 open Base
 
-let ( let* ) x f = Result.bind x ~f
-
 type polarity =
   | Pos
   | Neg
   | Null
+[@@deriving eq]
 
 module StellarSig = struct
   type idvar = string * int option
 
   type idfunc = polarity * string
 
-  let equal_idvar (s, i) (s', i') =
-    match (i, i') with
-    | None, None -> equal_string s s'
-    | Some j, Some j' ->
-      equal_string (s ^ Int.to_string j) (s' ^ Int.to_string j')
-    | None, Some j' -> equal_string s (s' ^ Int.to_string j')
-    | Some j, None -> equal_string (s ^ Int.to_string j) s'
+  let string_of_idvar (s, i) =
+    match i with None -> s | Some j -> s ^ Int.to_string j
 
-  let equal_idfunc (p, f) (p', f') =
-    match (p, p') with
-    | Pos, Pos | Neg, Neg | Null, Null -> equal_string f f'
-    | _ -> false
+  let equal_idvar x y = equal_string (string_of_idvar x) (string_of_idvar y)
 
-  let compatible f g =
-    match (f, g) with
-    | (Pos, f), (Neg, g) | (Neg, f), (Pos, g) -> equal_string f g
-    | (Null, f), (Null, g) -> equal_string f g
-    | _ -> false
+  let equal_idfunc ((p, f) : idfunc) ((p', f') : idfunc) =
+    equal_polarity p p' && equal_string f f'
+
+  let compatible (p1, f1) (p2, f2) =
+    let ( = ) = equal_polarity in
+    equal_string f1 f2
+    && ( (p1 = Pos && p2 = Neg)
+       || (p1 = Neg && p2 = Pos)
+       || (p1 = Null && p2 = Null) )
 end
 
 module StellarRays = Unification.Make (StellarSig)
@@ -46,49 +41,20 @@ let fresh_placeholder () =
   counter_placeholder := !counter_placeholder + 1;
   Int.to_string r
 
-type ray = term
+type ray = term [@@deriving eq]
 
 type ban =
   | Ineq of ray * ray
   | Incomp of ray * ray
+[@@deriving eq]
 
 type star =
   { content : ray list
   ; bans : ban list
   }
+[@@deriving eq]
 
-type constellation = star list
-
-let rec compare_ray r1 r2 =
-  match (r1, r2) with
-  | Var (x, i), Var (y, j) ->
-    let i' = Option.value (Option.map i ~f:Int.to_string) ~default:"" in
-    let j' = Option.value (Option.map j ~f:Int.to_string) ~default:"" in
-    String.compare (x ^ i') (y ^ j')
-  | Func _, Var _ -> 1
-  | Var _, Func _ -> -1
-  | Func (pf1, args1), Func (pf2, args2) -> begin
-    match (pf1, pf2) with
-    | pf1, pf2 when StellarSig.equal_idfunc pf1 pf2 ->
-      List.compare compare_ray args1 args2
-    | (Null, f1), (Null, f2) | (Neg, f1), (Neg, f2) | (Pos, f1), (Pos, f2) ->
-      String.compare f1 f2
-    | (Null, _), (_, _) -> -1
-    | (Pos, _), (_, _) -> 1
-    | (Neg, _), (Null, _) -> 1
-    | (Neg, _), (Pos, _) -> -1
-  end
-
-let compare_star = List.compare compare_ray
-
-let equal_ray = equal_term
-
-let sort_rays = List.sort ~compare:compare_ray
-
-let equal_star s1 s2 =
-  let s1 = sort_rays s1.content in
-  let s2 = sort_rays s2.content in
-  List.equal equal_ray s1 s2
+type constellation = star list [@@deriving eq]
 
 let to_var x = Var (x, None)
 
@@ -126,61 +92,13 @@ let replace_indices (i : int) : ray -> ray =
 let raymatcher r r' : substitution option =
   if is_polarised r && is_polarised r' then solution [ (r, r') ] else None
 
-(* ---------------------------------------
-   Pretty Printer
-   --------------------------------------- *)
-
-let string_of_polarity = function Pos -> "+" | Neg -> "-" | Null -> ""
-
-let string_of_polsym (p, f) = string_of_polarity p ^ f
-
-let string_of_var (x, i) =
-  match i with None -> x | Some i' -> x ^ Int.to_string i'
-
-let rec string_of_ray = function
-  | Var xi -> string_of_var xi
-  | Func (pf, []) -> string_of_polsym pf
-  | Func (pf, ts) ->
-    Printf.sprintf "(%s %s)" (string_of_polsym pf)
-      (List.map ~f:string_of_ray ts |> String.concat ~sep:" ")
-
-let string_of_subst sub =
-  Printf.sprintf "{%s}"
-    (List.fold sub ~init:"" ~f:(fun _ (x, r) ->
-       string_of_var x ^ "->" ^ string_of_ray r ) )
-
-let string_of_ban = function
-  | Ineq (b1, b2) ->
-    Printf.sprintf "(!= %s %s)" (string_of_ray b1) (string_of_ray b2)
-  | Incomp (b1, b2) ->
-    Printf.sprintf "(slice %s %s)" (string_of_ray b1) (string_of_ray b2)
-
-let string_of_star s =
-  match s.content with
-  | [] -> "[]"
-  | _ ->
-    Printf.sprintf "[%s%s]"
-      (List.map ~f:string_of_ray s.content |> String.concat ~sep:" ")
-      ( if List.is_empty s.bans then ""
-        else
-          Printf.sprintf " || %s"
-            (List.map ~f:string_of_ban s.bans |> String.concat ~sep:" ") )
-
-let string_of_constellation = function
-  | [] -> "{}"
-  | [ h ] -> Printf.sprintf "%s" (string_of_star h)
-  | h :: t ->
-    let string_h = "{ " ^ string_of_star h ^ " " in
-    List.fold_left t
-      ~init:(List.length t, string_h, String.length string_h)
-      ~f:(fun (i, acc, size) s ->
-        let string_s = string_of_star s in
-        let new_size = size + String.length string_s in
-        if equal_int i 1 then (0, acc ^ string_s, 0)
-        else if new_size < 80 then (i - 1, acc ^ string_s ^ " ", new_size)
-        else (i - 1, acc ^ string_s ^ "...\n", 0) )
-    |> fun (_, x, _) ->
-    x |> fun x -> String.append x " }"
+let fresh_var vars =
+  let rec aux i =
+    if not @@ List.mem vars ("X", Some i) ~equal:StellarSig.equal_idvar then
+      ("X", Some i)
+    else aux (i + 1)
+  in
+  aux 0
 
 (* ---------------------------------------
    Operation on marked stars
@@ -189,25 +107,9 @@ let string_of_constellation = function
 type marked_star =
   | Marked of star
   | Unmarked of star
+[@@deriving eq]
 
-type marked_constellation = marked_star list
-
-let compare_mstar ms ms' =
-  match (ms, ms') with
-  | Marked _, Unmarked _ -> 1
-  | Unmarked _, Marked _ -> -1
-  | Marked s, Marked s' | Unmarked s, Unmarked s' ->
-    compare_star s.content s'.content
-
-let equal_mstar ms ms' = equal_int (compare_mstar ms ms') 0
-
-let fresh_var vars =
-  let rec aux i =
-    if not @@ List.mem vars ("X", Some i) ~equal:StellarSig.equal_idvar then
-      ("X", Some i)
-    else aux (i + 1)
-  in
-  aux 0
+type marked_constellation = marked_star list [@@deriving eq]
 
 let map_mstar ~f : marked_star -> marked_star = function
   | Marked s -> Marked { content = List.map ~f s.content; bans = s.bans }
@@ -230,11 +132,6 @@ let normalize_vars (mcs : marked_constellation) =
   let sub = List.zip_exn vars new_vars in
   subst_all_vars sub mcs
 
-let equal_mconstellation mcs mcs' =
-  let smcs = List.sort ~compare:compare_mstar mcs in
-  let smcs' = List.sort ~compare:compare_mstar mcs' in
-  List.equal equal_mstar (normalize_vars smcs) (normalize_vars smcs')
-
 let unmark = function s -> Unmarked s
 
 let mark = function s -> Marked s
@@ -249,169 +146,3 @@ let unmark_all = List.map ~f:(fun s -> Unmarked s)
 
 let remove_mark_all : marked_constellation -> constellation =
   List.map ~f:remove_mark
-
-let ident_counter = ref 0
-
-let classify =
-  let rec aux (cs, space) = function
-    | [] -> (List.rev cs, List.rev space)
-    | Marked s :: t -> aux (cs, s :: space) t
-    | Unmarked s :: t -> aux (s :: cs, space) t
-  in
-  aux ([], [])
-
-let extract_intspace (mcs : marked_constellation) =
-  ident_counter := 0;
-  classify mcs
-
-(* ---------------------------------------
-   Execution
-   --------------------------------------- *)
-
-type configuration = constellation * constellation
-
-let unpolarized_star s = List.for_all ~f:(Fn.compose not is_polarised) s.content
-
-let kill : constellation -> constellation = List.filter ~f:unpolarized_star
-
-let clean : constellation -> constellation =
-  List.filter ~f:(fun s -> List.is_empty s.content)
-
-let fmap_ban ~f = function
-  | Ineq (b1, b2) -> Ineq (f b1, f b2)
-  | Incomp (b1, b2) -> Incomp (f b1, f b2)
-
-let fusion repl1 repl2 s1 s2 bans1 bans2 theta : star =
-  let new1 = List.map s1 ~f:repl1 in
-  let new2 = List.map s2 ~f:repl2 in
-  let nbans1 = List.map bans1 ~f:(fmap_ban ~f:repl1) in
-  let nbans2 = List.map bans2 ~f:(fmap_ban ~f:repl2) in
-  { content = List.map (new1 @ new2) ~f:(subst theta)
-  ; bans = List.map (nbans1 @ nbans2) ~f:(fmap_ban ~f:(subst theta))
-  }
-
-let group_bans =
-  List.fold_left ~init:([], []) ~f:(function ineq, incomp ->
-    (function
-    | Ineq (b1, b2) -> ((b1, b2) :: ineq, incomp)
-    | Incomp (b1, b2) -> (ineq, (b1, b2) :: incomp) ) )
-
-let exists_incomp_pair (box, slice) =
-  List.exists ~f:(fun (box', slice') ->
-    equal_ray box box' && (not @@ equal_ray slice slice') )
-
-let coherent_incomp incomp =
-  let aux others res = function
-    | [] -> res
-    | h :: t -> res && (not @@ exists_incomp_pair h (others @ t))
-  in
-  aux [] true incomp
-
-let coherent_bans bans =
-  let ineq, incomp = group_bans bans in
-  List.for_all ineq ~f:(fun (b1, b2) -> not @@ equal_ray b1 b2)
-  && coherent_incomp incomp
-
-(* interaction between one selected ray and one selected action *)
-let rec interaction ~queue repl1 repl2 (selected_action, other_actions)
-  (selected_ray, other_rays, bans) : star list =
-  match selected_action.content with
-  | [] -> []
-  | r' :: s' when not (is_polarised r') ->
-    interaction ~queue:(r' :: queue) repl1 repl2
-      ({ content = s'; bans }, other_actions)
-      (selected_ray, other_rays, bans)
-  | r' :: s' -> (
-    match raymatcher (repl1 selected_ray) (repl2 r') with
-    | None ->
-      interaction ~queue:(r' :: queue) repl1 repl2
-        ({ content = s'; bans }, other_actions)
-        (selected_ray, other_rays, bans)
-    (* if there is an actual connection between rays *)
-    | Some theta ->
-      (* action is consumed when execution is linear *)
-      let next =
-        interaction ~queue:(r' :: queue) repl1 repl2
-          ({ content = s'; bans }, other_actions)
-          (selected_ray, other_rays, bans)
-      in
-      let other_rays' = queue @ s' in
-      let after_fusion =
-        fusion repl1 repl2 other_rays other_rays' bans selected_action.bans
-          theta
-      in
-      let res =
-        if coherent_bans after_fusion.bans then after_fusion :: next else next
-      in
-      ident_counter := !ident_counter + 2;
-      res )
-
-(* search partner for a selected ray within a set of available actions *)
-let search_partners ~linear (selected_ray, other_rays, bans) actions :
-  star list * star list =
-  let repl1 = replace_indices !ident_counter in
-  let rec try_actions acc = function
-    | [] -> ([], acc)
-    | selected_action :: other_actions ->
-      let repl2 = replace_indices (!ident_counter + 1) in
-      let res =
-        interaction ~queue:[] repl1 repl2
-          (selected_action, other_actions)
-          (selected_ray, other_rays, bans)
-      in
-      if (not @@ List.is_empty res) && linear then
-        let next, new_actions = try_actions acc other_actions in
-        (res @ next, new_actions)
-      else
-        let next, new_actions =
-          try_actions (selected_action :: acc) other_actions
-        in
-        (res @ next, new_actions)
-  in
-  try_actions [] actions
-
-let rec select_ray ~linear ~queue actions other_states (selected_state, bans) :
-  star list option * star list =
-  match selected_state with
-  | [] -> (None, actions)
-  (* if unpolarized, no need to try, try other stars *)
-  | r :: rs when not (is_polarised r) ->
-    select_ray ~linear ~queue:(r :: queue) actions other_states (rs, bans)
-  | selected_ray :: other_rays -> (
-    (* look for partners for the selected rays in actions *)
-    match
-      search_partners ~linear (selected_ray, queue @ other_rays, bans) actions
-    with
-    (* interaction did nothing (no partner), try other rays *)
-    | [], new_actions ->
-      select_ray ~linear ~queue:(selected_ray :: queue) new_actions other_states
-        (other_rays, bans)
-    (* interaction returns a result, keep it for the next round *)
-    | new_stars, new_actions -> (Some new_stars, new_actions) )
-
-let rec select_star ~linear ~queue actions :
-  star list -> star list option * star list = function
-  | [] -> (None, actions)
-  (* select a state star and try finding a partner for each ray *)
-  | selected_state :: other_states -> (
-    match
-      select_ray ~linear ~queue:[] actions other_states
-        (selected_state.content, selected_state.bans)
-    with
-    (* no success with this star, try other stars *)
-    | None, new_actions ->
-      select_star ~linear new_actions ~queue:(selected_state :: queue)
-        other_states
-    (* got new stars to add, construct the result for the next round *)
-    | Some new_stars, new_actions ->
-      (Some (List.rev queue @ other_states @ new_stars), new_actions) )
-
-let exec ?(linear = false) mcs : constellation =
-  (* do a sequence of rounds with a single interaction on state per round *)
-  let rec loop (actions, states) =
-    match select_star ~linear ~queue:[] actions states with
-    | None, _ -> states (* no more possible interaction *)
-    | Some res, new_actions -> loop (new_actions, res)
-  in
-  let cfg = extract_intspace mcs in
-  loop cfg
