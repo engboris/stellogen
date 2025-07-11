@@ -7,13 +7,6 @@ let ( let* ) x f = Result.bind x ~f
 
 type configuration = constellation * constellation
 
-let unpolarized_star s =
-  let open Raw in
-  List.for_all ~f:(Fn.compose not is_polarised) s.content
-
-let kill = List.filter ~f:unpolarized_star
-
-let clean = List.filter ~f:(fun s -> List.is_empty s.content)
 
 let fmap_ban ~f = function
   | Ineq (b1, b2) -> Ineq (f b1, f b2)
@@ -166,4 +159,4 @@ let exec ?(linear = false) mcs : constellation =
     | Some res, new_actions -> loop (new_actions, res)
   in
   let cfg = extract_intspace mcs in
-  loop cfg
+  loop cfg |> List.filter ~f:(fun s -> not @@ List.is_empty s.content)

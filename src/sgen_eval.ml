@@ -29,12 +29,6 @@ let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
   | Exec (b, e) ->
     let* map_e = map_sgen_expr env ~f e in
     Exec (b, map_e) |> Result.return
-  | Kill e ->
-    let* map_e = map_sgen_expr env ~f e in
-    Kill map_e |> Result.return
-  | Clean e ->
-    let* map_e = map_sgen_expr env ~f e in
-    Clean map_e |> Result.return
   | Group es ->
     let* map_es = List.map ~f:(map_sgen_expr env ~f) es |> Result.all in
     Group map_es |> Result.return
@@ -92,14 +86,6 @@ let rec eval_sgen_expr (env : env) :
   | Focus e ->
     let* eval_e = eval_sgen_expr env e in
     eval_e |> Marked.remove_all |> Marked.make_state_all |> Result.return
-  | Kill e ->
-    let* eval_e = eval_sgen_expr env e in
-    eval_e |> Marked.remove_all |> kill |> Marked.make_state_all
-    |> Result.return
-  | Clean e ->
-    let* eval_e = eval_sgen_expr env e in
-    eval_e |> Marked.remove_all |> clean |> Marked.make_state_all
-    |> Result.return
   | Process [] -> Ok []
   | Process (h :: t) ->
     let* eval_e = eval_sgen_expr env h in
@@ -107,15 +93,7 @@ let rec eval_sgen_expr (env : env) :
     let* res =
       List.fold_left t ~init:(Ok init) ~f:(fun acc x ->
         let* acc = acc in
-        match x with
-        | Id (Func ((Null, "&kill"), [])) ->
-          acc |> Marked.remove_all |> kill |> Marked.make_state_all
-          |> Result.return
-        | Id (Func ((Null, "&clean"), [])) ->
-          acc |> Marked.remove_all |> clean |> Marked.make_state_all
-          |> Result.return
-        | _ ->
-          let origin = acc |> Marked.remove_all |> Marked.make_state_all in
+        let origin = acc |> Marked.remove_all |> Marked.make_state_all in
           eval_sgen_expr env (Focus (Exec (false, Group [ x; Raw origin ]))) )
     in
     res |> Result.return

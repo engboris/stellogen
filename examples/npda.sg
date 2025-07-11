@@ -35,7 +35,9 @@
   #(if read 0 with 0 on q1 then q1)
   #(if read 1 with 1 on q1 then q1)})
 
-<show kill exec { @#e #a1 }>
-<show kill exec { @#0000 #a1 }>
-<show kill exec { @#0110 #a1 }>
-<show kill exec { @#1110 #a1 }>
+(:= kill (-a _ _ _))
+
+<show exec { @(exec { @#e #a1 }) #kill }>
+<show exec { @(exec { @#0000 #a1 }) #kill }>
+<show exec { @(exec { @#0110 #a1 }) #kill }>
+<show exec { @(exec { @#1110 #a1 }) #kill }>

@@ -13,8 +13,6 @@ type sgen_expr =
   | Exec of bool * sgen_expr
   | Group of sgen_expr list
   | Focus of sgen_expr
-  | Clean of sgen_expr
-  | Kill of sgen_expr
   | Process of sgen_expr list
   | Eval of sgen_expr
 
