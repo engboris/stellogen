@@ -94,7 +94,7 @@ let rec eval_sgen_expr (env : env) :
       List.fold_left t ~init:(Ok init) ~f:(fun acc x ->
         let* acc = acc in
         let origin = acc |> Marked.remove_all |> Marked.make_state_all in
-          eval_sgen_expr env (Focus (Exec (false, Group [ x; Raw origin ]))) )
+        eval_sgen_expr env (Focus (Exec (false, Group [ x; Raw origin ]))) )
     in
     res |> Result.return
   | Eval e -> (

@@ -7,7 +7,6 @@ let ( let* ) x f = Result.bind x ~f
 
 type configuration = constellation * constellation
 
-
 let fmap_ban ~f = function
   | Ineq (b1, b2) -> Ineq (f b1, f b2)
   | Incomp (b1, b2) -> Incomp (f b1, f b2)
