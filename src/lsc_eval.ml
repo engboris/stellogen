@@ -13,8 +13,7 @@ let unpolarized_star s =
 
 let kill = List.filter ~f:unpolarized_star
 
-let clean =
-  List.filter ~f:(fun s -> List.is_empty s.content)
+let clean = List.filter ~f:(fun s -> List.is_empty s.content)
 
 let fmap_ban ~f = function
   | Ineq (b1, b2) -> Ineq (f b1, f b2)

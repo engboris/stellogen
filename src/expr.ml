@@ -23,7 +23,7 @@ type expr =
   | Symbol of string
   | Var of ident
   | List of expr list
-  [@@derive eq]
+[@@derive eq]
 
 let primitive = String.append "%"
 

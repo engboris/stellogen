@@ -119,15 +119,14 @@ module Marked = struct
     | Action s -> Action { content = List.map ~f s.content; bans = s.bans }
 
   let make_action s = Action s
+
   let make_state s = State s
 
   let make_action_all = List.map ~f:make_action
 
-  let make_state_all =  List.map ~f:make_state
+  let make_state_all = List.map ~f:make_state
 
-  let remove : star -> Raw.star = function
-    | State s -> s
-    | Action s -> s
+  let remove : star -> Raw.star = function State s -> s | Action s -> s
 
   let remove_all = List.map ~f:remove
 

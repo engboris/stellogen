@@ -94,10 +94,12 @@ let rec eval_sgen_expr (env : env) :
     eval_e |> Marked.remove_all |> Marked.make_state_all |> Result.return
   | Kill e ->
     let* eval_e = eval_sgen_expr env e in
-    eval_e |> Marked.remove_all |> kill |> Marked.make_state_all |> Result.return
+    eval_e |> Marked.remove_all |> kill |> Marked.make_state_all
+    |> Result.return
   | Clean e ->
     let* eval_e = eval_sgen_expr env e in
-    eval_e |> Marked.remove_all |> clean |> Marked.make_state_all |> Result.return
+    eval_e |> Marked.remove_all |> clean |> Marked.make_state_all
+    |> Result.return
   | Process [] -> Ok []
   | Process (h :: t) ->
     let* eval_e = eval_sgen_expr env h in
@@ -107,9 +109,11 @@ let rec eval_sgen_expr (env : env) :
         let* acc = acc in
         match x with
         | Id (Func ((Null, "&kill"), [])) ->
-          acc |> Marked.remove_all |> kill |> Marked.make_state_all |> Result.return
+          acc |> Marked.remove_all |> kill |> Marked.make_state_all
+          |> Result.return
         | Id (Func ((Null, "&clean"), [])) ->
-          acc |> Marked.remove_all |> clean |> Marked.make_state_all |> Result.return
+          acc |> Marked.remove_all |> clean |> Marked.make_state_all
+          |> Result.return
         | _ ->
           let origin = acc |> Marked.remove_all |> Marked.make_state_all in
           eval_sgen_expr env (Focus (Exec (false, Group [ x; Raw origin ]))) )
@@ -155,7 +159,11 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
   | Expect (e1, e2, message) ->
     let* eval_e1 = eval_sgen_expr env e1 in
     let* eval_e2 = eval_sgen_expr env e2 in
-    if not @@ Marked.equal_constellation (Marked.normalize_all eval_e1) (Marked.normalize_all eval_e2)
+    if
+      not
+      @@ Marked.equal_constellation
+           (Marked.normalize_all eval_e1)
+           (Marked.normalize_all eval_e2)
     then Error (ExpectError (eval_e1, eval_e2, message))
     else Ok env
   | Use path ->
