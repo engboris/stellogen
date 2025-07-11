@@ -1,6 +1,4 @@
 open Base
-open Out_channel
-open In_channel
 
 let ( let* ) x f = Result.bind x ~f
 
@@ -160,7 +158,6 @@ let string_of_ban = function
 let string_of_star s =
   match s.content with
   | [] -> "[]"
-  | [ r ] -> string_of_ray r
   | _ ->
     Printf.sprintf "[%s%s]"
       (List.map ~f:string_of_ray s.content |> String.concat ~sep:" ")
@@ -293,11 +290,6 @@ let fusion repl1 repl2 s1 s2 bans1 bans2 theta : star =
   ; bans = List.map (nbans1 @ nbans2) ~f:(fmap_ban ~f:(subst theta))
   }
 
-let pause () =
-  flush stdout;
-  let _ = input_line stdin in
-  ()
-
 let group_bans =
   List.fold_left ~init:([], []) ~f:(function ineq, incomp ->
     (function
@@ -413,11 +405,6 @@ let rec select_star ~linear ~queue actions :
     (* got new stars to add, construct the result for the next round *)
     | Some new_stars, new_actions ->
       (Some (List.rev queue @ other_states @ new_stars), new_actions) )
-
-let string_of_cfg (actions, states) : string =
-  Printf.sprintf ">> actions: %s\n>> states: %s\n"
-    (string_of_constellation actions)
-    (string_of_constellation states)
 
 let exec ?(linear = false) mcs : constellation =
   (* do a sequence of rounds with a single interaction on state per round *)

@@ -52,9 +52,6 @@
 (show #ineq)
 <show exec #ineq>
 
-'interactive debugging of execution
-'(trace #ineq)
-
 'process
 (:= c (process
   (+n0 0)                 'base constellation
@@ -69,7 +66,7 @@
 (show #g)
 
 'field access and evaluation
-(:= (get G X) <eval exec { #G @[(-field X)] }>)
+(:= (get G X) <<eval exec { #G @[(-field X)] }>>)
 (show #(get g test1))
 (show #(get g test2))
 
@@ -79,20 +76,6 @@
     [(+field test2) [(+f c) ok]]]]])
 (:= g2 <eval exec { #g1 @[(-field test1)] }>)
 <show eval exec { #g2 @[(-field test2)] }>
-
-'extend rays with a head function symbol
-'<show exec [[(+f X)] [(f X)]][=>+a]>
-'<show exec [[(+f X)] [(f X)]][=>a]>
-
-'remove head function symbol from a ray
-'<show-exec [[(+f X)] [(f X)]][+f=>]>
-
-'substitutions
-'<show exec (+f X)[X=>(+a X)]>
-'<show exec (+f X)[+f=>+g]>
-'<show exec (union #1 #2)
-'  [#1=>[(+f X) X)]]
-'  [#2=>(-f a)]>
 
 'define type
 (spec nat {
