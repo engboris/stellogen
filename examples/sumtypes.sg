@@ -1,5 +1,5 @@
 (new-declaration (:: Tested Test)
-  (== @(exec { @#Tested #Test }) ok))
+  (== @(exec @#Tested #Test) ok))
 
 (spec direction {
   [-north ok]
@@ -22,4 +22,4 @@
   [(-ok X) X]
   [(-error X) (+error X)]})
 
-<show exec { #get_ok @#x }>
+(show (exec #get_ok @#x))

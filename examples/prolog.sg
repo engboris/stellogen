@@ -6,7 +6,7 @@
 ' 2 + 2 = R
 (:= query [(-add <s s 0> <s s 0> R) R])
 
-<show exec { #add @#query }>
+(show (exec #add @#query))
 
 (:= graph {
   [(+from 1) (+to 2)]

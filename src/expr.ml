@@ -183,9 +183,11 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   (* process *)
   | List (Symbol "process" :: gs) -> Process (List.map ~f:sgen_expr_of_expr gs)
   (* exec *)
-  | List [ Symbol "exec"; g ] -> Exec (false, sgen_expr_of_expr g)
+  | List (Symbol "exec" :: gs) ->
+    Exec (false, Group (List.map ~f:sgen_expr_of_expr gs))
   (* linear exec *)
-  | List [ Symbol "linexec"; g ] -> Exec (true, sgen_expr_of_expr g)
+  | List (Symbol "linexec" :: gs) ->
+    Exec (true, Group (List.map ~f:sgen_expr_of_expr gs))
   (* eval *)
   | List [ Symbol "eval"; g ] -> Eval (sgen_expr_of_expr g)
   (* KEEP LAST -- raw constellation *)
@@ -200,7 +202,6 @@ let decl_of_expr : expr -> declaration = function
   | List [ Symbol k; x; g ] when equal_string k def_op ->
     Def (ray_of_expr x, sgen_expr_of_expr g)
   | List [ Symbol "spec"; x; g ] -> Def (ray_of_expr x, sgen_expr_of_expr g)
-  | List [ Symbol "exec"; x; g ] -> Def (ray_of_expr x, sgen_expr_of_expr g)
   (* show *)
   | List [ Symbol "show"; g ] -> Show (sgen_expr_of_expr g)
   (* expect *)

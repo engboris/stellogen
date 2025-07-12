@@ -1,5 +1,5 @@
 (new-declaration (:: Tested Test)
-  (== @(exec { @#Tested #Test }) ok))
+  (== @(exec @#Tested #Test) ok))
 
 (spec binary {
   [(-i []) ok]
@@ -37,7 +37,7 @@
 
 (:= kill (-a _ _ _))
 
-<show exec { @(exec { @#e #a1 }) #kill }>
-<show exec { @(exec { @#0000 #a1 }) #kill }>
-<show exec { @(exec { @#0110 #a1 }) #kill }>
-<show exec { @(exec { @#1110 #a1 }) #kill }>
+(show (exec @(exec @#e #a1) #kill))
+(show (exec @(exec @#0000 #a1) #kill))
+(show (exec @(exec @#0110 #a1) #kill))
+(show (exec @(exec @#1110 #a1) #kill))
