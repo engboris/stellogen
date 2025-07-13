@@ -36,6 +36,7 @@ philosophy).
 Finite state machine
 
 ```
+(new-declaration (spec X Y) (:= X Y))
 (new-declaration (:: Tested Test)
   (== @(exec { @#Tested #Test }) ok))
 
@@ -77,17 +78,17 @@ automaton accepting words ending with 00
 
 (:= kill (-a _ _))
 
-<show exec { @(exec { @#e #a1 }) #kill }>
-<show exec { @(exec { @#000 #a1 }) #kill }>
-<show exec { @(exec { @#010 #a1 }) #kill }>
-<show exec { @(exec { @#110 #a1 }) #kill }>
+(show (exec @(exec @#e #a1) #kill))
+(show (exec @(exec @#000 #a1) #kill))
+(show (exec @(exec @#010 #a1) #kill))
+(show (exec @(exec @#110 #a1) #kill))
 ```
 
 More examples can be found in `examples/`.
 
 ## Learn
 
-This project is still in (chaotic) development, hence the syntax and features
+This project is still in development, hence the syntax and features
 are still changing frequently.
 
 To learn more about the current implementation of stellogen:
