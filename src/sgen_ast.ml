@@ -9,7 +9,7 @@ type idfunc = polarity * string
 
 type sgen_expr =
   | Raw of Marked.constellation
-  | Id of ident
+  | Call of ident
   | Exec of bool * sgen_expr
   | Group of sgen_expr list
   | Focus of sgen_expr

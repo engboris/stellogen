@@ -78,6 +78,7 @@
 <show eval (exec #g2 @[(-field test2)])>
 
 'define type
+(new-declaration (spec X Y) (:= X Y))
 (spec nat {
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})

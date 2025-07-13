@@ -1,3 +1,4 @@
+(new-declaration (spec X Y) (:= X Y))
 (spec u4 [(-b _ 1 _) (-b _ 2 _) (-b _ 3 _) (-b _ 4 _) ok])
 
 (new-declaration (:: Tested Test)

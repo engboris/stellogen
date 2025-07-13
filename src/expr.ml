@@ -173,7 +173,7 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
   | List (Symbol s :: _) when equal_string s params_op -> Raw [ star_of_expr e ]
   | List (Symbol s :: _) when equal_string s cons_op -> Raw [ star_of_expr e ]
   (* id *)
-  | List [ Symbol k; g ] when equal_string k call_op -> Id (ray_of_expr g)
+  | List [ Symbol k; g ] when equal_string k call_op -> Call (ray_of_expr g)
   (* focus @ *)
   | List [ Symbol k; g ] when equal_string k focus_op ->
     Focus (sgen_expr_of_expr g)
@@ -201,7 +201,6 @@ let decl_of_expr : expr -> declaration = function
   (* definition := *)
   | List [ Symbol k; x; g ] when equal_string k def_op ->
     Def (ray_of_expr x, sgen_expr_of_expr g)
-  | List [ Symbol "spec"; x; g ] -> Def (ray_of_expr x, sgen_expr_of_expr g)
   (* show *)
   | List [ Symbol "show"; g ] -> Show (sgen_expr_of_expr g)
   (* expect *)

@@ -1,3 +1,4 @@
+(new-declaration (spec X Y) (:= X Y))
 (new-declaration (:: Tested Test)
   (== @(exec @#Tested #Test) ok))
 

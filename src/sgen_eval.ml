@@ -25,7 +25,7 @@ let get_obj env x = find_with_solution env x
 
 let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
   | Raw g -> Raw (f g) |> Result.return
-  | Id x -> Id x |> Result.return
+  | Call x -> Call x |> Result.return
   | Exec (b, e) ->
     let* map_e = map_sgen_expr env ~f e in
     Exec (b, map_e) |> Result.return
@@ -66,7 +66,7 @@ let pp_err e : (string, err) Result.t =
 let rec eval_sgen_expr (env : env) :
   sgen_expr -> (Marked.constellation, err) Result.t = function
   | Raw mcs -> Ok mcs
-  | Id x -> begin
+  | Call x -> begin
     match get_obj env x with
     | None -> Error (UnknownID (string_of_ray x))
     | Some (g, subst) ->
