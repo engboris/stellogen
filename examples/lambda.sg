@@ -7,7 +7,7 @@
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]})
 
-(show (exec #id #id_arg #linker))
+(show (interact #id #id_arg #linker))
 
 ' id x
 (:= var_x [(x (exp X Y)) (+arg (exp [l|X] Y))])
@@ -16,7 +16,7 @@
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]})
 
-(show (exec #id #var_x #linker))
+(show (interact #id #var_x #linker))
 
 ' lproj x
 (:= lproj {

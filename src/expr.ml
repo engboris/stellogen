@@ -182,11 +182,11 @@ let rec sgen_expr_of_expr (e : expr) : sgen_expr =
     Group (List.map ~f:sgen_expr_of_expr gs)
   (* process *)
   | List (Symbol "process" :: gs) -> Process (List.map ~f:sgen_expr_of_expr gs)
-  (* exec *)
-  | List (Symbol "exec" :: gs) ->
+  (* interact *)
+  | List (Symbol "interact" :: gs) ->
     Exec (false, Group (List.map ~f:sgen_expr_of_expr gs))
-  (* linear exec *)
-  | List (Symbol "linexec" :: gs) ->
+  (* fire *)
+  | List (Symbol "fire" :: gs) ->
     Exec (true, Group (List.map ~f:sgen_expr_of_expr gs))
   (* eval *)
   | List [ Symbol "eval"; g ] -> Eval (sgen_expr_of_expr g)

@@ -1,8 +1,8 @@
 (new-declaration (spec X Y) (:= X Y))
-(spec u4 [(-b _ 1 _) (-b _ 2 _) (-b _ 3 _) (-b _ 4 _) ok])
-
 (new-declaration (:: Tested Test)
-  (== @(exec (process #Test #Tested)) ok))
+  (== @(interact (process #Test #Tested)) ok))
+
+(spec u4 [(-b _ 1 _) (-b _ 2 _) (-b _ 3 _) (-b _ 4 _) ok])
 
 (:= (make_bin Name X1 X2 X3 X4)
   { [(+b Name 1 X1)] [(+b Name 2 X2)] [(+b Name 3 X3)] [(+b Name 4 X4)] })
@@ -18,22 +18,18 @@
 
 (:= (if A = X and B = Y then R = Z) [(-b A I X) (-b B I Y) (+b R I Z)])
 
-'''
-'FIXME
-
-(:= (and AA BB RR) {
-  #(if AA = 0 and BB = XX then RR = 0)
-  #(if AA = 1 and BB = XX then RR = XX) })
-(show #(and b1 b2 r1))
-(show (process #b1 #(and b1 b2 r1) #b2))
+(:= (and A B R) {
+  #(if A = 0 and B = _ then R = 0)
+  #(if A = 1 and B = X then R = X) })
+(show (process #b1 #(and b1 b2 r) #b2))
 
 (:= (or A B R) {
-  [(-b A I 0) (-b B I X) (+b R I X)]
-  [(-b A I 1) (-b B I X) (+b R I 1)]})
+  #(if A = 0 and B = X then R = X)
+  #(if A = 1 and B = Y then R = 1) })
+(show (process #b1 #(or b1 b2 r) #b2))
 
+'''
 (:= (xor A B R) {
-  [(-b A I 1) (-b B I 0) (+b R I 1)]
-  [(-b A I 0) (-b B I 1) (+b R I 1)]
-  [(-b A I 0) (-b B I 0) (+b R I 0)]
-  [(-b A I 1) (-b B I 1) (+b R I 0)]})
+  #(if A = X and B = X then R = 0) })
+(show (process #b1 #(xor b1 b2 r) #b2))
 '''

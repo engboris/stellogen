@@ -1,6 +1,6 @@
 syn clear
 
-syn keyword sgKeyword new declaration eval slice show use exec linexec process
+syn keyword sgKeyword new declaration eval slice show use interact fire process
 syn match sgComment "\s*'[^'].*$"
 syn match sgId "#\%(\l\|\d\)\w*"
 syn region sgComment start="'''" end="'''" contains=NONE

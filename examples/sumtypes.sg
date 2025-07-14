@@ -1,6 +1,6 @@
 (new-declaration (spec X Y) (:= X Y))
 (new-declaration (:: Tested Test)
-  (== @(exec @#Tested #Test) ok))
+  (== @(interact @#Tested #Test) ok))
 
 (spec direction {
   [-north ok]
@@ -23,4 +23,4 @@
   [(-ok X) X]
   [(-error X) (+error X)]})
 
-(show (exec #get_ok @#x))
+(show (interact #get_ok @#x))

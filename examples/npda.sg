@@ -1,6 +1,6 @@
 (new-declaration (spec X Y) (:= X Y))
 (new-declaration (:: Tested Test)
-  (== @(exec @#Tested #Test) ok))
+  (== @(interact @#Tested #Test) ok))
 
 (spec binary {
   [(-i []) ok]
@@ -38,7 +38,7 @@
 
 (:= kill (-a _ _ _))
 
-(show (exec @(exec @#e #a1) #kill))
-(show (exec @(exec @#0000 #a1) #kill))
-(show (exec @(exec @#0110 #a1) #kill))
-(show (exec @(exec @#1110 #a1) #kill))
+(show (interact @(interact @#e #a1) #kill))
+(show (interact @(interact @#0000 #a1) #kill))
+(show (interact @(interact @#0110 #a1) #kill))
+(show (interact @(interact @#1110 #a1) #kill))

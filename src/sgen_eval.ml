@@ -9,41 +9,43 @@ let ( let* ) x f = Result.bind x ~f
 
 let unifiable r r' = StellarRays.solution [ (r, r') ] |> Option.is_some
 
-let find_with_solution env x =
-  let rec aux = function
+let rec find_with_solution env x =
+  let rec aux : (ident * sgen_expr) list -> 'a option = function
     | [] -> None
-    | (key, value) :: rest -> (
-      match StellarRays.solution [ (key, x) ] with
-      | Some subst -> Some (value, subst)
-      | None -> aux rest )
+    | (key, value) :: rest ->
+      let repl_key = replace_indices 0 key in
+      let repl_value = map_ray env ~f:(replace_indices 0) value in
+      let repl_x = replace_indices 1 x in
+      begin
+        match StellarRays.solution [ (repl_key, repl_x) ] with
+        | Some subst -> Some (repl_value, subst)
+        | None -> aux rest
+      end
   in
   aux env.objs
 
-let add_obj env x e = List.Assoc.add ~equal:unifiable env.objs x e
+and add_obj env x e = List.Assoc.add ~equal:unifiable env.objs x e
 
-let get_obj env x = find_with_solution env x
+and get_obj env x : 'a option = find_with_solution env x
 
-let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
-  | Raw g -> Raw (f g) |> Result.return
-  | Call x -> Call x |> Result.return
+and map_ray env ~f : sgen_expr -> sgen_expr = function
+  | Raw g -> Raw (List.map ~f:(Marked.map ~f) g)
+  | Call x -> Call (f x)
   | Exec (b, e) ->
-    let* map_e = map_sgen_expr env ~f e in
-    Exec (b, map_e) |> Result.return
+    let map_e = map_ray env ~f e in
+    Exec (b, map_e)
   | Group es ->
-    let* map_es = List.map ~f:(map_sgen_expr env ~f) es |> Result.all in
-    Group map_es |> Result.return
+    let map_es = List.map ~f:(map_ray env ~f) es in
+    Group map_es
   | Focus e ->
-    let* map_e = map_sgen_expr env ~f e in
-    Focus map_e |> Result.return
+    let map_e = map_ray env ~f e in
+    Focus map_e
   | Process gs ->
-    let* procs = List.map ~f:(map_sgen_expr env ~f) gs |> Result.all in
-    Process procs |> Result.return
+    let procs = List.map ~f:(map_ray env ~f) gs in
+    Process procs
   | Eval e ->
-    let* map_e = map_sgen_expr env ~f e in
-    Eval map_e |> Result.return
-
-let subst_vars env _from _to =
-  map_sgen_expr env ~f:(subst_all_vars [ (_from, _to) ])
+    let map_e = map_ray env ~f e in
+    Eval map_e
 
 let pp_err e : (string, err) Result.t =
   let red text = "\x1b[31m" ^ text ^ "\x1b[0m" in
@@ -72,7 +74,8 @@ let rec eval_sgen_expr (env : env) :
     | Some (g, subst) ->
       let result =
         List.fold_result subst ~init:g ~f:(fun g_acc (xfrom, xto) ->
-          subst_vars env xfrom xto g_acc )
+          map_ray env ~f:(StellarRays.subst [ (xfrom, xto) ]) g_acc
+          |> Result.return )
       in
       Result.bind result ~f:(eval_sgen_expr env)
   end

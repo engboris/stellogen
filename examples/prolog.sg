@@ -6,7 +6,7 @@
 ' 2 + 2 = R
 (:= query [(-add <s s 0> <s s 0> R) R])
 
-(show (exec #add @#query))
+(show (interact #add @#query))
 
 (:= graph {
   [(+from 1) (+to 2)]
@@ -22,6 +22,6 @@
   @[(-from 1)]
   [(-to 4) ok]})
 
-<show exec (process
+<show interact (process
   #query
   { #graph #composition })>
