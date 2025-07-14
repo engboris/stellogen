@@ -21,15 +21,21 @@
 (:= (and A B R) {
   #(if A = 0 and B = _ then R = 0)
   #(if A = 1 and B = X then R = X) })
-(show (process #b1 #(and b1 b2 r) #b2))
+(:= rand (process #b1 #(and b1 b2 r) #b2))
+(show #rand)
+(== #rand #(make_bin r 0 0 0 1))
 
 (:= (or A B R) {
   #(if A = 0 and B = X then R = X)
   #(if A = 1 and B = Y then R = 1) })
-(show (process #b1 #(or b1 b2 r) #b2))
+(:= ror (process #b1 #(or b1 b2 r) #b2))
+(show #ror)
+(== #ror #(make_bin r 0 0 1 1))
 
 '''
 (:= (xor A B R) {
   #(if A = X and B = X then R = 0) })
-(show (process #b1 #(xor b1 b2 r) #b2))
+(:= rxor (process #b1 #(xor b1 b2 r) #b2))
+(show #rxor)
+(== #rxor #(make_bin r 0 0 1 0))
 '''

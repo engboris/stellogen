@@ -64,6 +64,32 @@ let pp_err e : (string, err) Result.t =
   | UnknownID x ->
     sprintf "%s: identifier '%s' not found.\n" (red "UnknownID Error") x
     |> Result.return
+  | ExprError e -> begin
+    match e with
+    | EmptyRay ->
+      sprintf "%s: rays cannot be empty.\n" (red "Expression Parsing Error")
+      |> Result.return
+    | NonConstantRayHeader e ->
+      sprintf "%s: ray '%s' must start with a constant function symbol.\n"
+        (red "Expression Parsing Error")
+        e
+      |> Result.return
+    | InvalidBan e ->
+      sprintf "%s: invalid ban expression '%s'.\n"
+        (red "Expression Parsing Error")
+        e
+      |> Result.return
+    | InvalidRaylist e ->
+      sprintf "%s: expression '%s' is not a valid star.\n"
+        (red "Expression Parsing Error")
+        e
+      |> Result.return
+    | InvalidDeclaration e ->
+      sprintf "%s: expression '%s' is not a valid declaration.\n"
+        (red "Expression Parsing Error")
+        e
+      |> Result.return
+  end
 
 let rec eval_sgen_expr (env : env) :
   sgen_expr -> (Marked.constellation, err) Result.t = function
@@ -105,7 +131,12 @@ let rec eval_sgen_expr (env : env) :
     match eval_e with
     | [ State { content = [ r ]; bans = _ } ]
     | [ Action { content = [ r ]; bans = _ } ] ->
-      r |> expr_of_ray |> Expr.sgen_expr_of_expr |> eval_sgen_expr env
+      let er = expr_of_ray r in
+      begin
+        match Expr.sgen_expr_of_expr er with
+        | Ok sg -> eval_sgen_expr env sg
+        | Error e -> Error (ExprError e)
+      end
     | e ->
       failwith
         ( "eval error: "
@@ -147,7 +178,7 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
            (Marked.normalize_all eval_e2)
     then Error (ExpectError (eval_e1, eval_e2, message))
     else Ok env
-  | Use path ->
+  | Use path -> (
     let open Lsc_ast.StellarRays in
     let formatted_filename : string =
       match path with
@@ -163,9 +194,11 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     Sedlexing.set_position lexbuf (start_pos formatted_filename);
     let expr = Sgen_parsing.parse_with_error formatted_filename lexbuf in
     let preprocessed = Expr.preprocess expr in
-    let p = Expr.program_of_expr preprocessed in
-    let* env = eval_program p in
-    Ok env
+    match Expr.program_of_expr preprocessed with
+    | Ok p ->
+      let* env = eval_program p in
+      Ok env
+    | Error e -> Error (ExprError e) )
 
 and eval_program (p : program) =
   match

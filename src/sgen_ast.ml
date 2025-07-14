@@ -1,5 +1,6 @@
 open Base
 open Lsc_ast
+open Expr_err
 
 type ident = StellarRays.term
 
@@ -19,6 +20,7 @@ type sgen_expr =
 type err =
   | ExpectError of Marked.constellation * Marked.constellation * ident
   | UnknownID of string
+  | ExprError of expr_err
 
 type env = { objs : (ident * sgen_expr) list }
 
