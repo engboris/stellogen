@@ -38,7 +38,7 @@ Finite state machine
 ```
 (new-declaration (spec X Y) (:= X Y))
 (new-declaration (:: Tested Test)
-  (== @(exec { @#Tested #Test }) ok))
+  (== @(interact @#Tested #Test) ok))
 
 (spec binary {
   [(-i []) ok]
@@ -78,10 +78,10 @@ automaton accepting words ending with 00
 
 (:= kill (-a _ _))
 
-(show (exec @(exec @#e #a1) #kill))
-(show (exec @(exec @#000 #a1) #kill))
-(show (exec @(exec @#010 #a1) #kill))
-(show (exec @(exec @#110 #a1) #kill))
+(show (process (interact @#e #a1)   #kill))
+(show (process (interact @#000 #a1) #kill))
+(show (process (interact @#010 #a1) #kill))
+(show (process (interact @#110 #a1) #kill))
 ```
 
 More examples can be found in `examples/`.

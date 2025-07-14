@@ -38,7 +38,7 @@
 
 (:= kill (-a _ _ _))
 
-(show (interact @(interact @#e #a1) #kill))
-(show (interact @(interact @#0000 #a1) #kill))
-(show (interact @(interact @#0110 #a1) #kill))
-(show (interact @(interact @#1110 #a1) #kill))
+(show (process (interact @#e #a1)    #kill))
+(show (process (interact @#0000 #a1) #kill))
+(show (process (interact @#0110 #a1) #kill))
+(show (process (interact @#1110 #a1) #kill))

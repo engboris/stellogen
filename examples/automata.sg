@@ -40,7 +40,7 @@ automaton accepting words ending with 00
 
 (:= kill (-a _ _))
 
-(show (interact @(interact @#e #a1) #kill))
-(show (interact @(interact @#000 #a1) #kill))
-(show (interact @(interact @#010 #a1) #kill))
-(show (interact @(interact @#110 #a1) #kill))
+(show (process (interact @#e #a1)   #kill))
+(show (process (interact @#000 #a1) #kill))
+(show (process (interact @#010 #a1) #kill))
+(show (process (interact @#110 #a1) #kill))
