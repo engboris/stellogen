@@ -5,14 +5,14 @@
     [+test22 {
       [+test3 3]}]}]})
 
-(:= x <eval exec { #g @[-test1] }>)
+(:= x <eval interact { #g @[-test1] }>)
 (== #x 1)
 
-(:= x <eval exec { #g @[-test2] }>)
-(:= y <eval exec { #x @[-test21] }>)
+(:= x <eval interact { #g @[-test2] }>)
+(:= y <eval interact { #x @[-test21] }>)
 (== #y 2)
 
-(:= x <eval exec { #g @[-test2] }>)
-(:= y <eval exec { #x @[-test22] }>)
-(:= z <eval exec { #y @[-test3] }>)
+(:= x <eval interact { #g @[-test2] }>)
+(:= y <eval interact { #x @[-test22] }>)
+(:= z <eval interact { #y @[-test3] }>)
 (== #z 3)

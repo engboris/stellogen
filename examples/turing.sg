@@ -29,12 +29,12 @@
   [(-m q3 L e R) (+m qr L e R)]
   [(-m qr L C R) reject]})
 
-<show exec { @(+i [a e]) #mt}>
-<show exec { @(+i [b e]) #mt}>
-<show exec { @(+i [a b b e]) #mt}>
+(show (interact @(+i [a e]) #mt))
+(show (interact @(+i [b e]) #mt))
+(show (interact @(+i [a b b e]) #mt))
 
-<show exec { @(+i [e]) #mt}>
-<show exec { @(+i [a b e]) #mt}>
-<show exec { @(+i [a a b b e]) #mt}>
-<show exec { @(+i [a b b a e]) #mt}>
-<show exec { @(+i [a b a b e]) #mt}>
+(show (interact @(+i [e]) #mt))
+(show (interact @(+i [a b e]) #mt))
+(show (interact @(+i [a a b b e]) #mt))
+(show (interact @(+i [a b b a e]) #mt))
+(show (interact @(+i [a b a b e]) #mt))

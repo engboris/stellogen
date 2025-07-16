@@ -36,8 +36,9 @@ philosophy).
 Finite state machine
 
 ```
+(new-declaration (spec X Y) (:= X Y))
 (new-declaration (:: Tested Test)
-  (== @(exec { @#Tested #Test }) ok))
+  (== @(interact @#Tested #Test) ok))
 
 (spec binary {
   [(-i []) ok]
@@ -45,20 +46,11 @@ Finite state machine
   [(-i [1|X]) (+i X)]})
 
 'input words
-(:= e (+i []))
-(:: e binary)
-
-(:= 0 (+i [0]))
-(:: 0 binary)
-
-(:= 000 (+i [0 0 0]))
-(:: 000 binary)
-
-(:= 010 (+i [0 1 0]))
-(:: 010 binary)
-
-(:= 110 (+i [1 1 0]))
-(:: 110 binary)
+(:= e (+i []))        (:: e binary)
+(:= 0 (+i [0]))       (:: 0 binary)
+(:= 000 (+i [0 0 0])) (:: 000 binary)
+(:= 010 (+i [0 1 0])) (:: 010 binary)
+(:= 110 (+i [1 1 0])) (:: 110 binary)
 
 '''
 automaton accepting words ending with 00
@@ -77,17 +69,17 @@ automaton accepting words ending with 00
 
 (:= kill (-a _ _))
 
-<show exec { @(exec { @#e #a1 }) #kill }>
-<show exec { @(exec { @#000 #a1 }) #kill }>
-<show exec { @(exec { @#010 #a1 }) #kill }>
-<show exec { @(exec { @#110 #a1 }) #kill }>
+(show (process (interact @#e #a1)   #kill))
+(show (process (interact @#000 #a1) #kill))
+(show (process (interact @#010 #a1) #kill))
+(show (process (interact @#110 #a1) #kill))
 ```
 
 More examples can be found in `examples/`.
 
 ## Learn
 
-This project is still in (chaotic) development, hence the syntax and features
+This project is still in development, hence the syntax and features
 are still changing frequently.
 
 To learn more about the current implementation of stellogen:

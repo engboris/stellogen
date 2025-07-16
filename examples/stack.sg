@@ -1,4 +1,4 @@
-<show exec (process
+<show interact (process
   (+stack0 [])
   'push 1 then 0
   [(-stack0 X) (+stack1 [1|X])]

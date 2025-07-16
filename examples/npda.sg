@@ -1,5 +1,6 @@
+(new-declaration (spec X Y) (:= X Y))
 (new-declaration (:: Tested Test)
-  (== @(exec { @#Tested #Test }) ok))
+  (== @(interact @#Tested #Test) ok))
 
 (spec binary {
   [(-i []) ok]
@@ -7,17 +8,10 @@
   [(-i [1|X]) (+i X)]})
 
 'input words
-(:= e (+i []))
-(:: e binary)
-
-(:= 0000 (+i [0 0 0 0]))
-(:: 0000 binary)
-
-(:= 0110 (+i [0 1 1 0]))
-(:: 0110 binary)
-
-(:= 1110 (+i [1 1 1 0]))
-(:: 1110 binary)
+(:= e (+i []))           (:: e binary)
+(:= 0000 (+i [0 0 0 0])) (:: 0000 binary)
+(:= 0110 (+i [0 1 1 0])) (:: 0110 binary)
+(:= 1110 (+i [1 1 1 0])) (:: 1110 binary)
 
 (:= (initial Q) [(-i W) (+a W [] Q)])
 (:= (accept Q) [(-a [] [] Q) accept])
@@ -37,7 +31,7 @@
 
 (:= kill (-a _ _ _))
 
-<show exec { @(exec { @#e #a1 }) #kill }>
-<show exec { @(exec { @#0000 #a1 }) #kill }>
-<show exec { @(exec { @#0110 #a1 }) #kill }>
-<show exec { @(exec { @#1110 #a1 }) #kill }>
+(show (process (interact @#e #a1)    #kill))
+(show (process (interact @#0000 #a1) #kill))
+(show (process (interact @#0110 #a1) #kill))
+(show (process (interact @#1110 #a1) #kill))

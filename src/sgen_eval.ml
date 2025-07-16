@@ -9,41 +9,43 @@ let ( let* ) x f = Result.bind x ~f
 
 let unifiable r r' = StellarRays.solution [ (r, r') ] |> Option.is_some
 
-let find_with_solution env x =
-  let rec aux = function
+let rec find_with_solution env x =
+  let rec aux : (ident * sgen_expr) list -> 'a option = function
     | [] -> None
-    | (key, value) :: rest -> (
-      match StellarRays.solution [ (key, x) ] with
-      | Some subst -> Some (value, subst)
-      | None -> aux rest )
+    | (key, value) :: rest ->
+      let repl_key = replace_indices 0 key in
+      let repl_value = map_ray env ~f:(replace_indices 0) value in
+      let repl_x = replace_indices 1 x in
+      begin
+        match StellarRays.solution [ (repl_key, repl_x) ] with
+        | Some subst -> Some (repl_value, subst)
+        | None -> aux rest
+      end
   in
   aux env.objs
 
-let add_obj env x e = List.Assoc.add ~equal:unifiable env.objs x e
+and add_obj env x e = List.Assoc.add ~equal:unifiable env.objs x e
 
-let get_obj env x = find_with_solution env x
+and get_obj env x : 'a option = find_with_solution env x
 
-let rec map_sgen_expr env ~f : sgen_expr -> (sgen_expr, err) Result.t = function
-  | Raw g -> Raw (f g) |> Result.return
-  | Id x -> Id x |> Result.return
+and map_ray env ~f : sgen_expr -> sgen_expr = function
+  | Raw g -> Raw (List.map ~f:(Marked.map ~f) g)
+  | Call x -> Call (f x)
   | Exec (b, e) ->
-    let* map_e = map_sgen_expr env ~f e in
-    Exec (b, map_e) |> Result.return
+    let map_e = map_ray env ~f e in
+    Exec (b, map_e)
   | Group es ->
-    let* map_es = List.map ~f:(map_sgen_expr env ~f) es |> Result.all in
-    Group map_es |> Result.return
+    let map_es = List.map ~f:(map_ray env ~f) es in
+    Group map_es
   | Focus e ->
-    let* map_e = map_sgen_expr env ~f e in
-    Focus map_e |> Result.return
+    let map_e = map_ray env ~f e in
+    Focus map_e
   | Process gs ->
-    let* procs = List.map ~f:(map_sgen_expr env ~f) gs |> Result.all in
-    Process procs |> Result.return
+    let procs = List.map ~f:(map_ray env ~f) gs in
+    Process procs
   | Eval e ->
-    let* map_e = map_sgen_expr env ~f e in
-    Eval map_e |> Result.return
-
-let subst_vars env _from _to =
-  map_sgen_expr env ~f:(subst_all_vars [ (_from, _to) ])
+    let map_e = map_ray env ~f e in
+    Eval map_e
 
 let pp_err e : (string, err) Result.t =
   let red text = "\x1b[31m" ^ text ^ "\x1b[0m" in
@@ -62,17 +64,44 @@ let pp_err e : (string, err) Result.t =
   | UnknownID x ->
     sprintf "%s: identifier '%s' not found.\n" (red "UnknownID Error") x
     |> Result.return
+  | ExprError e -> begin
+    match e with
+    | EmptyRay ->
+      sprintf "%s: rays cannot be empty.\n" (red "Expression Parsing Error")
+      |> Result.return
+    | NonConstantRayHeader e ->
+      sprintf "%s: ray '%s' must start with a constant function symbol.\n"
+        (red "Expression Parsing Error")
+        e
+      |> Result.return
+    | InvalidBan e ->
+      sprintf "%s: invalid ban expression '%s'.\n"
+        (red "Expression Parsing Error")
+        e
+      |> Result.return
+    | InvalidRaylist e ->
+      sprintf "%s: expression '%s' is not a valid star.\n"
+        (red "Expression Parsing Error")
+        e
+      |> Result.return
+    | InvalidDeclaration e ->
+      sprintf "%s: expression '%s' is not a valid declaration.\n"
+        (red "Expression Parsing Error")
+        e
+      |> Result.return
+  end
 
 let rec eval_sgen_expr (env : env) :
   sgen_expr -> (Marked.constellation, err) Result.t = function
   | Raw mcs -> Ok mcs
-  | Id x -> begin
+  | Call x -> begin
     match get_obj env x with
     | None -> Error (UnknownID (string_of_ray x))
     | Some (g, subst) ->
       let result =
         List.fold_result subst ~init:g ~f:(fun g_acc (xfrom, xto) ->
-          subst_vars env xfrom xto g_acc )
+          map_ray env ~f:(StellarRays.subst [ (xfrom, xto) ]) g_acc
+          |> Result.return )
       in
       Result.bind result ~f:(eval_sgen_expr env)
   end
@@ -102,7 +131,12 @@ let rec eval_sgen_expr (env : env) :
     match eval_e with
     | [ State { content = [ r ]; bans = _ } ]
     | [ Action { content = [ r ]; bans = _ } ] ->
-      r |> expr_of_ray |> Expr.sgen_expr_of_expr |> eval_sgen_expr env
+      let er = expr_of_ray r in
+      begin
+        match Expr.sgen_expr_of_expr er with
+        | Ok sg -> eval_sgen_expr env sg
+        | Error e -> Error (ExprError e)
+      end
     | e ->
       failwith
         ( "eval error: "
@@ -144,7 +178,7 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
            (Marked.normalize_all eval_e2)
     then Error (ExpectError (eval_e1, eval_e2, message))
     else Ok env
-  | Use path ->
+  | Use path -> (
     let open Lsc_ast.StellarRays in
     let formatted_filename : string =
       match path with
@@ -160,9 +194,11 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     Sedlexing.set_position lexbuf (start_pos formatted_filename);
     let expr = Sgen_parsing.parse_with_error formatted_filename lexbuf in
     let preprocessed = Expr.preprocess expr in
-    let p = Expr.program_of_expr preprocessed in
-    let* env = eval_program p in
-    Ok env
+    match Expr.program_of_expr preprocessed with
+    | Ok p ->
+      let* env = eval_program p in
+      Ok env
+    | Error e -> Error (ExprError e) )
 
 and eval_program (p : program) =
   match

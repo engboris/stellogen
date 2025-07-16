@@ -1,14 +1,16 @@
+(new-declaration (spec X Y) (:= X Y))
+
 (:= 1 (+nat (s 0)))
 (:= 2 (+nat <s s 0>))
 (:= 3 (+nat <s s s 0>))
 
 (spec nat [(-nat (s X)) (+nat X)])
 
-(:= tested @(linexec { @#1 #nat }))
+(:= tested @(fire @#1 #nat))
 (== #tested (+nat 0))
 
-(:= tested @(linexec { @#2 #nat }))
+(:= tested @(fire @#2 #nat))
 (== #tested (+nat (s 0)))
 
-(:= tested @(linexec { @#3 #nat }))
+(:= tested @(fire @#3 #nat))
 (== #tested (+nat <s s 0>))

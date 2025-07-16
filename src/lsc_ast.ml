@@ -88,6 +88,10 @@ let is_polarised r : bool =
   let aux = function Pos, _ | Neg, _ -> true | _ -> false in
   exists_func aux r
 
+let inject i : StellarSig.idvar -> StellarSig.idvar = function
+  | x, None -> (x, Some i)
+  | x, Some i -> (x, Some i)
+
 let replace_indices (i : int) : ray -> ray =
   map Fn.id (fun (x, _) -> Var (x, Some i))
 

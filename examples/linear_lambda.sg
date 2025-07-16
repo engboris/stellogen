@@ -1,5 +1,6 @@
+(new-declaration (spec X Y) (:= X Y))
 (new-declaration (:: Tested Test)
-  (== @(exec { #Tested #Test }) ok))
+  (== @(interact #Tested #Test) ok))
 
 ' identity function (\x -> x)
 (:= id [(+id [l|X]) (+id [r|X])])
@@ -11,7 +12,7 @@
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]])
 
-<show exec { #id #id_arg #linker }>
+(show (interact #id #id_arg #linker))
 
 ' id x
 (:= x_arg [(x X) (+arg [l X])])
@@ -20,7 +21,7 @@
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]])
 
-<show exec { #id #x_arg #linker }>
+(show (interact #id #x_arg #linker))
 
 ' linear types
 (spec (larrow a a) {

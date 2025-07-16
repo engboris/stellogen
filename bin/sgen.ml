@@ -13,9 +13,19 @@ let parse input_file =
 let run input_file =
   let expr = parse input_file in
   let preprocessed = Expr.preprocess expr in
-  let p = Expr.program_of_expr preprocessed in
-  let _ = Stellogen.Sgen_eval.eval_program p in
-  ()
+  match Expr.program_of_expr preprocessed with
+  | Ok p ->
+    let _ = Stellogen.Sgen_eval.eval_program p in
+    ()
+  | Error e ->
+    let open Stellogen.Sgen_eval in
+    begin
+      match pp_err (ExprError e) with
+      | Ok pp ->
+        Out_channel.output_string Out_channel.stderr pp;
+        ()
+      | Error _ -> ()
+    end
 
 let preprocess_only input_file =
   let expr = parse input_file in

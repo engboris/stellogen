@@ -4,8 +4,17 @@ let sgen filename () =
   let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in filename) in
   let expr = Stellogen.Sgen_parsing.parse_with_error filename lexbuf in
   let preprocessed = Stellogen.Expr.preprocess expr in
-  let p = Stellogen.Expr.program_of_expr preprocessed in
-  Stellogen.Sgen_eval.eval_program p
+  match Stellogen.Expr.program_of_expr preprocessed with
+  | Ok p -> Stellogen.Sgen_eval.eval_program p
+  | Error e ->
+    let open Stellogen.Sgen_eval in
+    begin
+      match pp_err (ExprError e) with
+      | Ok pp ->
+        Out_channel.output_string Out_channel.stderr pp;
+        Error (ExprError e)
+      | Error e -> Error e
+    end
 
 let make_ok_test name path f =
   let test got () =

@@ -1,38 +1,46 @@
-(spec u4 [(-b _ 1 _) (-b _ 2 _) (-b _ 3 _) (-b _ 4 _) ok])
-
+(new-declaration (spec X Y) (:= X Y))
 (new-declaration (:: Tested Test)
-  (== @(exec (process #Test #Tested)) ok))
+  (== @(interact (process #Test #Tested)) ok))
+
+(spec u4 [(-b _ 1 _) (-b _ 2 _) (-b _ 3 _) (-b _ 4 _) ok])
 
 (:= (make_bin Name X1 X2 X3 X4)
   { [(+b Name 1 X1)] [(+b Name 2 X2)] [(+b Name 3 X3)] [(+b Name 4 X4)] })
 
-(:= b1 #(make_bin b1 0 0 0 1))
-(:: b1 u4)
-
-(:= b2 #(make_bin b2 0 0 1 1))
-(:: b2 u4)
+(:= b1 #(make_bin b1 0 0 0 1)) (:: b1 u4)
+(:= b2 #(make_bin b2 0 0 1 1)) (:: b2 u4)
 
 (show #b1)
 (show #b2)
 
+(:= (if A = X then R = Z) [(-b A I X) (+b R I Z)])
 (:= (if A = X and B = Y then R = Z) [(-b A I X) (-b B I Y) (+b R I Z)])
 
-'''
-'FIXME
-
-(:= (and AA BB RR) {
-  #(if AA = 0 and BB = XX then RR = 0)
-  #(if AA = 1 and BB = XX then RR = XX) })
-(show #(and b1 b2 r1))
-(show (process #b1 #(and b1 b2 r1) #b2))
+(:= (and A B R) {
+  #(if A = 0 and B = _ then R = 0)
+  #(if A = 1 and B = X then R = X) })
+(:= rand (process #b1 #(and b1 b2 r) #b2))
+(show #rand)
+(== #rand #(make_bin r 0 0 0 1))
 
 (:= (or A B R) {
-  [(-b A I 0) (-b B I X) (+b R I X)]
-  [(-b A I 1) (-b B I X) (+b R I 1)]})
+  #(if A = 0 and B = X then R = X)
+  #(if A = 1 and B = Y then R = 1) })
+(:= ror (process #b1 #(or b1 b2 r) #b2))
+(show #ror)
+(== #ror #(make_bin r 0 0 1 1))
 
-(:= (xor A B R) {
-  [(-b A I 1) (-b B I 0) (+b R I 1)]
-  [(-b A I 0) (-b B I 1) (+b R I 1)]
-  [(-b A I 0) (-b B I 0) (+b R I 0)]
-  [(-b A I 1) (-b B I 1) (+b R I 0)]})
+(:= (not A R) {
+  #(if A = 1 then R = 0)
+  #(if A = 0 then R = 1) })
+(:= rnot (process #b1 #(not b1 r)))
+(show #rnot)
+(== #rnot #(make_bin r 1 1 1 0))
+
+(:= rnand (process #b1 #(and b1 b2 r1) #b2 #(not r1 r2)))
+(show #rnand)
+
+'''
+(:= rxor (process #rnand #(and r2 r r3) #ror))
+(show #rxor)
 '''

@@ -1,6 +1,9 @@
 open Base
 open Lsc_ast
 open Sgen_ast
+open Expr_err
+
+let ( let* ) x f = Result.bind x ~f
 
 type ident = string
 
@@ -117,101 +120,152 @@ let symbol_of_str (s : string) : idfunc =
   | '-' -> (Neg, rest)
   | _ -> (Null, s)
 
-let rec ray_of_expr : expr -> ray = function
-  | Symbol s -> to_func (symbol_of_str s, [])
-  | Var "_" -> to_var ("_" ^ fresh_placeholder ())
-  | Var s -> to_var s
-  | List [] -> failwith "error: ray cannot be empty"
-  | List (Symbol h :: t) -> to_func (symbol_of_str h, List.map ~f:ray_of_expr t)
-  | List (_ :: _) as e ->
-    failwith ("error: ray " ^ to_string e ^ " must start with constant")
+let rec ray_of_expr : expr -> (ray, expr_err) Result.t = function
+  | Symbol s -> to_func (symbol_of_str s, []) |> Result.return
+  | Var "_" -> to_var ("_" ^ fresh_placeholder ()) |> Result.return
+  | Var s -> to_var s |> Result.return
+  | List [] -> Error EmptyRay
+  | List (Symbol h :: t) ->
+    let* args = List.map ~f:ray_of_expr t |> Result.all in
+    to_func (symbol_of_str h, args) |> Result.return
+  | List (_ :: _) as e -> Error (NonConstantRayHeader (to_string e))
 
-let bans_of_expr : expr list -> ban list =
+let bans_of_expr es : (ban list, expr_err) Result.t =
   let ban_of_expr = function
     | List [ Symbol k; a; b ] when equal_string k ineq_op ->
-      Ineq (ray_of_expr a, ray_of_expr b)
+      let* ra = ray_of_expr a in
+      let* rb = ray_of_expr b in
+      Ineq (ra, rb) |> Result.return
     | List [ Symbol k; a; b ] when equal_string k incomp_op ->
-      Incomp (ray_of_expr a, ray_of_expr b)
-    | _ -> failwith "error: invalid ban expression"
+      let* ra = ray_of_expr a in
+      let* rb = ray_of_expr b in
+      Incomp (ra, rb) |> Result.return
+    | _ as e -> Error (InvalidBan (to_string e))
   in
-  List.map ~f:ban_of_expr
+  List.map ~f:ban_of_expr es |> Result.all
 
-let rec raylist_of_expr (e : expr) : ray list =
+let rec raylist_of_expr (e : expr) : (ray list, expr_err) Result.t =
   match e with
-  | Symbol k when equal_string k nil_op -> []
-  | Symbol _ | Var _ -> [ ray_of_expr e ]
+  | Symbol k when equal_string k nil_op -> Ok []
+  | Symbol _ | Var _ ->
+    let* r = ray_of_expr e in
+    Ok [ r ]
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
-    ray_of_expr h :: raylist_of_expr t
-  | e -> failwith ("error: unhandled star " ^ to_string e)
+    let* rh = ray_of_expr h in
+    let* rt = raylist_of_expr t in
+    Ok (rh :: rt)
+  | e -> Error (InvalidRaylist (to_string e))
 
-let rec star_of_expr : expr -> Marked.star = function
+let rec star_of_expr : expr -> (Marked.star, expr_err) Result.t = function
   | List [ Symbol k; s ] when equal_string k focus_op ->
-    star_of_expr s |> Marked.remove |> Marked.make_state
+    let* ss = star_of_expr s in
+    ss |> Marked.remove |> Marked.make_state |> Result.return
   | List [ Symbol k; s; List ps ] when equal_string k params_op ->
-    Action { content = raylist_of_expr s; bans = bans_of_expr ps }
-  | e -> Action { content = raylist_of_expr e; bans = [] }
+    let* content = raylist_of_expr s in
+    let* bans = bans_of_expr ps in
+    Marked.Action { content; bans } |> Result.return
+  | e ->
+    let* content = raylist_of_expr e in
+    Marked.Action { content; bans = [] } |> Result.return
 
-let rec constellation_of_expr : expr -> Marked.constellation = function
-  | Symbol s -> [ Action { content = [ var (s, None) ]; bans = [] } ]
-  | Var x -> [ Action { content = [ var (x, None) ]; bans = [] } ]
+let rec constellation_of_expr :
+  expr -> (Marked.constellation, expr_err) Result.t = function
+  | Symbol s ->
+    [ Marked.Action { content = [ var (s, None) ]; bans = [] } ]
+    |> Result.return
+  | Var x ->
+    [ Marked.Action { content = [ var (x, None) ]; bans = [] } ]
+    |> Result.return
   | List [ Symbol s; h; t ] when equal_string s cons_op ->
-    star_of_expr h :: constellation_of_expr t
-  | List g -> [ Action { content = [ ray_of_expr (List g) ]; bans = [] } ]
+    let* sh = star_of_expr h in
+    let* ct = constellation_of_expr t in
+    Ok (sh :: ct)
+  | List g ->
+    let* rg = ray_of_expr (List g) in
+    [ Marked.Action { content = [ rg ]; bans = [] } ] |> Result.return
 
 (* ---------------------------------------
    Stellogen expr of Expr
    --------------------------------------- *)
 
-let rec sgen_expr_of_expr (e : expr) : sgen_expr =
+let rec sgen_expr_of_expr (e : expr) : (sgen_expr, expr_err) Result.t =
   match e with
   | Symbol k when equal_string k nil_op ->
-    Raw [ Action { content = []; bans = [] } ]
+    Raw [ Action { content = []; bans = [] } ] |> Result.return
   (* ray *)
   | Var _ | Symbol _ ->
-    Raw [ Action { content = [ ray_of_expr e ]; bans = [] } ]
+    let* re = ray_of_expr e in
+    Raw [ Action { content = [ re ]; bans = [] } ] |> Result.return
   (* star *)
-  | List (Symbol s :: _) when equal_string s params_op -> Raw [ star_of_expr e ]
-  | List (Symbol s :: _) when equal_string s cons_op -> Raw [ star_of_expr e ]
+  | List (Symbol s :: _) when equal_string s params_op ->
+    let* se = star_of_expr e in
+    Raw [ se ] |> Result.return
+  | List (Symbol s :: _) when equal_string s cons_op ->
+    let* se = star_of_expr e in
+    Raw [ se ] |> Result.return
   (* id *)
-  | List [ Symbol k; g ] when equal_string k call_op -> Id (ray_of_expr g)
+  | List [ Symbol k; g ] when equal_string k call_op ->
+    let* re = ray_of_expr g in
+    Call re |> Result.return
   (* focus @ *)
   | List [ Symbol k; g ] when equal_string k focus_op ->
-    Focus (sgen_expr_of_expr g)
+    let* sgg = sgen_expr_of_expr g in
+    Focus sgg |> Result.return
   (* group *)
   | List (Symbol k :: gs) when equal_string k group_op ->
-    Group (List.map ~f:sgen_expr_of_expr gs)
+    let* sggs = List.map ~f:sgen_expr_of_expr gs |> Result.all in
+    Group sggs |> Result.return
   (* process *)
-  | List (Symbol "process" :: gs) -> Process (List.map ~f:sgen_expr_of_expr gs)
-  (* exec *)
-  | List [ Symbol "exec"; g ] -> Exec (false, sgen_expr_of_expr g)
-  (* linear exec *)
-  | List [ Symbol "linexec"; g ] -> Exec (true, sgen_expr_of_expr g)
+  | List (Symbol "process" :: gs) ->
+    let* sggs = List.map ~f:sgen_expr_of_expr gs |> Result.all in
+    Process sggs |> Result.return
+  (* interact *)
+  | List (Symbol "interact" :: gs) ->
+    let* sggs = List.map ~f:sgen_expr_of_expr gs |> Result.all in
+    Exec (false, Group sggs) |> Result.return
+  (* fire *)
+  | List (Symbol "fire" :: gs) ->
+    let* sggs = List.map ~f:sgen_expr_of_expr gs |> Result.all in
+    Exec (true, Group sggs) |> Result.return
   (* eval *)
-  | List [ Symbol "eval"; g ] -> Eval (sgen_expr_of_expr g)
+  | List [ Symbol "eval"; g ] ->
+    let* sgg = sgen_expr_of_expr g in
+    Eval sgg |> Result.return
   (* KEEP LAST -- raw constellation *)
-  | List g -> Raw (constellation_of_expr (List g))
+  | List e ->
+    let* ce = constellation_of_expr (List e) in
+    Raw ce |> Result.return
 
 (* ---------------------------------------
    Stellogen program of Expr
    --------------------------------------- *)
 
-let decl_of_expr : expr -> declaration = function
+let decl_of_expr : expr -> (declaration, expr_err) Result.t = function
   (* definition := *)
   | List [ Symbol k; x; g ] when equal_string k def_op ->
-    Def (ray_of_expr x, sgen_expr_of_expr g)
-  | List [ Symbol "spec"; x; g ] -> Def (ray_of_expr x, sgen_expr_of_expr g)
-  | List [ Symbol "exec"; x; g ] -> Def (ray_of_expr x, sgen_expr_of_expr g)
+    let* rx = ray_of_expr x in
+    let* sgg = sgen_expr_of_expr g in
+    Def (rx, sgg) |> Result.return
   (* show *)
-  | List [ Symbol "show"; g ] -> Show (sgen_expr_of_expr g)
+  | List [ Symbol "show"; g ] ->
+    let* sgg = sgen_expr_of_expr g in
+    Show sgg |> Result.return
   (* expect *)
   | List [ Symbol k; g1; g2 ] when equal_string k expect_op ->
-    Expect (sgen_expr_of_expr g1, sgen_expr_of_expr g2, const "default")
+    let* sgg1 = sgen_expr_of_expr g1 in
+    let* sgg2 = sgen_expr_of_expr g2 in
+    Expect (sgg1, sgg2, const "default") |> Result.return
   | List [ Symbol k; g1; g2; m ] when equal_string k expect_op ->
-    Expect (sgen_expr_of_expr g1, sgen_expr_of_expr g2, ray_of_expr m)
+    let* sgg1 = sgen_expr_of_expr g1 in
+    let* sgg2 = sgen_expr_of_expr g2 in
+    let* rm = ray_of_expr m in
+    Expect (sgg1, sgg2, rm) |> Result.return
   (* use *)
-  | List [ Symbol k; r ] when equal_string k "use" -> Use (ray_of_expr r)
-  | e -> failwith ("error: invalid declaration " ^ to_string e)
+  | List [ Symbol k; r ] when equal_string k "use" ->
+    let* rr = ray_of_expr r in
+    Use rr |> Result.return
+  | e -> Error (InvalidDeclaration (to_string e))
 
-let program_of_expr = List.map ~f:decl_of_expr
+let program_of_expr e = List.map ~f:decl_of_expr e |> Result.all
 
 let preprocess e = e |> List.map ~f:expand_macro |> unfold_decl_def []
