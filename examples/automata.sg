@@ -8,20 +8,11 @@
   [(-i [1|X]) (+i X)]})
 
 'input words
-(:= e (+i []))
-(:: e binary)
-
-(:= 0 (+i [0]))
-(:: 0 binary)
-
-(:= 000 (+i [0 0 0]))
-(:: 000 binary)
-
-(:= 010 (+i [0 1 0]))
-(:: 010 binary)
-
-(:= 110 (+i [1 1 0]))
-(:: 110 binary)
+(:= e (+i []))        (:: e binary)
+(:= 0 (+i [0]))       (:: 0 binary)
+(:= 000 (+i [0 0 0])) (:: 000 binary)
+(:= 010 (+i [0 1 0])) (:: 010 binary)
+(:= 110 (+i [1 1 0])) (:: 110 binary)
 
 (:= (initial Q) [(-i W) (+a W Q)])
 (:= (accept Q) [(-a [] Q) accept])

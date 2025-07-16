@@ -6,14 +6,9 @@
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 
-(:= 0 (+nat 0))
-(:: 0 nat)
-
-(:= 1 (+nat (s 0)))
-(:: 1 nat)
-
-(:= 2 <+nat s s 0>)
-(:: 2 nat)
+(:= 0 (+nat 0))     (:: 0 nat)
+(:= 1 (+nat (s 0))) (:: 1 nat)
+(:= 2 <+nat s s 0>) (:: 2 nat)
 
 (:= add1 [(-nat X) (+nat (s X))])
 

@@ -28,8 +28,6 @@ type expr =
   | List of expr list
 [@@derive eq]
 
-let pp_err _ = ""
-
 let primitive = String.append "%"
 
 let nil_op = primitive "nil"

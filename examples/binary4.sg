@@ -7,15 +7,13 @@
 (:= (make_bin Name X1 X2 X3 X4)
   { [(+b Name 1 X1)] [(+b Name 2 X2)] [(+b Name 3 X3)] [(+b Name 4 X4)] })
 
-(:= b1 #(make_bin b1 0 0 0 1))
-(:: b1 u4)
-
-(:= b2 #(make_bin b2 0 0 1 1))
-(:: b2 u4)
+(:= b1 #(make_bin b1 0 0 0 1)) (:: b1 u4)
+(:= b2 #(make_bin b2 0 0 1 1)) (:: b2 u4)
 
 (show #b1)
 (show #b2)
 
+(:= (if A = X then R = Z) [(-b A I X) (+b R I Z)])
 (:= (if A = X and B = Y then R = Z) [(-b A I X) (-b B I Y) (+b R I Z)])
 
 (:= (and A B R) {
@@ -32,10 +30,17 @@
 (show #ror)
 (== #ror #(make_bin r 0 0 1 1))
 
+(:= (not A R) {
+  #(if A = 1 then R = 0)
+  #(if A = 0 then R = 1) })
+(:= rnot (process #b1 #(not b1 r)))
+(show #rnot)
+(== #rnot #(make_bin r 1 1 1 0))
+
+(:= rnand (process #b1 #(and b1 b2 r1) #b2 #(not r1 r2)))
+(show #rnand)
+
 '''
-(:= (xor A B R) {
-  #(if A = X and B = X then R = 0) })
-(:= rxor (process #b1 #(xor b1 b2 r) #b2))
+(:= rxor (process #rnand #(and r2 r r3) #ror))
 (show #rxor)
-(== #rxor #(make_bin r 0 0 1 0))
 '''
