@@ -5,29 +5,6 @@ open Expr_err
 
 let ( let* ) x f = Result.bind x ~f
 
-type ident = string
-
-module Raw = struct
-  type t =
-    | Symbol of string
-    | Var of ident
-    | String of string
-    | Focus of t
-    | Call of t
-    | List of t list
-    | Stack of t list
-    | Group of t list
-    | Cons of t list
-    | ConsWithParams of t list * t list
-    | ConsWithBase of t list * t
-end
-
-type expr =
-  | Symbol of string
-  | Var of ident
-  | List of expr list
-[@@derive eq]
-
 let primitive = String.append "%"
 
 let nil_op = primitive "nil"
@@ -51,6 +28,53 @@ let ineq_op = "!="
 let incomp_op = "slice"
 
 let group_op = "%group"
+
+type ident = string
+
+module Raw = struct
+  type t =
+    | Symbol of string
+    | Var of ident
+    | String of string
+    | Focus of t
+    | Call of t
+    | List of t list
+    | Stack of t list
+    | Group of t list
+    | Cons of t list
+    | ConsWithParams of t list * t list
+    | ConsWithBase of t list * t
+
+  let rec to_string : t -> string = function
+    | Symbol s -> s
+    | Var x -> x
+    | String s -> Printf.sprintf "\"%s\"" s
+    | Focus e -> Printf.sprintf "%s%s" focus_op (to_string e)
+    | Call e -> Printf.sprintf "%s%s" call_op (to_string e)
+    | List es ->
+      Printf.sprintf "(%s)" (List.map ~f:to_string es |> String.concat ~sep:" ")
+    | Stack es ->
+      Printf.sprintf "<%s>" (List.map ~f:to_string es |> String.concat ~sep:" ")
+    | Group es ->
+      Printf.sprintf "{ %s }"
+        (List.map ~f:to_string es |> String.concat ~sep:" ")
+    | Cons es ->
+      Printf.sprintf "[%s]" (List.map ~f:to_string es |> String.concat ~sep:" ")
+    | ConsWithParams (es1, es2) ->
+      Printf.sprintf "[%s | %s]"
+        (List.map ~f:to_string es1 |> String.concat ~sep:" ")
+        (List.map ~f:to_string es2 |> String.concat ~sep:" ")
+    | ConsWithBase (es, e) ->
+      Printf.sprintf "[%s|%s]"
+        (List.map ~f:to_string es |> String.concat ~sep:" ")
+        (to_string e)
+end
+
+type expr =
+  | Symbol of string
+  | Var of ident
+  | List of expr list
+[@@derive eq]
 
 let rec to_string : expr -> string = function
   | Symbol s -> s

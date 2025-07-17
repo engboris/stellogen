@@ -1,6 +1,6 @@
 (executables
- (public_names sgen)
- (names sgen)
+ (public_names sgen cosmog)
+ (names sgen cosmog)
  (libraries stellogen base cmdliner))
 
 (env
