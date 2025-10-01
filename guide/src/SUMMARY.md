@@ -3,7 +3,6 @@
 # Context
 
 - [Introduction](./introduction/introduction.md)
-- [Philosophy](./introduction/philosophy.md)
 - [Getting started](./introduction/start.md)
 
 # Constellations and their execution
