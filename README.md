@@ -100,10 +100,10 @@ This project is still in development, hence the syntax and features
 are still changing frequently.
 
 To learn more about the current implementation of stellogen:
-- French guide (official): https://tsguide.refl.fr/
-- English guide: https://tsguide.refl.fr/en/
 
-For other commands, use the `--help` flag at the end of the command.
+https://github.com/engboris/stellogen/wiki/Basics-of-Stellogen
+
+A more complete guide is in production.
 
 # Use
 
@@ -170,3 +170,5 @@ or if you use Dune:
 ```
 dune exec sgen run -- <inputfile>
 ```
+
+For other commands, use the `--help` flag at the end of the command.
