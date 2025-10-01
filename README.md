@@ -66,50 +66,30 @@ accepting words ending with `00`.
 
 ```
 ' We define a macro 'spec' for type definition
+' It is just an alias for the definition [:=]
 (new-declaration (spec X Y) (:= X Y))
 
 ' We define a macro for type assertion
 (new-declaration (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+  (== @(interact @#Tested #Test) ok)) ' triggers interaction and expects [ok]
 
 ' The type [binary] is defined as a set of three interactive tests
-' According to the previous macro, the tests passes when interaction gives [ok]
+' According to the previous macro, the tests pass when interaction gives [ok]
 (spec binary {
-  [(-i []) ok]
-  [(-i [0|X]) (+i X)]
-  [(-i [1|X]) (+i X)]})
+  [(-i []) ok]          ' returns [ok] on empty list
+  [(-i [0|X]) (+i X)]   ' matches on [0] and checks the tail
+  [(-i [1|X]) (+i X)]}) ' matches on [1] and checks the tail
+                        ' otherwise the term remains unchanged
 
-' Encoding of input words to feed the automaton
-(:= e (+i []))        (:: e binary)
-(:= 0 (+i [0]))       (:: 0 binary)
-(:= 000 (+i [0 0 0])) (:: 000 binary)
-(:= 010 (+i [0 1 0])) (:: 010 binary)
-(:= 110 (+i [1 1 0])) (:: 110 binary)
+' We define some words
+(:= word1 (+i [0 1 1]))
+(:= word2 (+i [2 3]))
 
-' We define macros for initial/accepting state and transitions
-' to make the automaton more readable
-(:= (initial Q) [(-i W) (+a W Q)])
-(:= (accept Q) [(-a [] Q) accept])
-(:= (if read C1 on Q1 then Q2) [(-a [C1|W] Q1) (+a W Q2)])
+' succeeds -> [ok] is obtained on interaction with test [binary]
+(:: word1 binary)
 
-' Definition of the automaton
-(:= a1 {
-  #(initial q0)
-  #(accept q2)
-  #(if read 0 on q0 then q0)
-  #(if read 0 on q0 then q1)
-  #(if read 1 on q0 then q0)
-  #(if read 0 on q1 then q2)})
-
-' Define an expression that cancels terms starting with [-a]
-(:= kill (-a _ _))
-
-' Make the automata interact with words and remove unterminated execution paths
-' Then display the result of interaction
-(show (process (interact @#e #a1)   #kill))
-(show (process (interact @#000 #a1) #kill))
-(show (process (interact @#010 #a1) #kill))
-(show (process (interact @#110 #a1) #kill))
+' fails
+' (:: word2 binary)
 ```
 
 More examples can be found in `examples/`.
