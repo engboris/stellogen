@@ -4,7 +4,7 @@ This directory contains Cram tests for Stellogen.
 
 ## Test Files
 
-- `subjects.t` - Tests for basic syntax subjects in `test/subjects/`
+- `syntax.t` - Tests for basic syntax in `test/syntax/`
 - `examples.t` - Tests for all examples in `examples/`
 
 ## Running Tests

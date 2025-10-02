@@ -1,7 +1,7 @@
-; Cram tests for Stellogen examples and subjects
+; Cram tests for Stellogen examples and syntax
 (cram
  (deps
-  (glob_files ./subjects/*.sg)
+  (glob_files ./syntax/*.sg)
   (glob_files ../examples/*.sg)
   (glob_files ../exercises/solutions/*.sg)
   (package stellogen)))
