@@ -1,11 +1,10 @@
-(test
- (name test)
- (modules test)
+; Cram tests for Stellogen examples and subjects
+(cram
  (deps
   (glob_files ./subjects/*.sg)
   (glob_files ../examples/*.sg)
-  (glob_files ../exercises/solutions/*.sg))
- (libraries alcotest base stellogen))
+  (glob_files ../exercises/solutions/*.sg)
+  (package stellogen)))
 
 (env
  (dev
