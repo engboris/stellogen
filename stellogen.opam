@@ -21,7 +21,6 @@ depends: [
   "dune" {>= "3.7"}
   "base"
   "menhir"
-  "alcotest" {with-test}
   "sedlex"
   "ppx_deriving"
   "odoc" {with-doc}
