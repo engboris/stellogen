@@ -1,4 +1,5 @@
 ; Cram tests for Stellogen examples and syntax
+
 (cram
  (deps
   (glob_files ./syntax/*.sg)
