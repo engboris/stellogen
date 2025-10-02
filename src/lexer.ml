@@ -14,8 +14,7 @@ let newline = [%sedlex.regexp? '\r' | '\n' | "\r\n"]
 let push_delimiter sym (pos : Lexing.position) =
   delimiters_stack := (sym, pos) :: !delimiters_stack
 
-let opposite_delimiter c =
-  match c with
+let opposite_delimiter = function
   | '(' -> ')'
   | '[' -> ']'
   | '{' -> '}'
@@ -24,21 +23,17 @@ let opposite_delimiter c =
   | ']' -> '['
   | '}' -> '{'
   | '>' -> '<'
-  | _ ->
-    failwith
-      (Printf.sprintf "Compiler error: '%s' is not a delimiter."
-         (String.make 1 c) )
+  | c -> failwith (Printf.sprintf "Compiler error: '%c' is not a delimiter." c)
 
 let pop_delimiter sym (pos : Lexing.position) =
   match !delimiters_stack with
   | [] -> ()
-  | (c, _) :: _ when not @@ Base.equal_char c sym ->
+  | (opening, _) :: _ when opening <> sym ->
     let msg =
-      Printf.sprintf "No opening delimiter for '%s'."
-        (String.make 1 (opposite_delimiter sym))
+      Printf.sprintf "No opening delimiter for '%c'." (opposite_delimiter sym)
     in
     raise (LexerError (msg, { pos with pos_cnum = pos.pos_cnum + 1 }))
-  | _ :: t -> delimiters_stack := t
+  | _ :: rest -> delimiters_stack := rest
 
 let set_newline_pos lexbuf =
   let open Sedlexing in
@@ -77,45 +72,36 @@ and comments lexbuf =
   tok
 
 and read lexbuf =
+  let get_pos () = fst (Sedlexing.lexing_positions lexbuf) in
   let tok =
     match%sedlex lexbuf with
     | ( Compl (Chars "'\" \t\n\r()<>[]{}|@#")
-      , Star (Compl (Chars " \t\n\r()<>[]{}|")) ) ->
+      , Star (Compl (Chars " \t\n\r()<>[]{}|")) ) -> (
       let lexeme = Utf8.lexeme lexbuf in
-      begin
-        match lexeme.[0] with '_' | 'A' .. 'Z' -> VAR lexeme | _ -> SYM lexeme
-      end
+      match lexeme.[0] with '_' | 'A' .. 'Z' -> VAR lexeme | _ -> SYM lexeme )
     | '(' ->
-      let pos = Sedlexing.lexing_positions lexbuf |> fst in
-      push_delimiter '(' pos;
+      push_delimiter '(' (get_pos ());
       LPAR
     | ')' ->
-      let pos = Sedlexing.lexing_positions lexbuf |> fst in
-      pop_delimiter '(' pos;
+      pop_delimiter '(' (get_pos ());
       RPAR
     | '[' ->
-      let pos = Sedlexing.lexing_positions lexbuf |> fst in
-      push_delimiter '[' pos;
+      push_delimiter '[' (get_pos ());
       LBRACK
     | ']' ->
-      let pos = Sedlexing.lexing_positions lexbuf |> fst in
-      pop_delimiter '[' pos;
+      pop_delimiter '[' (get_pos ());
       RBRACK
     | '{' ->
-      let pos = Sedlexing.lexing_positions lexbuf |> fst in
-      push_delimiter '{' pos;
+      push_delimiter '{' (get_pos ());
       LBRACE
     | '}' ->
-      let pos = Sedlexing.lexing_positions lexbuf |> fst in
-      pop_delimiter '{' pos;
+      pop_delimiter '{' (get_pos ());
       RBRACE
     | '<' ->
-      let pos = Sedlexing.lexing_positions lexbuf |> fst in
-      push_delimiter '<' pos;
+      push_delimiter '<' (get_pos ());
       LANGLE
     | '>' ->
-      let pos = Sedlexing.lexing_positions lexbuf |> fst in
-      pop_delimiter '<' pos;
+      pop_delimiter '<' (get_pos ());
       RANGLE
     | '@' -> AT
     | '#' -> SHARP
@@ -129,12 +115,11 @@ and read lexbuf =
       read lexbuf
     | eof -> EOF
     | _ ->
-      let pos = Sedlexing.lexing_positions lexbuf |> fst in
       let msg =
         Printf.sprintf "Unexpected character '%s' during lexing"
           (Utf8.lexeme lexbuf)
       in
-      raise (LexerError (msg, pos))
+      raise (LexerError (msg, get_pos ()))
   in
   last_token := Some tok;
   tok
