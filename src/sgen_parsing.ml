@@ -1,13 +1,18 @@
+open Base
 open Lexing
 open Lexer
 open Parser
 
 let red text = "\x1b[31m" ^ text ^ "\x1b[0m"
 
+let bold text = "\x1b[1m" ^ text ^ "\x1b[0m"
+
+let cyan text = "\x1b[36m" ^ text ^ "\x1b[0m"
+
+let yellow text = "\x1b[33m" ^ text ^ "\x1b[0m"
+
 let string_of_token = function
-  | VAR s -> s
-  | SYM s -> s
-  | STRING s -> s
+  | VAR s | SYM s | STRING s -> s
   | AT -> "@"
   | BAR -> "|"
   | LPAR -> "("
@@ -26,74 +31,81 @@ let is_end_delimiter = function
   | _ -> false
 
 let get_line filename line_num =
-  let ic = open_in filename in
-  let rec loop n =
-    if n = 0 then input_line ic
-    else begin
-      ignore (input_line ic);
-      loop (n - 1)
-    end
+  let ic = Stdlib.open_in filename in
+  let rec skip_lines n =
+    if n <= 0 then ()
+    else
+      match Stdlib.input_line ic with
+      | exception End_of_file -> ()
+      | _ -> skip_lines (n - 1)
   in
-  let line = try Some (loop (line_num - 1)) with End_of_file -> None in
-  close_in ic;
-  line
+  skip_lines (line_num - 1);
+  let result = try Some (Stdlib.input_line ic) with End_of_file -> None in
+  Stdlib.close_in ic;
+  result
 
 let unexpected_token_msg () =
   match !last_token with
   | Some tok when is_end_delimiter tok ->
-    Printf.sprintf "No opening delimiter for '%s'." (string_of_token tok)
-  | Some tok -> Printf.sprintf "Unexpected symbol '%s'." (string_of_token tok)
-  | None -> "Unexpected end of input."
+    Printf.sprintf "no opening delimiter for '%s'" (string_of_token tok)
+  | Some tok -> Printf.sprintf "unexpected symbol '%s'" (string_of_token tok)
+  | None -> "unexpected end of input"
 
-let string_of_line filename header lnum =
-  match get_line filename lnum with
+let format_location filename pos =
+  let column = pos.pos_cnum - pos.pos_bol + 1 in
+  Printf.sprintf "%s:%d:%d" (cyan filename) pos.pos_lnum column
+
+let show_source_location filename pos =
+  match get_line filename pos.pos_lnum with
+  | Some line ->
+    let line_num_str = Printf.sprintf "%4d" pos.pos_lnum in
+    let column = pos.pos_cnum - pos.pos_bol + 1 in
+    let pointer = String.make (column - 1) ' ' ^ red "^" in
+    Printf.sprintf "\n %s %s %s\n      %s %s\n" (cyan line_num_str) (cyan "|")
+      line (cyan "|") pointer
   | None -> ""
-  | Some l -> Printf.sprintf "%s%s" header l
 
-let string_of_position cnum = String.make cnum ' ' ^ red "^"
+let print_syntax_error pos error_msg filename =
+  let header = bold (red "error") ^ ": " ^ bold error_msg in
+  let loc_str = format_location filename pos in
+  let source = show_source_location filename pos in
+  Stdlib.Printf.eprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
+
+let handle_unclosed_delimiter c pos filename =
+  let error_msg = Printf.sprintf "unclosed delimiter '%c'" c in
+  print_syntax_error pos error_msg filename;
+  Stdlib.exit 1
+
+let handle_unexpected_token start_pos filename =
+  let error_msg = unexpected_token_msg () in
+  print_syntax_error start_pos error_msg filename;
+  Stdlib.exit 1
+
+let handle_lexer_error msg pos filename =
+  print_syntax_error pos msg filename;
+  Stdlib.exit 1
 
 let parse_with_error filename lexbuf =
+  Parser_context.current_filename := filename;
   let lexer = Sedlexing.with_tokenizer read lexbuf in
-  let parser = MenhirLib.Convert.Simplified.traditional2revised expr_file in
+  let parser =
+    MenhirLib.Convert.Simplified.traditional2revised Parser.expr_file
+  in
   try parser lexer with
-  | Parser.Error -> begin
+  | Parser.Error -> (
     match !last_token with
-    | Some EOF -> begin
+    | Some EOF -> (
       match !delimiters_stack with
       | [] ->
-        Printf.eprintf "%s: %s\n" (red "Syntax error") "unexpected end of file";
-        exit 1
-      | (c, pos) :: _ ->
-        let header = Printf.sprintf "%d| " pos.pos_lnum in
-        let size_of_header = String.length header in
-        let column = pos.pos_cnum - pos.pos_bol + 1 in
-        Printf.eprintf "%s at line %d, column %d.\n%s\n%s\n%s%s\n"
-          (red "Syntax error") pos.pos_lnum column
-          (Printf.sprintf "Unclosed delimiter '%s'." (String.make 1 c))
-          (string_of_line filename header pos.pos_lnum)
-          (String.make size_of_header ' ')
-          (string_of_position (column - 1));
-        exit 1
-    end
+        let header =
+          bold (red "error") ^ ": " ^ bold "unexpected end of file"
+        in
+        Stdlib.Printf.eprintf "%s\n  %s %s\n\n" header (cyan "-->")
+          (cyan filename);
+        Stdlib.exit 1
+      | (delimiter_char, pos) :: _ ->
+        handle_unclosed_delimiter delimiter_char pos filename )
     | _ ->
       let start_pos, _ = Sedlexing.lexing_positions lexbuf in
-      let header = Printf.sprintf "%d| " start_pos.pos_lnum in
-      let size_of_header = String.length header in
-      let column = start_pos.pos_cnum - start_pos.pos_bol + 1 in
-      Printf.eprintf "%s at line %d, column %d.\n%s\n%s\n%s%s\n"
-        (red "Syntax error") start_pos.pos_lnum column (unexpected_token_msg ())
-        (string_of_line filename header start_pos.pos_lnum)
-        (String.make size_of_header ' ')
-        (string_of_position (column - 1));
-      exit 1
-  end
-  | LexerError (msg, pos) ->
-    let header = Printf.sprintf "%d| " pos.pos_lnum in
-    let size_of_header = String.length header in
-    let column = pos.pos_cnum - pos.pos_bol + 1 in
-    Printf.eprintf "%s at line %d, column %d.\n%s\n%s\n%s%s\n"
-      (red "Syntax error") pos.pos_lnum column msg
-      (string_of_line filename header pos.pos_lnum)
-      (String.make size_of_header ' ')
-      (string_of_position (column - 1));
-    exit 1
+      handle_unexpected_token start_pos filename )
+  | LexerError (msg, pos) -> handle_lexer_error msg pos filename

@@ -20,37 +20,40 @@ let fusion repl1 repl2 s1 s2 bans1 bans2 theta : star =
   ; bans = List.map (nbans1 @ nbans2) ~f:(fmap_ban ~f:(subst theta))
   }
 
-let group_bans =
-  List.fold_left ~init:([], []) ~f:(function ineq, incomp ->
-    (function
-    | Ineq (b1, b2) -> ((b1, b2) :: ineq, incomp)
-    | Incomp (b1, b2) -> (ineq, (b1, b2) :: incomp) ) )
+let group_bans bans =
+  List.fold bans ~init:([], []) ~f:(fun (inequalities, incompatibles) ban ->
+    match ban with
+    | Ineq (b1, b2) -> ((b1, b2) :: inequalities, incompatibles)
+    | Incomp (b1, b2) -> (inequalities, (b1, b2) :: incompatibles) )
 
-let exists_incomp_pair (box, slice) =
-  List.exists ~f:(fun (box', slice') ->
-    equal_ray box box' && (not @@ equal_ray slice slice') )
+let exists_conflicting_incomp_pair (box, slice) incomp_list =
+  List.exists incomp_list ~f:(fun (other_box, other_slice) ->
+    equal_ray box other_box && not (equal_ray slice other_slice) )
 
-let coherent_incomp incomp =
-  let aux others res = function
-    | [] -> res
-    | h :: t -> res && (not @@ exists_incomp_pair h (others @ t))
+let coherent_incomp incompatible_pairs =
+  let rec check_all = function
+    | [] -> true
+    | head :: tail ->
+      (not (exists_conflicting_incomp_pair head tail)) && check_all tail
   in
-  aux [] true incomp
+  check_all incompatible_pairs
 
 let coherent_bans bans =
-  let ineq, incomp = group_bans bans in
-  List.for_all ineq ~f:(fun (b1, b2) -> not @@ equal_ray b1 b2)
-  && coherent_incomp incomp
+  let inequalities, incompatibles = group_bans bans in
+  List.for_all inequalities ~f:(fun (b1, b2) -> not (equal_ray b1 b2))
+  && coherent_incomp incompatibles
 
 let ident_counter = ref 0
 
-let classify =
-  let rec aux (cs, space) = function
-    | [] -> (List.rev cs, List.rev space)
-    | Marked.State s :: t -> aux (cs, s :: space) t
-    | Marked.Action s :: t -> aux (s :: cs, space) t
+let classify marked_constellation =
+  let rec separate_actions_and_states actions states = function
+    | [] -> (List.rev actions, List.rev states)
+    | Marked.State s :: rest ->
+      separate_actions_and_states actions (s :: states) rest
+    | Marked.Action s :: rest ->
+      separate_actions_and_states (s :: actions) states rest
   in
-  aux ([], [])
+  separate_actions_and_states [] [] marked_constellation
 
 let extract_intspace (mcs : Marked.constellation) =
   ident_counter := 0;
