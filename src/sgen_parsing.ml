@@ -4,8 +4,11 @@ open Lexer
 open Parser
 
 let red text = "\x1b[31m" ^ text ^ "\x1b[0m"
+
 let bold text = "\x1b[1m" ^ text ^ "\x1b[0m"
+
 let cyan text = "\x1b[36m" ^ text ^ "\x1b[0m"
+
 let yellow text = "\x1b[33m" ^ text ^ "\x1b[0m"
 
 let string_of_token = function
@@ -58,23 +61,15 @@ let show_source_location filename pos =
     let line_num_str = Printf.sprintf "%4d" pos.pos_lnum in
     let column = pos.pos_cnum - pos.pos_bol + 1 in
     let pointer = String.make (column - 1) ' ' ^ red "^" in
-    Printf.sprintf "\n %s %s %s\n      %s %s\n"
-      (cyan line_num_str)
-      (cyan "|")
-      line
-      (cyan "|")
-      pointer
+    Printf.sprintf "\n %s %s %s\n      %s %s\n" (cyan line_num_str) (cyan "|")
+      line (cyan "|") pointer
   | None -> ""
 
 let print_syntax_error pos error_msg filename =
   let header = bold (red "error") ^ ": " ^ bold error_msg in
   let loc_str = format_location filename pos in
   let source = show_source_location filename pos in
-  Stdlib.Printf.eprintf "%s\n  %s %s\n%s\n"
-    header
-    (cyan "-->")
-    loc_str
-    source
+  Stdlib.Printf.eprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
 
 let handle_unclosed_delimiter c pos filename =
   let error_msg = Printf.sprintf "unclosed delimiter '%c'" c in
@@ -93,17 +88,19 @@ let handle_lexer_error msg pos filename =
 let parse_with_error filename lexbuf =
   Parser_context.current_filename := filename;
   let lexer = Sedlexing.with_tokenizer read lexbuf in
-  let parser = MenhirLib.Convert.Simplified.traditional2revised Parser.expr_file in
+  let parser =
+    MenhirLib.Convert.Simplified.traditional2revised Parser.expr_file
+  in
   try parser lexer with
   | Parser.Error -> (
     match !last_token with
     | Some EOF -> (
       match !delimiters_stack with
       | [] ->
-        let header = bold (red "error") ^ ": " ^ bold "unexpected end of file" in
-        Stdlib.Printf.eprintf "%s\n  %s %s\n\n"
-          header
-          (cyan "-->")
+        let header =
+          bold (red "error") ^ ": " ^ bold "unexpected end of file"
+        in
+        Stdlib.Printf.eprintf "%s\n  %s %s\n\n" header (cyan "-->")
           (cyan filename);
         Stdlib.exit 1
       | (delimiter_char, pos) :: _ ->

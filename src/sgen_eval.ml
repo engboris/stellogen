@@ -63,7 +63,7 @@ let pp_err error : (string, err) Result.t =
         if n <= 1 then ()
         else (
           ignore (Stdlib.input_line ic);
-          skip_lines (n - 1))
+          skip_lines (n - 1) )
       in
       skip_lines line_num;
       let line = Stdlib.input_line ic in
@@ -77,12 +77,8 @@ let pp_err error : (string, err) Result.t =
     | Some line ->
       let line_num_str = Printf.sprintf "%4d" loc.line in
       let pointer = String.make (loc.column - 1) ' ' ^ red "^" in
-      Printf.sprintf "\n %s %s %s\n      %s %s\n"
-        (cyan line_num_str)
-        (cyan "|")
-        line
-        (cyan "|")
-        pointer
+      Printf.sprintf "\n %s %s %s\n      %s %s\n" (cyan line_num_str) (cyan "|")
+        line (cyan "|") pointer
     | None -> ""
   in
 
@@ -91,79 +87,87 @@ let pp_err error : (string, err) Result.t =
   | ExpectError { got; expected; message = Func ((Null, f), []); location }
     when String.equal f "default" ->
     let header = bold (red "error") ^ ": " ^ bold "assertion failed" in
-    let loc_str = Option.map location ~f:format_location
-                  |> Option.value ~default:"<unknown location>" in
-    let source = Option.map location ~f:show_source_location
-                 |> Option.value ~default:"" in
-    let expected_str = expected |> Marked.remove_all |> string_of_constellation in
+    let loc_str =
+      Option.map location ~f:format_location
+      |> Option.value ~default:"<unknown location>"
+    in
+    let source =
+      Option.map location ~f:show_source_location |> Option.value ~default:""
+    in
+    let expected_str =
+      expected |> Marked.remove_all |> string_of_constellation
+    in
     let got_str = got |> Marked.remove_all |> string_of_constellation in
 
-    Printf.sprintf "%s\n  %s %s\n%s\n  %s %s\n  %s %s\n\n"
-      header
-      (cyan "-->")
-      loc_str
-      source
-      (bold "Expected:")
-      (green expected_str)
-      (bold "     Got:")
+    Printf.sprintf "%s\n  %s %s\n%s\n  %s %s\n  %s %s\n\n" header (cyan "-->")
+      loc_str source (bold "Expected:") (green expected_str) (bold "     Got:")
       (yellow got_str)
     |> Result.return
-
   | ExpectError { message = Func ((Null, f), [ term ]); location; _ }
     when String.equal f "error" ->
     let header = bold (red "error") ^ ": " ^ string_of_ray term in
-    let loc_str = Option.map location ~f:format_location
-                  |> Option.value ~default:"<unknown location>" in
-    let source = Option.map location ~f:show_source_location
-                 |> Option.value ~default:"" in
-    Printf.sprintf "%s\n  %s %s\n%s\n"
-      header (cyan "-->") loc_str source
+    let loc_str =
+      Option.map location ~f:format_location
+      |> Option.value ~default:"<unknown location>"
+    in
+    let source =
+      Option.map location ~f:show_source_location |> Option.value ~default:""
+    in
+    Printf.sprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
     |> Result.return
-
   | ExpectError { message; location; _ } ->
     let header = bold (red "error") ^ ": " ^ string_of_ray message in
-    let loc_str = Option.map location ~f:format_location
-                  |> Option.value ~default:"<unknown location>" in
-    let source = Option.map location ~f:show_source_location
-                 |> Option.value ~default:"" in
-    Printf.sprintf "%s\n  %s %s\n%s\n"
-      header (cyan "-->") loc_str source
+    let loc_str =
+      Option.map location ~f:format_location
+      |> Option.value ~default:"<unknown location>"
+    in
+    let source =
+      Option.map location ~f:show_source_location |> Option.value ~default:""
+    in
+    Printf.sprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
     |> Result.return
-
   | UnknownID (identifier, location) ->
     let header = bold (red "error") ^ ": " ^ bold "identifier not found" in
-    let loc_str = Option.map location ~f:format_location
-                  |> Option.value ~default:"<unknown location>" in
-    let source = Option.map location ~f:show_source_location
-                 |> Option.value ~default:"" in
+    let loc_str =
+      Option.map location ~f:format_location
+      |> Option.value ~default:"<unknown location>"
+    in
+    let source =
+      Option.map location ~f:show_source_location |> Option.value ~default:""
+    in
     Printf.sprintf "%s\n  %s %s\n%s\n  The identifier %s was not defined.\n\n"
-      header (cyan "-->") loc_str source (yellow ("'" ^ identifier ^ "'"))
+      header (cyan "-->") loc_str source
+      (yellow ("'" ^ identifier ^ "'"))
     |> Result.return
-
   | ExprError (expr_error, location) ->
-    let error_msg, hint = match expr_error with
+    let error_msg, hint =
+      match expr_error with
       | EmptyRay ->
         ("rays cannot be empty", "Remove the empty ray or add content to it.")
       | NonConstantRayHeader expr ->
-        (Printf.sprintf "ray '%s' must start with a constant function symbol" expr,
-         "Rays must begin with a function symbol, not a variable.")
+        ( Printf.sprintf "ray '%s' must start with a constant function symbol"
+            expr
+        , "Rays must begin with a function symbol, not a variable." )
       | InvalidBan expr ->
-        (Printf.sprintf "invalid ban expression '%s'" expr,
-         "Ban expressions must use != or 'slice'.")
+        ( Printf.sprintf "invalid ban expression '%s'" expr
+        , "Ban expressions must use != or 'slice'." )
       | InvalidRaylist expr ->
-        (Printf.sprintf "expression '%s' is not a valid star" expr,
-         "Check the syntax of your star expression.")
+        ( Printf.sprintf "expression '%s' is not a valid star" expr
+        , "Check the syntax of your star expression." )
       | InvalidDeclaration expr ->
-        (Printf.sprintf "expression '%s' is not a valid declaration" expr,
-         "Declarations must use :=, show, ==, or use.")
+        ( Printf.sprintf "expression '%s' is not a valid declaration" expr
+        , "Declarations must use :=, show, ==, or use." )
     in
     let header = bold (red "error") ^ ": " ^ bold error_msg in
-    let loc_str = Option.map location ~f:format_location
-                  |> Option.value ~default:"<unknown location>" in
-    let source = Option.map location ~f:show_source_location
-                 |> Option.value ~default:"" in
-    Printf.sprintf "%s\n  %s %s\n%s\n  %s %s\n\n"
-      header (cyan "-->") loc_str source (cyan "help:") hint
+    let loc_str =
+      Option.map location ~f:format_location
+      |> Option.value ~default:"<unknown location>"
+    in
+    let source =
+      Option.map location ~f:show_source_location |> Option.value ~default:""
+    in
+    Printf.sprintf "%s\n  %s %s\n%s\n  %s %s\n\n" header (cyan "-->") loc_str
+      source (cyan "help:") hint
     |> Result.return
 
 let rec eval_sgen_expr (env : env) :

@@ -87,11 +87,12 @@ let rec expand_macro : Raw.t -> expr = function
     List.fold_left t ~init:(expand_macro h) ~f:(fun acc e ->
       List [ expand_macro e; acc ] )
   | Raw.Positioned (e, start_pos, _) ->
-    let loc = {
-      filename = start_pos.Lexing.pos_fname;
-      line = start_pos.Lexing.pos_lnum;
-      column = start_pos.Lexing.pos_cnum - start_pos.Lexing.pos_bol + 1;
-    } in
+    let loc =
+      { filename = start_pos.Lexing.pos_fname
+      ; line = start_pos.Lexing.pos_lnum
+      ; column = start_pos.Lexing.pos_cnum - start_pos.Lexing.pos_bol + 1
+      }
+    in
     WithPos (expand_macro e, loc)
 
 let rec replace_id (var_from : ident) replacement expr =
@@ -105,7 +106,7 @@ let unfold_decl_def (macro_env : (string * (string list * expr list)) list)
   exprs =
   let rec process_expr (env, acc) = function
     | WithPos (e, loc) ->
-      let (env', result) = process_expr (env, []) e in
+      let env', result = process_expr (env, []) e in
       (env', List.map result ~f:(fun r -> WithPos (r, loc)) @ acc)
     | List (Symbol "new-declaration" :: List (Symbol macro_name :: args) :: body)
       ->
@@ -263,11 +264,13 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
    --------------------------------------- *)
 
 let rec decl_of_expr : expr -> (declaration, expr_err) Result.t = function
-  | WithPos (List [ Symbol op; expr1; expr2 ], loc) when String.equal op expect_op ->
+  | WithPos (List [ Symbol op; expr1; expr2 ], loc)
+    when String.equal op expect_op ->
     let* sgen_expr1 = sgen_expr_of_expr expr1 in
     let* sgen_expr2 = sgen_expr_of_expr expr2 in
     Expect (sgen_expr1, sgen_expr2, const "default", Some loc) |> Result.return
-  | WithPos (List [ Symbol op; expr1; expr2; message ], loc) when String.equal op expect_op ->
+  | WithPos (List [ Symbol op; expr1; expr2; message ], loc)
+    when String.equal op expect_op ->
     let* sgen_expr1 = sgen_expr_of_expr expr1 in
     let* sgen_expr2 = sgen_expr_of_expr expr2 in
     let* message_ray = ray_of_expr message in
