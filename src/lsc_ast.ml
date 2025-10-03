@@ -11,20 +11,18 @@ module StellarSig = struct
 
   type idfunc = polarity * string
 
-  let string_of_idvar (s, i) =
-    match i with None -> s | Some j -> s ^ Int.to_string j
+  let string_of_idvar (s, index_opt) =
+    match index_opt with None -> s | Some j -> s ^ Int.to_string j
 
-  let equal_idvar x y = equal_string (string_of_idvar x) (string_of_idvar y)
+  let equal_idvar x y = String.equal (string_of_idvar x) (string_of_idvar y)
 
-  let equal_idfunc ((p, f) : idfunc) ((p', f') : idfunc) =
-    equal_polarity p p' && equal_string f f'
+  let equal_idfunc (p1, f1) (p2, f2) =
+    equal_polarity p1 p2 && String.equal f1 f2
 
   let compatible (p1, f1) (p2, f2) =
-    let ( = ) = equal_polarity in
-    equal_string f1 f2
-    && ( (p1 = Pos && p2 = Neg)
-       || (p1 = Neg && p2 = Pos)
-       || (p1 = Null && p2 = Null) )
+    String.equal f1 f2
+    &&
+    match (p1, p2) with Pos, Neg | Neg, Pos | Null, Null -> true | _ -> false
 end
 
 module StellarRays = Unification.Make (StellarSig)
@@ -99,12 +97,12 @@ let raymatcher r r' : substitution option =
   if is_polarised r && is_polarised r' then solution [ (r, r') ] else None
 
 let fresh_var vars =
-  let rec aux i =
-    if not @@ List.mem vars ("X", Some i) ~equal:StellarSig.equal_idvar then
-      ("X", Some i)
-    else aux (i + 1)
+  let rec find_fresh_index i =
+    if List.mem vars ("X", Some i) ~equal:StellarSig.equal_idvar then
+      find_fresh_index (i + 1)
+    else ("X", Some i)
   in
-  aux 0
+  find_fresh_index 0
 
 (* ---------------------------------------
    Operation on marked stars
@@ -140,16 +138,17 @@ end
 let subst_all_vars sub = List.map ~f:(Marked.map ~f:(subst sub))
 
 let all_vars mcs : StellarSig.idvar list =
-  List.map mcs ~f:(function Marked.State s | Marked.Action s ->
-    List.map s.content ~f:StellarRays.vars |> List.concat )
-  |> List.concat
+  mcs
+  |> List.concat_map ~f:(function Marked.State s | Marked.Action s ->
+       List.concat_map s.content ~f:StellarRays.vars )
 
 let normalize_vars (mcs : Marked.constellation) =
   let vars = all_vars mcs in
-  let new_x, new_i = fresh_var vars in
+  let new_var_name, new_start_index = fresh_var vars in
+  let start_index = Option.value new_start_index ~default:0 in
   let new_vars =
-    List.mapi vars ~f:(fun i _ ->
-      Var (new_x, Some (Option.value new_i ~default:0 + i)) )
+    List.mapi vars ~f:(fun offset _ ->
+      Var (new_var_name, Some (start_index + offset)) )
   in
-  let sub = List.zip_exn vars new_vars in
-  subst_all_vars sub mcs
+  let substitution = List.zip_exn vars new_vars in
+  subst_all_vars substitution mcs

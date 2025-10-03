@@ -33,7 +33,14 @@ let angles(x) == ~=delimited(LANGLE, x, RANGLE); <>
 
 let expr_file :=
   | EOF; { [] }
-  | es=expr_ext+; EOF; { es }
+  | es=positioned_expr+; EOF; { es }
+
+let positioned_expr :=
+  | e=expr_ext; {
+      let pos_start = { $startpos with Lexing.pos_fname = !(Parser_context.current_filename) } in
+      let pos_end = { $endpos with Lexing.pos_fname = !(Parser_context.current_filename) } in
+      Positioned (e, pos_start, pos_end)
+    }
 
 let params :=
   | BAR; BAR; ~=expr_ext+; <>
