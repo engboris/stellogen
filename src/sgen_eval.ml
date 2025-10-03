@@ -47,52 +47,131 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
 
 let pp_err error : (string, err) Result.t =
   let red text = "\x1b[31m" ^ text ^ "\x1b[0m" in
+  let bold text = "\x1b[1m" ^ text ^ "\x1b[0m" in
+  let cyan text = "\x1b[36m" ^ text ^ "\x1b[0m" in
+  let yellow text = "\x1b[33m" ^ text ^ "\x1b[0m" in
+  let green text = "\x1b[32m" ^ text ^ "\x1b[0m" in
+
+  let format_location loc =
+    Printf.sprintf "%s:%d:%d" (cyan loc.filename) loc.line loc.column
+  in
+
+  let get_source_line filename line_num =
+    try
+      let ic = Stdlib.open_in filename in
+      let rec skip_lines n =
+        if n <= 1 then ()
+        else (
+          ignore (Stdlib.input_line ic);
+          skip_lines (n - 1))
+      in
+      skip_lines line_num;
+      let line = Stdlib.input_line ic in
+      Stdlib.close_in ic;
+      Some line
+    with _ -> None
+  in
+
+  let show_source_location loc =
+    match get_source_line loc.filename loc.line with
+    | Some line ->
+      let line_num_str = Printf.sprintf "%4d" loc.line in
+      let pointer = String.make (loc.column - 1) ' ' ^ red "^" in
+      Printf.sprintf "\n %s %s %s\n      %s %s\n"
+        (cyan line_num_str)
+        (cyan "|")
+        line
+        (cyan "|")
+        pointer
+    | None -> ""
+  in
+
   let open Lsc_ast.StellarRays in
   match error with
-  | ExpectError (got, expected, Func ((Null, f), []))
+  | ExpectError { got; expected; message = Func ((Null, f), []); location }
     when String.equal f "default" ->
-    Printf.sprintf "%s:\n* expected: %s\n* got: %s\n" (red "Expect Error")
-      (expected |> Marked.remove_all |> string_of_constellation)
-      (got |> Marked.remove_all |> string_of_constellation)
+    let header = bold (red "error") ^ ": " ^ bold "assertion failed" in
+    let loc_str = Option.map location ~f:format_location
+                  |> Option.value ~default:"<unknown location>" in
+    let source = Option.map location ~f:show_source_location
+                 |> Option.value ~default:"" in
+    let expected_str = expected |> Marked.remove_all |> string_of_constellation in
+    let got_str = got |> Marked.remove_all |> string_of_constellation in
+
+    Printf.sprintf "%s\n  %s %s\n%s\n  %s %s\n  %s %s\n\n"
+      header
+      (cyan "-->")
+      loc_str
+      source
+      (bold "Expected:")
+      (green expected_str)
+      (bold "     Got:")
+      (yellow got_str)
     |> Result.return
-  | ExpectError (_, _, Func ((Null, f), [ term ])) when String.equal f "error"
-    ->
-    Printf.sprintf "%s: %s\n" (red "Expect Error") (string_of_ray term)
+
+  | ExpectError { message = Func ((Null, f), [ term ]); location; _ }
+    when String.equal f "error" ->
+    let header = bold (red "error") ^ ": " ^ string_of_ray term in
+    let loc_str = Option.map location ~f:format_location
+                  |> Option.value ~default:"<unknown location>" in
+    let source = Option.map location ~f:show_source_location
+                 |> Option.value ~default:"" in
+    Printf.sprintf "%s\n  %s %s\n%s\n"
+      header (cyan "-->") loc_str source
     |> Result.return
-  | ExpectError (_, _, message) ->
-    Printf.sprintf "%s\n" (string_of_ray message) |> Result.return
-  | UnknownID identifier ->
-    Printf.sprintf "%s: identifier '%s' not found.\n" (red "UnknownID Error")
-      identifier
+
+  | ExpectError { message; location; _ } ->
+    let header = bold (red "error") ^ ": " ^ string_of_ray message in
+    let loc_str = Option.map location ~f:format_location
+                  |> Option.value ~default:"<unknown location>" in
+    let source = Option.map location ~f:show_source_location
+                 |> Option.value ~default:"" in
+    Printf.sprintf "%s\n  %s %s\n%s\n"
+      header (cyan "-->") loc_str source
     |> Result.return
-  | ExprError expr_error -> (
-    let error_prefix = red "Expression Parsing Error" in
-    match expr_error with
-    | EmptyRay ->
-      Printf.sprintf "%s: rays cannot be empty.\n" error_prefix |> Result.return
-    | NonConstantRayHeader expr ->
-      Printf.sprintf
-        "%s: ray '%s' must start with a constant function symbol.\n"
-        error_prefix expr
-      |> Result.return
-    | InvalidBan expr ->
-      Printf.sprintf "%s: invalid ban expression '%s'.\n" error_prefix expr
-      |> Result.return
-    | InvalidRaylist expr ->
-      Printf.sprintf "%s: expression '%s' is not a valid star.\n" error_prefix
-        expr
-      |> Result.return
-    | InvalidDeclaration expr ->
-      Printf.sprintf "%s: expression '%s' is not a valid declaration.\n"
-        error_prefix expr
-      |> Result.return )
+
+  | UnknownID (identifier, location) ->
+    let header = bold (red "error") ^ ": " ^ bold "identifier not found" in
+    let loc_str = Option.map location ~f:format_location
+                  |> Option.value ~default:"<unknown location>" in
+    let source = Option.map location ~f:show_source_location
+                 |> Option.value ~default:"" in
+    Printf.sprintf "%s\n  %s %s\n%s\n  The identifier %s was not defined.\n\n"
+      header (cyan "-->") loc_str source (yellow ("'" ^ identifier ^ "'"))
+    |> Result.return
+
+  | ExprError (expr_error, location) ->
+    let error_msg, hint = match expr_error with
+      | EmptyRay ->
+        ("rays cannot be empty", "Remove the empty ray or add content to it.")
+      | NonConstantRayHeader expr ->
+        (Printf.sprintf "ray '%s' must start with a constant function symbol" expr,
+         "Rays must begin with a function symbol, not a variable.")
+      | InvalidBan expr ->
+        (Printf.sprintf "invalid ban expression '%s'" expr,
+         "Ban expressions must use != or 'slice'.")
+      | InvalidRaylist expr ->
+        (Printf.sprintf "expression '%s' is not a valid star" expr,
+         "Check the syntax of your star expression.")
+      | InvalidDeclaration expr ->
+        (Printf.sprintf "expression '%s' is not a valid declaration" expr,
+         "Declarations must use :=, show, ==, or use.")
+    in
+    let header = bold (red "error") ^ ": " ^ bold error_msg in
+    let loc_str = Option.map location ~f:format_location
+                  |> Option.value ~default:"<unknown location>" in
+    let source = Option.map location ~f:show_source_location
+                 |> Option.value ~default:"" in
+    Printf.sprintf "%s\n  %s %s\n%s\n  %s %s\n\n"
+      header (cyan "-->") loc_str source (cyan "help:") hint
+    |> Result.return
 
 let rec eval_sgen_expr (env : env) :
   sgen_expr -> (Marked.constellation, err) Result.t = function
   | Raw mcs -> Ok mcs
   | Call x -> begin
     match get_obj env x with
-    | None -> Error (UnknownID (string_of_ray x))
+    | None -> Error (UnknownID (string_of_ray x, None))
     | Some (g, subst) ->
       let result =
         List.fold_result subst ~init:g ~f:(fun g_acc (xfrom, xto) ->
@@ -131,7 +210,7 @@ let rec eval_sgen_expr (env : env) :
       begin
         match Expr.sgen_expr_of_expr er with
         | Ok sg -> eval_sgen_expr env sg
-        | Error e -> Error (ExprError e)
+        | Error e -> Error (ExprError (e, None))
       end
     | e ->
       failwith
@@ -163,13 +242,13 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
       eval_sgen_expr env (Exec (false, expr))
     in
     Ok env
-  | Expect (expr1, expr2, message) ->
+  | Expect (expr1, expr2, message, location) ->
     let* eval1 = eval_sgen_expr env expr1 in
     let* eval2 = eval_sgen_expr env expr2 in
     let normalized1 = Marked.normalize_all eval1 in
     let normalized2 = Marked.normalize_all eval2 in
     if Marked.equal_constellation normalized1 normalized2 then Ok env
-    else Error (ExpectError (eval1, eval2, message))
+    else Error (ExpectError { got = eval1; expected = eval2; message; location })
   | Use path -> (
     let open Lsc_ast.StellarRays in
     let filename =
@@ -188,7 +267,7 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     | Ok program ->
       let* new_env = eval_program program in
       Ok new_env
-    | Error expr_err -> Error (ExprError expr_err) )
+    | Error expr_err -> Error (ExprError (expr_err, None)) )
 
 and eval_program (p : program) =
   match

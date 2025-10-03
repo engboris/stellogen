@@ -20,13 +20,22 @@ module Raw = struct
     | Cons of t list
     | ConsWithParams of t list * t list
     | ConsWithBase of t list * t
+    | Positioned of t * Lexing.position * Lexing.position
 end
 
 type expr =
   | Symbol of string
   | Var of ident
   | List of expr list
-[@@derive eq]
+  | WithPos of expr * source_location
+
+let rec equal_expr e1 e2 =
+  match (e1, e2) with
+  | Symbol s1, Symbol s2 -> String.equal s1 s2
+  | Var v1, Var v2 -> String.equal v1 v2
+  | List l1, List l2 -> List.equal equal_expr l1 l2
+  | WithPos (e1', _), e2' | e1', WithPos (e2', _) -> equal_expr e1' e2'
+  | _ -> false
 
 let primitive = String.append "%"
 
@@ -57,6 +66,7 @@ let rec to_string : expr -> string = function
   | Var x -> x
   | List es ->
     Printf.sprintf "(%s)" (List.map ~f:to_string es |> String.concat ~sep:" ")
+  | WithPos (e, _) -> to_string e
 
 let rec expand_macro : Raw.t -> expr = function
   | Raw.Symbol s -> Symbol s
@@ -76,16 +86,27 @@ let rec expand_macro : Raw.t -> expr = function
   | Raw.Stack (h :: t) ->
     List.fold_left t ~init:(expand_macro h) ~f:(fun acc e ->
       List [ expand_macro e; acc ] )
+  | Raw.Positioned (e, start_pos, _) ->
+    let loc = {
+      filename = start_pos.Lexing.pos_fname;
+      line = start_pos.Lexing.pos_lnum;
+      column = start_pos.Lexing.pos_cnum - start_pos.Lexing.pos_bol + 1;
+    } in
+    WithPos (expand_macro e, loc)
 
 let rec replace_id (var_from : ident) replacement expr =
   match expr with
   | Var x when String.equal x var_from -> replacement
   | Symbol _ | Var _ -> expr
   | List exprs -> List (List.map exprs ~f:(replace_id var_from replacement))
+  | WithPos (e, loc) -> WithPos (replace_id var_from replacement e, loc)
 
 let unfold_decl_def (macro_env : (string * (string list * expr list)) list)
   exprs =
-  let process_expr (env, acc) = function
+  let rec process_expr (env, acc) = function
+    | WithPos (e, loc) ->
+      let (env', result) = process_expr (env, []) e in
+      (env', List.map result ~f:(fun r -> WithPos (r, loc)) @ acc)
     | List (Symbol "new-declaration" :: List (Symbol macro_name :: args) :: body)
       ->
       let var_args =
@@ -134,9 +155,10 @@ let rec ray_of_expr : expr -> (ray, expr_err) Result.t = function
     let* args = List.map ~f:ray_of_expr t |> Result.all in
     to_func (symbol_of_str h, args) |> Result.return
   | List (_ :: _) as e -> Error (NonConstantRayHeader (to_string e))
+  | WithPos (e, _) -> ray_of_expr e
 
 let bans_of_expr ban_exprs : (ban list, expr_err) Result.t =
-  let ban_of_expr = function
+  let rec ban_of_expr = function
     | List [ Symbol op; expr1; expr2 ] when String.equal op ineq_op ->
       let* ray1 = ray_of_expr expr1 in
       let* ray2 = ray_of_expr expr2 in
@@ -145,6 +167,7 @@ let bans_of_expr ban_exprs : (ban list, expr_err) Result.t =
       let* ray1 = ray_of_expr expr1 in
       let* ray2 = ray_of_expr expr2 in
       Incomp (ray1, ray2) |> Result.return
+    | WithPos (e, _) -> ban_of_expr e
     | invalid_expr -> Error (InvalidBan (to_string invalid_expr))
   in
   List.map ban_exprs ~f:ban_of_expr |> Result.all
@@ -159,6 +182,7 @@ let rec raylist_of_expr expr : (ray list, expr_err) Result.t =
     let* head_ray = ray_of_expr head in
     let* tail_rays = raylist_of_expr tail in
     Ok (head_ray :: tail_rays)
+  | WithPos (e, _) -> raylist_of_expr e
   | invalid -> Error (InvalidRaylist (to_string invalid))
 
 let rec star_of_expr : expr -> (Marked.star, expr_err) Result.t = function
@@ -169,6 +193,7 @@ let rec star_of_expr : expr -> (Marked.star, expr_err) Result.t = function
     let* content = raylist_of_expr s in
     let* bans = bans_of_expr ps in
     Marked.Action { content; bans } |> Result.return
+  | WithPos (e, _) -> star_of_expr e
   | e ->
     let* content = raylist_of_expr e in
     Marked.Action { content; bans = [] } |> Result.return
@@ -188,6 +213,7 @@ let rec constellation_of_expr :
   | List g ->
     let* rg = ray_of_expr (List g) in
     [ Marked.Action { content = [ rg ]; bans = [] } ] |> Result.return
+  | WithPos (e, _) -> constellation_of_expr e
 
 (* ---------------------------------------
    Stellogen expr of Expr
@@ -227,6 +253,7 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
   | List [ Symbol "eval"; arg ] ->
     let* sgen_expr = sgen_expr_of_expr arg in
     Eval sgen_expr |> Result.return
+  | WithPos (e, _) -> sgen_expr_of_expr e
   | List _ as list_expr ->
     let* constellation = constellation_of_expr list_expr in
     Raw constellation |> Result.return
@@ -235,7 +262,17 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
    Stellogen program of Expr
    --------------------------------------- *)
 
-let decl_of_expr : expr -> (declaration, expr_err) Result.t = function
+let rec decl_of_expr : expr -> (declaration, expr_err) Result.t = function
+  | WithPos (List [ Symbol op; expr1; expr2 ], loc) when String.equal op expect_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1 in
+    let* sgen_expr2 = sgen_expr_of_expr expr2 in
+    Expect (sgen_expr1, sgen_expr2, const "default", Some loc) |> Result.return
+  | WithPos (List [ Symbol op; expr1; expr2; message ], loc) when String.equal op expect_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1 in
+    let* sgen_expr2 = sgen_expr_of_expr expr2 in
+    let* message_ray = ray_of_expr message in
+    Expect (sgen_expr1, sgen_expr2, message_ray, Some loc) |> Result.return
+  | WithPos (e, _) -> decl_of_expr e
   | List [ Symbol op; identifier; value ] when String.equal op def_op ->
     let* id_ray = ray_of_expr identifier in
     let* value_expr = sgen_expr_of_expr value in
@@ -246,12 +283,12 @@ let decl_of_expr : expr -> (declaration, expr_err) Result.t = function
   | List [ Symbol op; expr1; expr2 ] when String.equal op expect_op ->
     let* sgen_expr1 = sgen_expr_of_expr expr1 in
     let* sgen_expr2 = sgen_expr_of_expr expr2 in
-    Expect (sgen_expr1, sgen_expr2, const "default") |> Result.return
+    Expect (sgen_expr1, sgen_expr2, const "default", None) |> Result.return
   | List [ Symbol op; expr1; expr2; message ] when String.equal op expect_op ->
     let* sgen_expr1 = sgen_expr_of_expr expr1 in
     let* sgen_expr2 = sgen_expr_of_expr expr2 in
     let* message_ray = ray_of_expr message in
-    Expect (sgen_expr1, sgen_expr2, message_ray) |> Result.return
+    Expect (sgen_expr1, sgen_expr2, message_ray, None) |> Result.return
   | List [ Symbol "use"; path ] ->
     let* path_ray = ray_of_expr path in
     Use path_ray |> Result.return

@@ -20,7 +20,7 @@ let run input_file =
     in
     ()
   | Error expr_error -> (
-    match Sgen_eval.pp_err (ExprError expr_error) with
+    match Sgen_eval.pp_err (ExprError (expr_error, None)) with
     | Ok error_msg -> Stdlib.Printf.eprintf "%s" error_msg
     | Error _ -> () )
 

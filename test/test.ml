@@ -9,10 +9,10 @@ let sgen filename () =
   | Error e ->
     let open Stellogen.Sgen_eval in
     begin
-      match pp_err (ExprError e) with
+      match pp_err (ExprError (e, None)) with
       | Ok pp ->
         Out_channel.output_string Out_channel.stderr pp;
-        Error (ExprError e)
+        Error (ExprError (e, None))
       | Error e -> Error e
     end
 
