@@ -12,3 +12,7 @@
 (menhir
  (modules parser)
  (flags --table --dump --explain))
+
+(menhir
+ (modules cosmog_parser)
+ (flags --table --dump --explain))

@@ -7,36 +7,6 @@ let ( let* ) x f = Result.bind x ~f
 
 type ident = string
 
-module Raw = struct
-  type t =
-    | Symbol of string
-    | Var of ident
-    | String of string
-    | Focus of t
-    | Call of t
-    | List of t list
-    | Stack of t list
-    | Group of t list
-    | Cons of t list
-    | ConsWithParams of t list * t list
-    | ConsWithBase of t list * t
-    | Positioned of t * Lexing.position * Lexing.position
-end
-
-type expr =
-  | Symbol of string
-  | Var of ident
-  | List of expr list
-  | WithPos of expr * source_location
-
-let rec equal_expr e1 e2 =
-  match (e1, e2) with
-  | Symbol s1, Symbol s2 -> String.equal s1 s2
-  | Var v1, Var v2 -> String.equal v1 v2
-  | List l1, List l2 -> List.equal equal_expr l1 l2
-  | WithPos (e1', _), e2' | e1', WithPos (e2', _) -> equal_expr e1' e2'
-  | _ -> false
-
 let primitive = String.append "%"
 
 let nil_op = primitive "nil"
@@ -60,6 +30,61 @@ let ineq_op = "!="
 let incomp_op = "slice"
 
 let group_op = "%group"
+
+module Raw = struct
+  type t =
+    | Symbol of string
+    | Var of ident
+    | String of string
+    | Focus of t
+    | Call of t
+    | List of t list
+    | Stack of t list
+    | Group of t list
+    | Cons of t list
+    | ConsWithParams of t list * t list
+    | ConsWithBase of t list * t
+    | Positioned of t * Lexing.position * Lexing.position
+
+  let rec to_string : t -> string = function
+    | Symbol s -> s
+    | Var x -> x
+    | String s -> Printf.sprintf "\"%s\"" s
+    | Focus e -> Printf.sprintf "%s%s" focus_op (to_string e)
+    | Call e -> Printf.sprintf "%s%s" call_op (to_string e)
+    | List es ->
+      Printf.sprintf "(%s)" (List.map ~f:to_string es |> String.concat ~sep:" ")
+    | Stack es ->
+      Printf.sprintf "<%s>" (List.map ~f:to_string es |> String.concat ~sep:" ")
+    | Group es ->
+      Printf.sprintf "{ %s }"
+        (List.map ~f:to_string es |> String.concat ~sep:" ")
+    | Cons es ->
+      Printf.sprintf "[%s]" (List.map ~f:to_string es |> String.concat ~sep:" ")
+    | ConsWithParams (es1, es2) ->
+      Printf.sprintf "[%s | %s]"
+        (List.map ~f:to_string es1 |> String.concat ~sep:" ")
+        (List.map ~f:to_string es2 |> String.concat ~sep:" ")
+    | ConsWithBase (es, e) ->
+      Printf.sprintf "[%s|%s]"
+        (List.map ~f:to_string es |> String.concat ~sep:" ")
+        (to_string e)
+    | Positioned (e, _, _) -> to_string e
+end
+
+type expr =
+  | Symbol of string
+  | Var of ident
+  | List of expr list
+  | WithPos of expr * source_location
+
+let rec equal_expr e1 e2 =
+  match (e1, e2) with
+  | Symbol s1, Symbol s2 -> String.equal s1 s2
+  | Var v1, Var v2 -> String.equal v1 v2
+  | List l1, List l2 -> List.equal equal_expr l1 l2
+  | WithPos (e1', _), e2' | e1', WithPos (e2', _) -> equal_expr e1' e2'
+  | _ -> false
 
 let rec to_string : expr -> string = function
   | Symbol s -> s
