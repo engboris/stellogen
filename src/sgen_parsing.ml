@@ -97,12 +97,12 @@ let parse_with_error_recovery filename lexbuf =
   let lex_next () =
     match !token_buffer with
     | tok :: rest ->
-        token_buffer := rest;
-        tok
+      token_buffer := rest;
+      tok
     | [] ->
-        let token = read lexbuf in
-        let start_pos, end_pos = Sedlexing.lexing_positions lexbuf in
-        (token, start_pos, end_pos)
+      let token = read lexbuf in
+      let start_pos, end_pos = Sedlexing.lexing_positions lexbuf in
+      (token, start_pos, end_pos)
   in
 
   (* Start incremental parsing *)
@@ -110,12 +110,11 @@ let parse_with_error_recovery filename lexbuf =
 
   (* Attempt error recovery by skipping tokens *)
   let rec attempt_recovery checkpoint skip_count =
-    if skip_count <= 0 then
-      checkpoint
+    if skip_count <= 0 then checkpoint
     else
       let token, _, _ = lex_next () in
       match token with
-      | EOF -> checkpoint  (* Don't skip EOF *)
+      | EOF -> checkpoint (* Don't skip EOF *)
       | _ -> attempt_recovery checkpoint (skip_count - 1)
   in
 
@@ -123,98 +122,95 @@ let parse_with_error_recovery filename lexbuf =
   let rec drive checkpoint =
     match checkpoint with
     | Parser.MenhirInterpreter.InputNeeded _env ->
-        let token, start_pos, end_pos = lex_next () in
-        let checkpoint = Parser.MenhirInterpreter.offer checkpoint (token, start_pos, end_pos) in
-        drive checkpoint
-
+      let token, start_pos, end_pos = lex_next () in
+      let checkpoint =
+        Parser.MenhirInterpreter.offer checkpoint (token, start_pos, end_pos)
+      in
+      drive checkpoint
     | Parser.MenhirInterpreter.Shifting _
     | Parser.MenhirInterpreter.AboutToReduce _ ->
-        let checkpoint = Parser.MenhirInterpreter.resume checkpoint in
-        drive checkpoint
+      let checkpoint = Parser.MenhirInterpreter.resume checkpoint in
+      drive checkpoint
+    | Parser.MenhirInterpreter.HandlingError env -> (
+      (* Collect the error *)
+      let error =
+        Parse_error.error_from_env env !last_token !delimiters_stack
+      in
+      Parse_error.add_error error_collector error;
 
-    | Parser.MenhirInterpreter.HandlingError env ->
-        (* Collect the error *)
-        let error = Parse_error.error_from_env env !last_token !delimiters_stack in
-        Parse_error.add_error error_collector error;
+      (* Determine recovery strategy *)
+      let recovery =
+        Parse_error.recovery_strategy !last_token
+          (List.length !delimiters_stack)
+      in
 
-        (* Determine recovery strategy *)
-        let recovery = Parse_error.recovery_strategy !last_token (List.length !delimiters_stack) in
-
-        (match recovery with
-        | Parse_error.Abort ->
-            (* Cannot recover - return empty list and report errors *)
-            []
-
-        | Parse_error.Skip n ->
-            (* Skip n tokens and restart from initial state *)
-            let _ = attempt_recovery checkpoint n in
-            let new_checkpoint = Parser.Incremental.expr_file Lexing.dummy_pos in
-            drive new_checkpoint
-
-        | Parse_error.SkipToDelimiter ->
-            (* Skip until we find a delimiter at current nesting level *)
-            let target_depth = List.length !delimiters_stack in
-            let rec skip_to_matching () =
-              let token, _, _ = lex_next () in
-              match token with
-              | EOF -> ()
-              | _ when List.length !delimiters_stack = target_depth -> ()
-              | _ -> skip_to_matching ()
-            in
-            skip_to_matching ();
-            let new_checkpoint = Parser.Incremental.expr_file Lexing.dummy_pos in
-            drive new_checkpoint
-
-        | Parse_error.SkipUntil target_token ->
-            (* Skip until we see target token *)
-            let rec skip_until () =
-              let token, _, _ = lex_next () in
-              if not (Poly.equal token target_token) && not (Poly.equal token EOF) then
-                skip_until ()
-            in
-            skip_until ();
-            let new_checkpoint = Parser.Incremental.expr_file Lexing.dummy_pos in
-            drive new_checkpoint)
-
-    | Parser.MenhirInterpreter.Accepted result ->
-        result
-
-    | Parser.MenhirInterpreter.Rejected ->
-        let error = Parse_error.create_error
-          ~position:Lexing.dummy_pos
-          ~message:"parse rejected"
-          ()
-        in
-        Parse_error.add_error error_collector error;
+      match recovery with
+      | Parse_error.Abort ->
+        (* Cannot recover - return empty list and report errors *)
         []
+      | Parse_error.Skip n ->
+        (* Skip n tokens and restart from initial state *)
+        let _ = attempt_recovery checkpoint n in
+        let new_checkpoint = Parser.Incremental.expr_file Lexing.dummy_pos in
+        drive new_checkpoint
+      | Parse_error.SkipToDelimiter ->
+        (* Skip until we find a delimiter at current nesting level *)
+        let target_depth = List.length !delimiters_stack in
+        let rec skip_to_matching () =
+          let token, _, _ = lex_next () in
+          match token with
+          | EOF -> ()
+          | _ when List.length !delimiters_stack = target_depth -> ()
+          | _ -> skip_to_matching ()
+        in
+        skip_to_matching ();
+        let new_checkpoint = Parser.Incremental.expr_file Lexing.dummy_pos in
+        drive new_checkpoint
+      | Parse_error.SkipUntil target_token ->
+        (* Skip until we see target token *)
+        let rec skip_until () =
+          let token, _, _ = lex_next () in
+          if (not (Poly.equal token target_token)) && not (Poly.equal token EOF)
+          then skip_until ()
+        in
+        skip_until ();
+        let new_checkpoint = Parser.Incremental.expr_file Lexing.dummy_pos in
+        drive new_checkpoint )
+    | Parser.MenhirInterpreter.Accepted result -> result
+    | Parser.MenhirInterpreter.Rejected ->
+      let error =
+        Parse_error.create_error ~position:Lexing.dummy_pos
+          ~message:"parse rejected" ()
+      in
+      Parse_error.add_error error_collector error;
+      []
   in
 
   let result =
-    try drive initial_checkpoint with
-    | LexerError (msg, pos) ->
-        let error = Parse_error.create_error ~position:pos ~message:msg () in
-        Parse_error.add_error error_collector error;
-        []
+    try drive initial_checkpoint
+    with LexerError (msg, pos) ->
+      let error = Parse_error.create_error ~position:pos ~message:msg () in
+      Parse_error.add_error error_collector error;
+      []
   in
 
   (* Report all collected errors *)
   if Parse_error.has_errors error_collector then begin
     let errors = Parse_error.get_errors error_collector in
     List.iter errors ~f:(fun error ->
-      let hint_msg = match error.hint with
+      let hint_msg =
+        match error.hint with
         | Some h -> "\n  " ^ yellow "hint" ^ ": " ^ h
         | None -> ""
       in
       print_syntax_error error.position error.message filename;
-      if Option.is_some error.hint then
-        Stdlib.Printf.eprintf "%s\n" hint_msg
-    );
-    Stdlib.Printf.eprintf "\n%s\n" (bold (red (Printf.sprintf "found %d error(s)" (List.length errors))));
+      if Option.is_some error.hint then Stdlib.Printf.eprintf "%s\n" hint_msg );
+    Stdlib.Printf.eprintf "\n%s\n"
+      (bold (red (Printf.sprintf "found %d error(s)" (List.length errors))));
     Stdlib.exit 1
   end;
 
   result
 
 (* Original parse function for backward compatibility - now uses error recovery *)
-let parse_with_error filename lexbuf =
-  parse_with_error_recovery filename lexbuf
+let parse_with_error filename lexbuf = parse_with_error_recovery filename lexbuf
