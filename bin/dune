@@ -1,6 +1,6 @@
-(executables
- (public_names sgen)
- (names sgen)
+(executable
+ (public_name sgen)
+ (name sgen)
  (libraries stellogen base cmdliner))
 
 (env
