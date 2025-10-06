@@ -28,11 +28,13 @@ let run_with_timeout input_file timeout =
   let pid = Unix.fork () in
   if pid = 0 then (
     (* Child process *)
-    try run input_file; Stdlib.exit 0
+    try
+      run input_file;
+      Stdlib.exit 0
     with e ->
       Stdlib.Printf.eprintf "Error: %s\n" (Exn.to_string e);
-      Stdlib.exit 1
-  ) else (
+      Stdlib.exit 1 )
+  else
     (* Parent process *)
     let start_time = Unix.time () in
     let rec wait_with_timeout () =
@@ -41,10 +43,11 @@ let run_with_timeout input_file timeout =
         (* Timeout - kill child process *)
         Unix.kill pid Stdlib.Sys.sigkill;
         let _ = Unix.waitpid [] pid in
-        Stdlib.Printf.eprintf "\n[Timeout: execution exceeded %.1fs - killed]\n%!" timeout;
-        false
-      ) else (
-        match Unix.waitpid [Unix.WNOHANG] pid with
+        Stdlib.Printf.eprintf
+          "\n[Timeout: execution exceeded %.1fs - killed]\n%!" timeout;
+        false )
+      else
+        match Unix.waitpid [ Unix.WNOHANG ] pid with
         | 0, _ ->
           (* Still running *)
           Unix.sleepf 0.1;
@@ -60,19 +63,15 @@ let run_with_timeout input_file timeout =
             false
           | Unix.WSTOPPED signal ->
             Stdlib.Printf.eprintf "[Stopped by signal %d]\n%!" signal;
-            false
-        )
-      )
+            false )
     in
     wait_with_timeout ()
-  )
 
 let watch input_file timeout =
   let abs_path =
     if Stdlib.Filename.is_relative input_file then
       Stdlib.Filename.concat (Stdlib.Sys.getcwd ()) input_file
-    else
-      input_file
+    else input_file
   in
 
   Stdlib.Printf.printf "Watching %s (timeout: %.1fs)\n%!" abs_path timeout;
@@ -90,11 +89,9 @@ let watch input_file timeout =
       if Float.(current_mtime > last_mtime) then (
         Stdlib.Printf.printf "\n\n--- File changed, re-running ---\n%!";
         let _ = run_with_timeout input_file timeout in
-        poll_loop current_mtime
-      ) else
-        poll_loop last_mtime
-    with
-    | Unix.Unix_error _ ->
+        poll_loop current_mtime )
+      else poll_loop last_mtime
+    with Unix.Unix_error _ ->
       Stdlib.Printf.eprintf "Error accessing file, retrying...\n%!";
       Unix.sleepf 1.0;
       poll_loop last_mtime
@@ -130,12 +127,14 @@ let preprocess_cmd =
 
 let timeout_arg =
   let doc = "Timeout in seconds for each execution (default: 5.0)" in
-  Arg.(value & opt float 5.0 & info ["t"; "timeout"] ~docv:"SECONDS" ~doc)
+  Arg.(value & opt float 5.0 & info [ "t"; "timeout" ] ~docv:"SECONDS" ~doc)
 
 let watch_cmd =
   let doc = "Watch and re-run the Stellogen program on file changes" in
   let term =
-    Term.(const (fun input timeout -> wrap (fun i -> watch i timeout) input) $ input_file_arg $ timeout_arg |> term_result)
+    Term.(
+      const (fun input timeout -> wrap (fun i -> watch i timeout) input)
+      $ input_file_arg $ timeout_arg |> term_result )
   in
   Cmd.v (Cmd.info "watch" ~doc) term
 
