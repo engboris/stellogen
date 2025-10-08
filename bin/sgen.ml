@@ -81,24 +81,24 @@ let watch input_file timeout =
   let _ = run_with_timeout input_file timeout in
 
   (* Polling approach - check file modification time *)
-  let rec poll_loop last_mtime =
+  let rec poll_loop last_mtime attempt =
     Unix.sleepf 0.5;
     try
       let stat = Unix.stat abs_path in
       let current_mtime = stat.Unix.st_mtime in
       if Float.(current_mtime > last_mtime) then (
-        Stdlib.Printf.printf "\n\n--- File changed, re-running ---\n%!";
+        Stdlib.Printf.printf "\n\n--- File changed, re-running (attempt #%d) ---\n%!" attempt;
         let _ = run_with_timeout input_file timeout in
-        poll_loop current_mtime )
-      else poll_loop last_mtime
+        poll_loop current_mtime (attempt + 1) )
+      else poll_loop last_mtime attempt
     with Unix.Unix_error _ ->
       Stdlib.Printf.eprintf "Error accessing file, retrying...\n%!";
       Unix.sleepf 1.0;
-      poll_loop last_mtime
+      poll_loop last_mtime attempt
   in
 
   let initial_stat = Unix.stat abs_path in
-  poll_loop initial_stat.Unix.st_mtime
+  poll_loop initial_stat.Unix.st_mtime 2
 
 let preprocess_only input_file =
   let expr = parse input_file in

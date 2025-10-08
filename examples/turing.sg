@@ -1,40 +1,58 @@
+(:= (initial Q) {
+  [(-i [C|W]) (+m Q [e e] C W)]
+  [(-i [])    (+m Q e e e)]
+})
+
+(:= (accept Q) [(-m qa L e R) accept])
+(:= (reject Q) [(-m qr L C R) reject])
+
+(:= (if Q1 then Q2) [(-m Q1 L e R) (+m Q2 L e R)])
+(:= (skip right on Q , D) [(-m Q L D [C|R]) (+m Q [D|L] C R)])
+
+(:= (if C1 on Q1 then Q2 , write C2 , right)
+  [(-m Q1 L C1 [C|R]) (+m Q2 [C2|L] C R)])
+
+(:= (if C1 on Q1 then Q2 , write C2 , left)
+  [(-m Q1 [C|L] C1 R) (+m Q2 L C [C2|R])])
+
 ' Turing machine accepting words with as many 'a' as 'b'
 (:= mt {
-  'initial
-  [(-i [C|W]) (+m q0 [e e] C W)]
-  [(-i [])    (+m q0 e e e)]
-  'accept
-  [(-m q0 L e R) (+m qa L e R)]
-  [(-m qa L e R) accept]
-  'initial skip
-  [(-m q0 L sep [C|R]) (+m q0 [sep|L] C R)]
+  #(initial q0)
+  ' accept
+  #(accept qa)
+  #(if q0 then qa)
+  ' reject
+  #(reject qr)
+  #(if q2 then qr)
+  #(if q3 then qr)
+  ' initial skip
+  #(skip right on q0 , sep)
   'mark
-  [(-m q0 L a [C|R]) (+m q2 [sep|L] C R)]
-  [(-m q0 L b [C|R]) (+m q3 [sep|L] C R)]
+  #(if a on q0 then q2 , write sep , right)
+  #(if b on q0 then q3 , write sep , right)
   'skip
-  [(-m q2 L a [C|R])   (+m q2 [a|L] C R)]
-  [(-m q2 L sep [C|R]) (+m q2 [sep|L] C R)]
-  [(-m q3 L b [C|R])   (+m q3 [b|L] C R)]
-  [(-m q3 L sep [C|R]) (+m q3 [sep|L] C R)]
+  #(skip right on q2 , a)
+  #(skip right on q2 , sep)
+  #(skip right on q3 , b)
+  #(skip right on q3 , sep)
   'join
-  [(-m q2 [C|L] b R) (+m q1 L C [sep|R])]
-  [(-m q3 [C|L] a R) (+m q1 L C [sep|R])]
+  #(if b on q2 then q1 , write sep , left)
+  #(if a on q3 then q1 , write sep , left)
   'return
-  [(-m q1 [C|L] a R)   (+m q1 L C [a|R])]
-  [(-m q1 [C|L] b R)   (+m q1 L C [b|R])]
-  [(-m q1 [C|L] sep R) (+m q1 L C [sep|R])]
-  [(-m q1 L e [C|R])   (+m q0 [e|L] C R)]
-  'reject
-  [(-m q2 L e R) (+m qr L e R)]
-  [(-m q3 L e R) (+m qr L e R)]
-  [(-m qr L C R) reject]})
+  #(if a on q1 then q1 , write a , left)
+  #(if b on q1 then q1 , write b , left)
+  #(if sep on q1 then q1 , write sep , left)
+  #(if e on q1 then q0 , write e , right)
+})
 
-(show (interact @(+i [a e]) #mt))
-(show (interact @(+i [b e]) #mt))
-(show (interact @(+i [a b b e]) #mt))
+(:= (word W) (+i W))
 
-(show (interact @(+i [e]) #mt))
-(show (interact @(+i [a b e]) #mt))
-(show (interact @(+i [a a b b e]) #mt))
-(show (interact @(+i [a b b a e]) #mt))
-(show (interact @(+i [a b a b e]) #mt))
+(show (interact @#(word [a e]) #mt))
+(show (interact @#(word [b e]) #mt))
+(show (interact @#(word [a b b e]) #mt))
+
+(show (interact @#(word [e]) #mt))
+(show (interact @#(word [a b e]) #mt))
+(show (interact @#(word [a a b b e]) #mt))
+(show (interact @#(word [a b b a e]) #mt))
+(show (interact @#(word [a b a b e]) #mt))
