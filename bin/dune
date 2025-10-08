@@ -1,7 +1,7 @@
 (executable
  (public_name sgen)
  (name sgen)
- (libraries stellogen base cmdliner))
+ (libraries stellogen base cmdliner unix))
 
 (env
  (dev
