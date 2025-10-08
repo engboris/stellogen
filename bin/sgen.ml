@@ -87,7 +87,8 @@ let watch input_file timeout =
       let stat = Unix.stat abs_path in
       let current_mtime = stat.Unix.st_mtime in
       if Float.(current_mtime > last_mtime) then (
-        Stdlib.Printf.printf "\n\n--- File changed, re-running (attempt #%d) ---\n%!" attempt;
+        Stdlib.Printf.printf
+          "\n\n--- File changed, re-running (attempt #%d) ---\n%!" attempt;
         let _ = run_with_timeout input_file timeout in
         poll_loop current_mtime (attempt + 1) )
       else poll_loop last_mtime attempt
