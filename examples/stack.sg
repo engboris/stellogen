@@ -1,18 +1,21 @@
+(:= (init C) (+stack 0 []))
+
 <show interact (process
-  (+stack0 [])
+  #(init 0)
   'push 1 then 0
-  [(-stack0 X) (+stack1 [1|X])]
-  [(-stack1 X) (+stack2 [0|X])]
+  [(-stack 0 X) (+stack 1 [1|X])]
+  [(-stack 1 X) (+stack 2 [0|X])]
 
   'pop & save
-  [(-stack2 [C|X]) (+stack3 X) (+save C)]
+  [(-stack 2 [C|X]) (+stack 3 X) (+save C)]
 
   'conditional duplication
-  [(-stack3 [0|X]) (+stack4 [0 0|X])]
-  [(-stack3 [1|X]) (+stack4 [1 1|X])]
+  [(-stack 3 [0|X]) (+stack 4 [0 0|X])]
+  [(-stack 3 [1|X]) (+stack 4 [1 1|X])]
 
   'freeze information
   [(-save C) (save C)]
 
   'clean
-  [(-stack4 _)])>
+  [(-stack 4 _)]
+)>
