@@ -8,10 +8,10 @@ let ( let* ) x f = Result.bind x ~f
 type ident = string
 
 (* Generic type for attaching source locations *)
-type 'a loc = {
-  content : 'a;
-  loc : source_location option;
-}
+type 'a loc =
+  { content : 'a
+  ; loc : source_location option
+  }
 
 module Raw = struct
   type t =
@@ -32,13 +32,14 @@ end
 type expr =
   | Symbol of string
   | Var of ident
-  | List of (expr loc) list
+  | List of expr loc list
 
 let rec equal_expr e1 e2 =
   match (e1, e2) with
   | Symbol s1, Symbol s2 -> String.equal s1 s2
   | Var v1, Var v2 -> String.equal v1 v2
-  | List l1, List l2 -> List.equal (fun a b -> equal_expr a.content b.content) l1 l2
+  | List l1, List l2 ->
+    List.equal (fun a b -> equal_expr a.content b.content) l1 l2
   | _ -> false
 
 let primitive = String.append "%"
@@ -69,28 +70,54 @@ let rec to_string : expr -> string = function
   | Symbol s -> s
   | Var x -> x
   | List es ->
-    Printf.sprintf "(%s)" (List.map ~f:(fun e -> to_string e.content) es |> String.concat ~sep:" ")
+    Printf.sprintf "(%s)"
+      (List.map ~f:(fun e -> to_string e.content) es |> String.concat ~sep:" ")
 
 let rec expand_macro : Raw.t -> expr loc = function
   | Raw.Symbol s -> { content = Symbol s; loc = None }
   | Raw.Var x -> { content = Var x; loc = None }
-  | Raw.String s -> { content = List [ { content = Symbol string_op; loc = None }; { content = Symbol s; loc = None } ]; loc = None }
+  | Raw.String s ->
+    { content =
+        List
+          [ { content = Symbol string_op; loc = None }
+          ; { content = Symbol s; loc = None }
+          ]
+    ; loc = None
+    }
   | Raw.Call e' ->
     let e = expand_macro e' in
-    { content = List [ { content = Symbol call_op; loc = None }; e ]; loc = None }
+    { content = List [ { content = Symbol call_op; loc = None }; e ]
+    ; loc = None
+    }
   | Raw.Focus e' ->
     let e = expand_macro e' in
-    { content = List [ { content = Symbol focus_op; loc = None }; e ]; loc = None }
+    { content = List [ { content = Symbol focus_op; loc = None }; e ]
+    ; loc = None
+    }
   | Raw.Group es ->
-    { content = List ({ content = Symbol group_op; loc = None } :: List.map ~f:expand_macro es); loc = None }
-  | Raw.List es ->
-    { content = List (List.map ~f:expand_macro es); loc = None }
+    { content =
+        List
+          ( { content = Symbol group_op; loc = None }
+          :: List.map ~f:expand_macro es )
+    ; loc = None
+    }
+  | Raw.List es -> { content = List (List.map ~f:expand_macro es); loc = None }
   | Raw.Cons es -> expand_macro (Raw.ConsWithBase (es, Symbol nil_op))
   | Raw.ConsWithBase (es, base) ->
     List.fold_left es ~init:(expand_macro base) ~f:(fun acc e ->
-      { content = List [ { content = Symbol cons_op; loc = None }; expand_macro e; acc ]; loc = None } )
+      { content =
+          List [ { content = Symbol cons_op; loc = None }; expand_macro e; acc ]
+      ; loc = None
+      } )
   | Raw.ConsWithParams (es, ps) ->
-    { content = List [ { content = Symbol params_op; loc = None }; expand_macro (Cons es); expand_macro (List ps) ]; loc = None }
+    { content =
+        List
+          [ { content = Symbol params_op; loc = None }
+          ; expand_macro (Cons es)
+          ; expand_macro (List ps)
+          ]
+    ; loc = None
+    }
   | Raw.Stack [] -> { content = List []; loc = None }
   | Raw.Stack (h :: t) ->
     List.fold_left t ~init:(expand_macro h) ~f:(fun acc e ->
@@ -109,16 +136,22 @@ let rec replace_id (var_from : ident) replacement (expr : expr loc) : expr loc =
   match expr.content with
   | Var x when String.equal x var_from -> { replacement with loc = expr.loc }
   | Symbol _ | Var _ -> expr
-  | List exprs -> { content = List (List.map exprs ~f:(replace_id var_from replacement)); loc = expr.loc }
+  | List exprs ->
+    { content = List (List.map exprs ~f:(replace_id var_from replacement))
+    ; loc = expr.loc
+    }
 
-let unfold_decl_def (macro_env : (string * (string list * (expr loc) list)) list)
+let unfold_decl_def (macro_env : (string * (string list * expr loc list)) list)
   exprs =
   let rec process_expr (env, acc) (expr : expr loc) =
     match expr.content with
-    | List ({ content = Symbol "new-declaration"; _ } :: { content = List ({ content = Symbol macro_name; _ } :: args); _ } :: body)
-      ->
+    | List
+        ( { content = Symbol "new-declaration"; _ }
+        :: { content = List ({ content = Symbol macro_name; _ } :: args); _ }
+        :: body ) ->
       let var_args =
-        List.map args ~f:(fun arg -> match arg.content with
+        List.map args ~f:(fun arg ->
+          match arg.content with
           | Var x -> x
           | _ -> failwith "error: syntax declaration must contain variables" )
       in
@@ -142,7 +175,9 @@ let unfold_decl_def (macro_env : (string * (string list * (expr loc) list)) list
       | None -> (env, expr :: acc) )
     | _ -> (env, expr :: acc)
   in
-  List.fold_left exprs ~init:(macro_env, []) ~f:(fun (env, acc) e -> process_expr (env, acc) e) |> snd |> List.rev
+  List.fold_left exprs ~init:(macro_env, []) ~f:(fun (env, acc) e ->
+    process_expr (env, acc) e )
+  |> snd |> List.rev
 
 (* ---------------------------------------
    Constellation of Expr
@@ -166,11 +201,13 @@ let rec ray_of_expr : expr -> (ray, expr_err) Result.t = function
 
 let bans_of_expr ban_exprs : (ban list, expr_err) Result.t =
   let rec ban_of_expr = function
-    | List [ { content = Symbol op; _ }; expr1; expr2 ] when String.equal op ineq_op ->
+    | List [ { content = Symbol op; _ }; expr1; expr2 ]
+      when String.equal op ineq_op ->
       let* ray1 = ray_of_expr expr1.content in
       let* ray2 = ray_of_expr expr2.content in
       Ineq (ray1, ray2) |> Result.return
-    | List [ { content = Symbol op; _ }; expr1; expr2 ] when String.equal op incomp_op ->
+    | List [ { content = Symbol op; _ }; expr1; expr2 ]
+      when String.equal op incomp_op ->
       let* ray1 = ray_of_expr expr1.content in
       let* ray2 = ray_of_expr expr2.content in
       Incomp (ray1, ray2) |> Result.return
@@ -184,7 +221,8 @@ let rec raylist_of_expr expr : (ray list, expr_err) Result.t =
   | Symbol _ | Var _ ->
     let* ray = ray_of_expr expr in
     Ok [ ray ]
-  | List [ { content = Symbol op; _ }; head; tail ] when String.equal op cons_op ->
+  | List [ { content = Symbol op; _ }; head; tail ] when String.equal op cons_op
+    ->
     let* head_ray = ray_of_expr head.content in
     let* tail_rays = raylist_of_expr tail.content in
     Ok (head_ray :: tail_rays)
@@ -194,7 +232,8 @@ let rec star_of_expr : expr -> (Marked.star, expr_err) Result.t = function
   | List [ { content = Symbol k; _ }; s ] when equal_string k focus_op ->
     let* ss = star_of_expr s.content in
     ss |> Marked.remove |> Marked.make_state |> Result.return
-  | List [ { content = Symbol k; _ }; s; { content = List ps; _ } ] when equal_string k params_op ->
+  | List [ { content = Symbol k; _ }; s; { content = List ps; _ } ]
+    when equal_string k params_op ->
     let* content = raylist_of_expr s.content in
     let* bans = bans_of_expr ps in
     Marked.Action { content; bans } |> Result.return
@@ -242,16 +281,24 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
     let* sgen_expr = sgen_expr_of_expr arg.content in
     Focus sgen_expr |> Result.return
   | List ({ content = Symbol op; _ } :: args) when String.equal op group_op ->
-    let* sgen_exprs = List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all in
+    let* sgen_exprs =
+      List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
+    in
     Group sgen_exprs |> Result.return
   | List ({ content = Symbol "process"; _ } :: args) ->
-    let* sgen_exprs = List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all in
+    let* sgen_exprs =
+      List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
+    in
     Process sgen_exprs |> Result.return
   | List ({ content = Symbol "interact"; _ } :: args) ->
-    let* sgen_exprs = List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all in
+    let* sgen_exprs =
+      List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
+    in
     Exec (false, Group sgen_exprs) |> Result.return
   | List ({ content = Symbol "fire"; _ } :: args) ->
-    let* sgen_exprs = List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all in
+    let* sgen_exprs =
+      List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
+    in
     Exec (true, Group sgen_exprs) |> Result.return
   | List [ { content = Symbol "eval"; _ }; arg ] ->
     let* sgen_expr = sgen_expr_of_expr arg.content in
@@ -277,7 +324,8 @@ let rec decl_of_expr (expr : expr loc) : (declaration, expr_err) Result.t =
     let* sgen_expr2 = sgen_expr_of_expr expr2.content in
     let* message_ray = ray_of_expr message.content in
     Expect (sgen_expr1, sgen_expr2, message_ray, expr.loc) |> Result.return
-  | List [ { content = Symbol op; _ }; identifier; value ] when String.equal op def_op ->
+  | List [ { content = Symbol op; _ }; identifier; value ]
+    when String.equal op def_op ->
     let* id_ray = ray_of_expr identifier.content in
     let* value_expr = sgen_expr_of_expr value.content in
     Def (id_ray, value_expr) |> Result.return

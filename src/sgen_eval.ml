@@ -227,7 +227,11 @@ and expr_of_ray : ray -> Expr.expr = function
   | Var (x, Some i) -> Expr.Var (x ^ Int.to_string i)
   | Func (pf, []) -> Symbol (string_of_polsym pf)
   | Func (pf, args) ->
-    Expr.List ({ Expr.content = Symbol (string_of_polsym pf); loc = None } :: List.map ~f:(fun r -> { Expr.content = expr_of_ray r; loc = None }) args)
+    Expr.List
+      ( { Expr.content = Symbol (string_of_polsym pf); loc = None }
+      :: List.map
+           ~f:(fun r -> { Expr.content = expr_of_ray r; loc = None })
+           args )
 
 let rec eval_decl env : declaration -> (env, err) Result.t = function
   | Def (identifier, expr) -> Ok { objs = add_obj env identifier expr }
