@@ -1,5 +1,7 @@
 # Learn Stellogen
 
+> **Disclaimer**: This document was written with the assistance of Claude Code and represents exploratory research and analysis. The content may contain inaccuracies or misinterpretations and should not be taken as definitive statements about the Stellogen language implementation.
+
 Stellogen is an experimental, logic-agnostic programming language built on **term unification**. Instead of types or fixed logic, programs and meaning are expressed with the same raw material.
 
 This guide walks you through the basics.

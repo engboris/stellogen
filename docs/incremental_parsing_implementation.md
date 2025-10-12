@@ -1,5 +1,7 @@
 # Incremental Parser Implementation
 
+> **Disclaimer**: This document was written with the assistance of Claude Code and represents exploratory research and analysis. The content may contain inaccuracies or misinterpretations and should not be taken as definitive statements about the Stellogen language implementation.
+
 This document provides a quick reference for the incremental parser implementation in Stellogen.
 
 ## Overview

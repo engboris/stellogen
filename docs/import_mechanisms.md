@@ -1,5 +1,7 @@
 # Import Mechanisms in Stellogen: Analysis and Improvements
 
+> **Disclaimer**: This document was written with the assistance of Claude Code and represents exploratory research and analysis. The content may contain inaccuracies or misinterpretations and should not be taken as definitive statements about the Stellogen language implementation.
+
 **Status:** Research Document
 **Date:** 2025-10-11
 **Purpose:** Analyze the current file import mechanism and propose improvements for importing macros, particularly for creating a "MilkyWay" standard library
@@ -112,6 +114,673 @@ let initial_env = { objs = [] }
 ```
 
 The runtime environment stores **identifiers** (terms) mapped to **expressions** (constellations). It does NOT store macros.
+
+---
+
+## Import Mechanisms in Other Languages
+
+### Overview
+
+Before designing a solution for Stellogen, it's valuable to examine how other languages—particularly those where macros are central—handle imports. This section explores different approaches to module systems, with special attention to macro importation and the trade-offs between file path-based and module name-based imports.
+
+---
+
+### Macro-Centric Languages
+
+#### Scheme and Racket
+
+**Scheme** (particularly R6RS and R7RS) and **Racket** are pioneering languages where **macros are first-class citizens**. Their module systems are designed from the ground up to handle macro imports correctly.
+
+##### R6RS Scheme Library System
+
+**Syntax:**
+```scheme
+; Defining a library
+(library (my-lib types)
+  (export spec :: nat binary)  ; Export macros and definitions
+  (import (rnrs))
+
+  ; Define macros
+  (define-syntax spec
+    (syntax-rules ()
+      [(spec name body)
+       (define name body)]))
+
+  (define-syntax ::
+    (syntax-rules ()
+      [(:: value type)
+       (check-type value type)]))
+
+  ; Define values
+  (define nat ...)
+  (define binary ...))
+```
+
+**Importing the library:**
+```scheme
+(import (my-lib types))
+
+; Macros are available immediately
+(spec point (lambda (x y) (list x y)))
+(:: my-value nat)
+```
+
+**Key features:**
+
+1. **Phase separation**: Macros exist at **compile-time** (expansion phase), while regular definitions exist at **runtime**
+2. **Automatic phase handling**: The module system tracks which phase bindings belong to
+3. **Explicit exports**: Libraries declare what they export (macros and values)
+4. **Hygiene**: Macros are hygienic by default, preventing variable capture
+
+**How it works:**
+
+```
+Import Resolution Pipeline:
+1. Parse: (import (my-lib types))
+2. Locate: Find library file via search path
+3. Load: Read and parse the library
+4. Expand: Expand macros in the library itself
+5. Separate phases:
+   - Compile-time bindings → expansion environment
+   - Runtime bindings → runtime environment
+6. Export: Make declared exports available
+7. Import: Bind exports into importing module
+```
+
+The crucial insight: **Macros are preserved across module boundaries** because the module system distinguishes between compile-time and runtime bindings.
+
+##### Racket Module System
+
+**Racket** extends Scheme with an even more sophisticated module system.
+
+**Syntax:**
+```racket
+; my-types.rkt
+#lang racket
+
+(provide spec ::)  ; Export macros
+
+(define-syntax spec
+  (syntax-rules ()
+    [(spec name body)
+     (define name body)]))
+
+(define-syntax ::
+  (syntax-rules ()
+    [(:: value type)
+     (check-type value type)]))
+```
+
+**Importing:**
+```racket
+#lang racket
+
+(require "my-types.rkt")  ; File path import
+; OR
+(require my-lib/types)    ; Module name import
+
+(spec nat ...)
+(:: value nat)
+```
+
+**Advanced features:**
+
+1. **Phase levels**: Racket supports multiple phase levels (phase 0 = runtime, phase 1 = compile-time, phase 2 = compile-compile-time, etc.)
+
+```racket
+(require (for-syntax racket/base))  ; Import for phase 1
+(require (for-meta 2 racket/base))  ; Import for phase 2
+```
+
+2. **Submodules**: Modules can contain other modules
+
+```racket
+(module* test racket
+  (require rackunit)
+  (check-equal? (add 1 2) 3))
+```
+
+3. **Renaming and prefixing**:
+
+```racket
+(require (rename-in "my-types.rkt" [spec type-spec]))
+(require (prefix-in types: "my-types.rkt"))
+; Now use: types:spec
+```
+
+4. **Contracts**: Can attach contracts to exports
+
+```racket
+(provide (contract-out
+  [add (-> number? number? number?)]))
+```
+
+**Why Racket's approach works for macros:**
+
+- **Separate compilation**: Each module is compiled independently, but macro definitions are preserved in compiled form
+- **Phase distinction**: The system knows which bindings are needed at which phase
+- **Explicit requires**: Users explicitly import what they need at each phase
+
+##### Common Lisp Package System
+
+**Common Lisp** uses a **package system** rather than modules, but it handles macros effectively.
+
+**Syntax:**
+```lisp
+; Define a package
+(defpackage :my-types
+  (:use :common-lisp)
+  (:export :spec ::: :nat :binary))
+
+(in-package :my-types)
+
+; Define macros
+(defmacro spec (name body)
+  `(defparameter ,name ,body))
+
+(defmacro :: (value type)
+  `(check-type ,value ,type))
+
+; Define values
+(defparameter nat ...)
+```
+
+**Importing:**
+```lisp
+; Use the package
+(use-package :my-types)
+
+; Or import specific symbols
+(import '(my-types:spec my-types:::))
+
+; Or use qualified names
+(my-types:spec nat ...)
+```
+
+**Key features:**
+
+1. **Symbol-based**: Packages control symbol visibility
+2. **No phase separation**: Macros and functions are both just symbols in the package
+3. **Dynamic**: Packages can be modified at runtime
+4. **Namespace management**: Prevents name conflicts
+
+**Why it works for macros:**
+
+- **Macros are expanded before compilation**: The compiler sees macro definitions in the package
+- **Symbols are first-class**: Importing a symbol imports whatever it's bound to (macro, function, variable)
+- **Separate compilation tracks dependencies**: ASDF (Common Lisp's build system) ensures macros are loaded before code that uses them
+
+##### OCaml's PPX System (Preprocessor Extension Points)
+
+While not a "macro-centric" language in the Lisp sense, **OCaml**'s PPX system provides compile-time code transformation.
+
+**Syntax:**
+```ocaml
+(* deriving.ml - A PPX rewriter *)
+let expand_deriving = ...
+
+let () =
+  Ppxlib.Driver.register_transformation
+    ~extensions:[deriving_extension]
+    "deriving"
+```
+
+**Usage:**
+```ocaml
+(* my_program.ml *)
+type point = {x: int; y: int} [@@deriving show, eq]
+
+(* The PPX rewriter generates:
+   - show_point : point -> string
+   - equal_point : point -> point -> bool
+*)
+```
+
+**Import model:**
+
+- PPX rewriters are **separate programs** invoked during compilation
+- Specified in build configuration (dune files), not in source code
+- No import statement needed—transformations are applied automatically if registered
+
+**Why it works:**
+
+- **Explicit compilation pipeline**: Build system ensures PPX runs before type checking
+- **Separate programs**: No need to track macro environments—just transform ASTs
+
+---
+
+### File Path vs Module Name Imports
+
+Programming languages generally use one of two approaches for specifying imports:
+
+1. **File path imports**: Direct reference to a file location
+2. **Module name imports**: Abstract reference to a module, resolved via search paths
+
+#### File Path Imports
+
+**Definition:** Import statements directly specify the **file system path** to the module.
+
+**Examples:**
+
+```c
+// C
+#include "my-lib/utils.h"      // Relative path
+#include "/usr/local/lib/utils.h"  // Absolute path
+```
+
+```javascript
+// JavaScript (CommonJS/ES modules)
+const utils = require('./my-lib/utils.js');
+import { helper } from '../utils/helper.js';
+```
+
+```python
+# Python (relative imports)
+from .my_lib import utils
+from ..parent_module import helper
+```
+
+```stellogen
+; Stellogen (current)
+(use "examples/nat.sg")
+(use "lib/prelude.sg")
+```
+
+**Characteristics:**
+
+| Aspect | Description |
+|--------|-------------|
+| **Explicitness** | Clear exactly which file is being imported |
+| **Simplicity** | No complex resolution logic needed |
+| **Refactoring** | Moving files requires updating all import paths |
+| **Portability** | Paths may be platform-specific (`/` vs `\`) |
+| **Versioning** | Difficult to support multiple versions of same library |
+| **Discoverability** | Hard to know what's available without filesystem exploration |
+
+**Advantages:**
+
+1. **No ambiguity**: The imported file is explicitly specified
+2. **No configuration**: No need for search paths or configuration files
+3. **Simple implementation**: Just read the file at the specified path
+4. **Local reasoning**: Easy to see dependencies by looking at file paths
+5. **No global namespace**: No risk of name collisions in module space
+
+**Disadvantages:**
+
+1. **Brittle to reorganization**: Moving files breaks imports
+2. **Verbose**: Long relative paths can be unwieldy (`../../../lib/utils`)
+3. **Platform-specific**: Path separators differ (Windows vs Unix)
+4. **No abstraction**: Can't easily swap implementations
+5. **Duplication**: Same library in multiple locations = duplicate imports
+
+**Use cases:**
+
+- Small projects with stable structure
+- Build-time transformations (C includes, Stellogen `use`)
+- When you want explicit control over which file is loaded
+
+---
+
+#### Module Name Imports
+
+**Definition:** Import statements specify an **abstract module name**, which is resolved to a file path via a **resolution algorithm**.
+
+**Examples:**
+
+```python
+# Python
+import numpy
+from django.http import HttpResponse
+```
+
+```javascript
+// JavaScript (Node.js)
+const express = require('express');
+import React from 'react';
+```
+
+```racket
+; Racket
+(require racket/base)
+(require data/queue)
+```
+
+```java
+// Java
+import java.util.List;
+import com.mycompany.myapp.Utils;
+```
+
+**Characteristics:**
+
+| Aspect | Description |
+|--------|-------------|
+| **Abstraction** | Module names are independent of file locations |
+| **Flexibility** | Files can move without breaking imports |
+| **Configuration** | Requires search paths or package registries |
+| **Versioning** | Can support multiple versions via resolution |
+| **Discoverability** | Package managers can list available modules |
+| **Complexity** | Resolution algorithm can be complex |
+
+**Advantages:**
+
+1. **Refactoring-friendly**: Moving files doesn't break imports (if module names stay the same)
+2. **Concise**: Short, readable names (`numpy` not `../../venv/lib/python3.9/site-packages/numpy/__init__.py`)
+3. **Abstraction**: Module names are logical, not tied to filesystem layout
+4. **Versioning**: Can specify version requirements (`require "mylib" >= 2.0`)
+5. **Centralized configuration**: Search paths configured once, used everywhere
+
+**Disadvantages:**
+
+1. **Indirection**: Not immediately clear where a module lives
+2. **Configuration complexity**: Requires setting up search paths, package managers, etc.
+3. **Name conflicts**: Two packages can have the same module name
+4. **Debugging difficulty**: Resolution failures can be hard to diagnose
+5. **Implementation complexity**: Resolver must search multiple locations
+
+**Use cases:**
+
+- Large projects with deep directory structures
+- Projects using third-party libraries (installed via package managers)
+- When you want to decouple code structure from filesystem layout
+- Production languages with ecosystem support
+
+---
+
+### Import Resolution Mechanisms
+
+When using **module name imports**, the language runtime or compiler must **resolve** the abstract module name to a concrete file path. This is called **import resolution** or **module resolution**.
+
+#### Basic Resolution Algorithm
+
+**Pseudocode:**
+
+```
+function resolve_module(module_name, current_file, search_paths):
+  1. Check if module_name is a built-in module
+     → If yes, return built-in module
+
+  2. Check if module_name is relative (starts with ./ or ../)
+     → If yes, resolve relative to current_file's directory
+
+  3. For each path in search_paths:
+     candidate = path / module_name
+     if exists(candidate):
+       return candidate
+
+  4. Check package cache (if using package manager)
+     → If found, return cached location
+
+  5. Error: Module not found
+```
+
+#### Python's Import Resolution
+
+**Resolution order:**
+
+1. **sys.modules**: Check if already imported (cache)
+2. **Built-in modules**: Check `sys.builtin_module_names`
+3. **sys.path**: Search directories in order:
+   - Current directory (or script's directory)
+   - `PYTHONPATH` environment variable directories
+   - Installation-dependent default paths (e.g., `/usr/lib/python3.9/site-packages`)
+
+**Example:**
+
+```python
+import numpy
+
+# Resolution:
+# 1. Check sys.modules['numpy'] → Not found (first import)
+# 2. Not a built-in module
+# 3. Search sys.path:
+#    - ./numpy → Not found
+#    - /usr/lib/python3.9/site-packages/numpy → Found!
+# 4. Load /usr/lib/python3.9/site-packages/numpy/__init__.py
+```
+
+**Package imports:**
+
+```python
+from my_package.submodule import function
+
+# Resolution:
+# 1. Find my_package (using sys.path)
+# 2. Look for my_package/__init__.py
+# 3. Look for my_package/submodule.py or my_package/submodule/__init__.py
+# 4. Extract 'function' from that module
+```
+
+#### Node.js/JavaScript Module Resolution
+
+**Algorithm** (for `require('module_name')`):
+
+1. **Core modules**: If `module_name` is a core module (e.g., `fs`, `http`), return it
+2. **Relative/absolute path**: If starts with `/`, `./`, or `../`, treat as file path
+3. **node_modules resolution**:
+   - Start from current directory
+   - Look in `./node_modules/module_name`
+   - If not found, go to parent directory and look in `../node_modules/module_name`
+   - Repeat until reaching filesystem root
+4. **File extensions**: Try appending `.js`, `.json`, `.node`
+5. **Directory imports**: If module_name is a directory, look for:
+   - `package.json` with `"main"` field
+   - `index.js`
+
+**Example:**
+
+```javascript
+// In /home/user/project/src/app.js
+const express = require('express');
+
+// Resolution:
+// 1. Not a core module
+// 2. Not a path (doesn't start with /, ./, ../)
+// 3. Search node_modules:
+//    - /home/user/project/src/node_modules/express → Not found
+//    - /home/user/project/node_modules/express → Found!
+// 4. Read /home/user/project/node_modules/express/package.json
+//    → "main": "lib/express.js"
+// 5. Load /home/user/project/node_modules/express/lib/express.js
+```
+
+#### Racket's Module Resolution
+
+**Syntax:**
+
+```racket
+(require module-path)
+```
+
+**Module path forms:**
+
+1. **Relative paths**: `"file.rkt"`, `"../lib/utils.rkt"`
+2. **Collection-based**: `racket/base`, `data/queue`
+   - Collections are searched in Racket's installation directory and user-specific directories
+3. **Planet packages** (legacy): `(planet user/package:version)`
+4. **Package catalog**: Packages installed via `raco pkg install`
+
+**Resolution algorithm:**
+
+```
+1. If module-path is a string (file path):
+   - Relative to current file
+   - Return that file
+
+2. If module-path is a symbol or identifier (e.g., racket/base):
+   - Split by / to get collection and module
+   - Search collection paths:
+     a. Racket installation directory
+     b. User-specific directory (~/.racket)
+     c. Current directory
+   - Find <collection>/<module>.rkt
+
+3. If module-path is a (planet ...) form:
+   - Download package from PLaneT server
+   - Install to local cache
+   - Return cached location
+
+4. If not found:
+   - Error: module not found
+```
+
+**Example:**
+
+```racket
+(require racket/list)
+
+; Resolution:
+; 1. Not a file path (no quotes)
+; 2. Collection-based path: collection = "racket", module = "list"
+; 3. Search collection paths:
+;    - /usr/local/racket/collects/racket/list.rkt → Found!
+; 4. Load and compile
+```
+
+#### Java's Classpath Resolution
+
+**Syntax:**
+
+```java
+import com.mycompany.myapp.Utils;
+```
+
+**Resolution:**
+
+1. **Convert package name to path**: `com.mycompany.myapp.Utils` → `com/mycompany/myapp/Utils.class`
+2. **Search classpath** (list of directories and JAR files):
+   - For each classpath entry:
+     - If directory: Look for `entry/com/mycompany/myapp/Utils.class`
+     - If JAR file: Look inside JAR for `com/mycompany/myapp/Utils.class`
+3. **Return first match**
+
+**Classpath configuration:**
+
+```bash
+# Command line
+java -classpath /path/to/classes:/path/to/lib.jar MyApp
+
+# Environment variable
+export CLASSPATH=/path/to/classes:/path/to/lib.jar
+```
+
+#### OCaml/Dune Resolution
+
+**OCaml** with **Dune** build system:
+
+**Syntax:**
+
+```ocaml
+(* In a dune file *)
+(library
+ (name my_lib)
+ (libraries base stdio))
+```
+
+**Resolution:**
+
+1. **Library names**: Specified in `dune` files
+2. **Search scope**:
+   - Current workspace (all libraries defined in dune files)
+   - Installed libraries (via `opam`, OCaml's package manager)
+3. **Compilation order**: Dune computes dependency graph and compiles in order
+
+**No import statements in source**: Dependencies declared in build files, not source files.
+
+---
+
+### Comparison Summary
+
+#### Resolution Complexity
+
+| Language | Resolution Complexity | Configuration |
+|----------|----------------------|---------------|
+| **C/C++** | Low (file paths + include paths) | Compiler flags (`-I`) |
+| **JavaScript (Node.js)** | Medium (node_modules traversal) | package.json + node_modules |
+| **Python** | Medium (sys.path search) | PYTHONPATH + pip |
+| **Racket** | Medium-High (collections + packages) | raco pkg + config |
+| **Java** | Medium (classpath search) | CLASSPATH or build tool (Maven, Gradle) |
+| **OCaml/Dune** | Medium (workspace + opam) | dune files + opam |
+
+#### Trade-offs
+
+| Approach | Best For | Avoid When |
+|----------|----------|------------|
+| **File paths** | Small projects, scripts, build-time preprocessing | Large projects, external dependencies |
+| **Module names + simple resolution** | Medium projects, standard libraries | Complex dependency management |
+| **Module names + package manager** | Large projects, ecosystem libraries | Maximum simplicity needed |
+
+---
+
+### Implications for Stellogen
+
+Given Stellogen's philosophy and current state:
+
+#### Current Approach
+
+- **File path imports**: `(use "examples/nat.sg")`
+- **Minimal**: No resolution logic, no configuration
+- **Aligned with minimalism**: Simple to implement and understand
+
+#### Challenges
+
+- **Macro import problem**: Macros are discarded after preprocessing
+- **Code duplication**: Same macros repeated across files
+- **No standard library**: Can't easily share common utilities
+
+#### Design Considerations
+
+1. **Stay minimal**: Avoid complex resolution if possible
+2. **File paths are fine**: Stellogen is a research language, not a production ecosystem
+3. **Focus on macro problem**: The real issue is preserving macros across imports, not resolution
+4. **Optional convenience**: Could add simple module name support later if needed
+
+#### Potential Hybrid Approach
+
+**Basic (Phase 1):**
+- Keep file path imports: `(import-macros "lib/prelude.sg")`
+- Add optional prelude flag: `sgen run --prelude lib/prelude.sg my_program.sg`
+
+**Advanced (Phase 2, optional):**
+- Add simple module name resolution:
+  ```stellogen
+  (import-macros prelude)  ; Resolves to lib/prelude.sg via search path
+  ```
+- Configure search paths via environment variable or config file:
+  ```bash
+  export STELLOGEN_PATH=./lib:./vendor:/usr/local/lib/stellogen
+  ```
+
+**Resolution algorithm (if implemented):**
+
+```ocaml
+let resolve_module module_name current_file =
+  (* 1. Check if it's a file path (contains / or .) *)
+  if String.contains module_name '/' || String.contains module_name '.' then
+    resolve_file_path module_name current_file
+  else
+    (* 2. Search STELLOGEN_PATH *)
+    let search_paths = get_search_paths () in
+    let candidates = List.map search_paths ~f:(fun path ->
+      path ^ "/" ^ module_name ^ ".sg") in
+    List.find candidates ~f:Sys.file_exists
+```
+
+**Benefit:** Keeps simplicity while allowing future extensibility.
+
+---
+
+### Key Insights from Other Languages
+
+1. **Phase separation is crucial**: Scheme/Racket succeed because they distinguish compile-time (macros) from runtime (values)
+
+2. **Macros must be preserved**: Unlike runtime definitions, macros need to be available during preprocessing of importing files
+
+3. **File paths are fine for small languages**: Not every language needs a complex module system—C's `#include` worked for decades
+
+4. **Separate preprocessing from evaluation**: Stellogen's current architecture is sound; it just needs to thread macro environments through imports
+
+5. **Don't over-engineer**: Stellogen is a research language, not a production system—simple solutions are better
 
 ---
 

@@ -1,5 +1,7 @@
 # Synchronization in Boolean Circuits: A Stellogen Challenge
 
+> **Disclaimer**: This document was written with the assistance of Claude Code and represents exploratory research and analysis. The content may contain inaccuracies or misinterpretations and should not be taken as definitive statements about the Stellogen language implementation.
+
 **Author:** Analysis based on `examples/circuits.sg`
 **Date:** 2025-10-10
 **Status:** Research Document

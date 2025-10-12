@@ -1,5 +1,7 @@
 # Stellogen: Comparative Analysis with Related Languages
 
+> **Disclaimer**: This document was written with the assistance of Claude Code and represents exploratory research and analysis. The content may contain inaccuracies or misinterpretations and should not be taken as definitive statements about the Stellogen language implementation.
+
 **Status:** Research Document
 **Date:** 2025-10-12
 **Purpose:** Explore similarities and differences between Stellogen and related programming paradigms and languages
