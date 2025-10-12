@@ -231,6 +231,7 @@ dune test
 2. Understand term unification before touching `unification.ml`
 3. AST changes require updates to parser, evaluator, and pretty-printer
 4. Test with existing examples in `examples/` after changes
+5. **Always run `dune fmt` after finishing code modifications** to ensure consistent formatting
 
 ### Important concepts for contributors:
 - **Polarity** drives interaction - positive/negative rays fuse
