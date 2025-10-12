@@ -104,8 +104,9 @@ let watch input_file timeout =
 let preprocess_only input_file =
   let expr = parse input_file in
   let preprocessed = Expr.preprocess expr in
-  preprocessed |> List.map ~f:Expr.to_string |> String.concat ~sep:"\n"
-  |> Stdlib.print_endline
+  preprocessed
+  |> List.map ~f:(fun e -> Expr.to_string e.Expr.content)
+  |> String.concat ~sep:"\n" |> Stdlib.print_endline
 
 let input_file_arg =
   let doc = "Input file to process." in

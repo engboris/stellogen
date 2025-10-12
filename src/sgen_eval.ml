@@ -222,12 +222,16 @@ let rec eval_sgen_expr (env : env) :
         ^ string_of_constellation (Marked.remove_all e)
         ^ " is not a ray." ) )
 
-and expr_of_ray = function
+and expr_of_ray : ray -> Expr.expr = function
   | Var (x, None) -> Expr.Var x
   | Var (x, Some i) -> Expr.Var (x ^ Int.to_string i)
   | Func (pf, []) -> Symbol (string_of_polsym pf)
   | Func (pf, args) ->
-    Expr.List (Symbol (string_of_polsym pf) :: List.map ~f:expr_of_ray args)
+    Expr.List
+      ( { Expr.content = Symbol (string_of_polsym pf); loc = None }
+      :: List.map
+           ~f:(fun r -> { Expr.content = expr_of_ray r; loc = None })
+           args )
 
 let rec eval_decl env : declaration -> (env, err) Result.t = function
   | Def (identifier, expr) -> Ok { objs = add_obj env identifier expr }
