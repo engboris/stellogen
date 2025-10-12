@@ -1,5 +1,7 @@
 # Error Recovery Demonstration
 
+> **Disclaimer**: This document was written with the assistance of Claude Code and represents exploratory research and analysis. The content may contain inaccuracies or misinterpretations and should not be taken as definitive statements about the Stellogen language implementation.
+
 This document demonstrates Stellogen's error recovery capabilities.
 
 ## Example 1: Single Error with Hint

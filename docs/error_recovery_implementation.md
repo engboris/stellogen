@@ -1,5 +1,7 @@
 # Error Recovery Implementation - Summary
 
+> **Disclaimer**: This document was written with the assistance of Claude Code and represents exploratory research and analysis. The content may contain inaccuracies or misinterpretations and should not be taken as definitive statements about the Stellogen language implementation.
+
 ## Overview
 
 Stellogen now features **comprehensive error recovery** powered by Menhir's incremental parsing API. This significantly improves the developer experience by collecting and reporting multiple parse errors in a single pass.
