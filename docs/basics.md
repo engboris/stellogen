@@ -189,8 +189,15 @@ They are the “targets” for interaction.
 { [+a b] @[-c d] }
 ```
 
+**Intuition:** Focus corresponds to distinguishing **data (states)** from **rules/program (actions)**:
+
+* **States** (`@`) = what you're computing (the data being transformed)
+* **Actions** (no `@`) = how you compute (the rules/program that transforms)
+
+This is like a subject-verb distinction: states are what the computation is "about", and actions are what "happens to" the states.
+
 Execution duplicates actions and fuses them with state stars until no more interactions are possible.
-The result is a new constellation, like the “normal form” of computation.
+The result is a new constellation, like the "normal form" of computation.
 
 ---
 
