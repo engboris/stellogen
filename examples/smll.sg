@@ -55,4 +55,4 @@
 
 (:= vehicle [+1 +2])
 ' does not typecheck
-' (::lin vehicle (tens a a)
+' (::lin vehicle (tens a b))
