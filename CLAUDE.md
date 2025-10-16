@@ -56,7 +56,7 @@ Unlike traditional typed languages where types constrain and shape program desig
 
 ### Declarations
 - **Definition**: `(:= name value)`
-- **Macro**: `(new-declaration (pattern) (expansion))`
+- **Macro**: `(macro (pattern) (expansion))`
 - **Show**: `(show expr)` - display result
 - **Expect**: Assertion/testing mechanism
 
@@ -171,10 +171,10 @@ dune exec sgen run -- <inputfile>
 
 ```stellogen
 ' Macro for type specification
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 
 ' Macro for type assertion
-(new-declaration (:: Tested Test)
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 
 ' Define nat type as interactive tests

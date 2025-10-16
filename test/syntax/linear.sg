@@ -1,4 +1,4 @@
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 
 (:= 1 (+nat (s 0)))
 (:= 2 (+nat <s s 0>))

@@ -41,7 +41,7 @@ Consider the parallel between these two forms:
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
 ' Compile-time "definition" (macro)
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 ```
 
 **Key observation:** Both are binding a name to a computational structure:
@@ -161,7 +161,7 @@ Consider type checking macros:
 
 ```stellogen
 ' Macro definition (compile-time)
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 
 ' Runtime definition
 (:= nat {
@@ -261,7 +261,7 @@ No distinction between "declarations" and "expressions"—everything is evaluate
 (show #zero)
 (== x y)
 (use "file.sg")
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 ```
 
 Some expressions have **side effects**:
@@ -269,7 +269,7 @@ Some expressions have **side effects**:
 - `show` performs I/O
 - `==` checks assertion
 - `use` loads file
-- `new-declaration` adds macro to environment
+- `macro` adds macro to environment
 
 But they're all expressions that evaluate to values and potentially modify the environment.
 
@@ -891,7 +891,7 @@ Introduce `@phase:name` syntax:
 
 ```stellogen
 ' Old syntax still works
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 (:= nat { ... })
 
 ' New syntax available

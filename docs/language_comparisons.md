@@ -279,8 +279,8 @@ Both support powerful macro systems for syntactic extension.
 
 **Stellogen:**
 ```stellogen
-(new-declaration (spec X Y) (:= X Y))
-(new-declaration (:: Tested Test)
+(macro (spec X Y) (:= X Y))
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 
 (spec nat { ... })
@@ -400,7 +400,7 @@ No automatic evaluation—you control when terms are evaluated.
 | Foundation | Lambda calculus | Term unification + polarity |
 | Syntax | S-expressions | S-expressions |
 | Evaluation | Eager (strict) | Explicit (via `@`) |
-| Metaprogramming | Macros (syntax-rules, defmacro) | Macros (new-declaration) |
+| Metaprogramming | Macros (syntax-rules, defmacro) | Macros (macro) |
 | Unification | No | Yes (central) |
 | Types | Dynamic | User-defined interactive tests |
 | Paradigm | Functional (primarily) | Multi-paradigm (logic-agnostic) |
@@ -1097,7 +1097,7 @@ Stellogen supports **linear evaluation** via `fire`.
 
 **Stellogen (`examples/mll.sg`, `examples/smll.sg`):**
 ```stellogen
-(new-declaration (::lin Tested Test)
+(macro (::lin Tested Test)
   (== @(fire #Tested #Test) ok))
 
 ' fire uses resources exactly once (linear)
@@ -1507,8 +1507,8 @@ Stellogen supports **all paradigms** without committing to any:
 Macros are not an add-on—they're **fundamental** to how Stellogen is extended.
 
 ```stellogen
-(new-declaration (spec X Y) (:= X Y))
-(new-declaration (:: Tested Test) ...)
+(macro (spec X Y) (:= X Y))
+(macro (:: Tested Test) ...)
 ```
 
 Users define new declaration forms, not just syntactic sugar.

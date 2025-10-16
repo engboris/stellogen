@@ -146,7 +146,7 @@ let unfold_decl_def (macro_env : (string * (string list * expr loc list)) list)
   let rec process_expr (env, acc) (expr : expr loc) =
     match expr.content with
     | List
-        ( { content = Symbol "new-declaration"; _ }
+        ( { content = Symbol "macro"; _ }
         :: { content = List ({ content = Symbol macro_name; _ } :: args); _ }
         :: body ) ->
       let var_args =

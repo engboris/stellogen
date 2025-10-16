@@ -449,7 +449,7 @@ Use a special polarity or function symbol for sequencing:
 Define `process` as a user-level macro instead of primitive:
 
 ```stellogen
-(new-declaration (process E1 E2 E3)
+(macro (process E1 E2 E3)
   (interact @(interact @#E1 #E2) #E3))
 ```
 
@@ -563,11 +563,11 @@ Consider providing library functions/macros for common patterns:
 
 ```stellogen
 ' Two-step pattern
-(new-declaration (then-cleanup EXPR CLEANUP)
+(macro (then-cleanup EXPR CLEANUP)
   (interact @#EXPR #CLEANUP))
 
 ' Three-step pattern
-(new-declaration (chain3 E1 E2 E3)
+(macro (chain3 E1 E2 E3)
   (interact @(interact @#E1 #E2) #E3))
 ```
 

@@ -396,7 +396,7 @@ A single test cannot capture all these aspects—you need **multiple independent
 **Current definition:**
 
 ```stellogen
-(new-declaration (:: Tested Test)
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 ```
 
@@ -525,7 +525,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 **Idea:** Create a special macro for type specs with known field names.
 
 ```stellogen
-(new-declaration (::larrow Tested Test)
+(macro (::larrow Tested Test)
   (== @(interact @#Tested (eval (interact #Test @[-testrl]))) ok)
   (== @(interact @#Tested (eval (interact #Test @[-testrr]))) ok)
   (== @(interact @#Tested (eval (interact #Test @[-testll]))) ok)
@@ -572,7 +572,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
   [+test2 [...]]})
 
 ' General macro that tests up to 4 tests
-(new-declaration (::record Tested Test)
+(macro (::record Tested Test)
   (process
     (== @(interact @#Tested (eval (interact #Test @[-test1]))) ok (error "test1 failed"))
     (== @(interact @#Tested (eval (interact #Test @[-test2]))) ok (error "test2 failed"))
@@ -606,7 +606,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 **Idea:** Use `process` to chain tests together.
 
 ```stellogen
-(new-declaration (::chain Tested Test TestNames)
+(macro (::chain Tested Test TestNames)
   (== @(process
         @#Tested
         { (eval (interact #Test @[(-test1)])) }
@@ -647,7 +647,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 ' fieldlist = [testrl testrr testll testlr]
 
 ' Then use that to generate tests
-(new-declaration (::record Tested Test)
+(macro (::record Tested Test)
   (== @(test-all @#Tested #Test (fields #Test)) ok))
 ```
 
@@ -696,7 +696,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 (spec testlr { [...] })
 
 ' New macro: Test against multiple specs
-(new-declaration (::all Tested Tests)
+(macro (::all Tested Tests)
   (== @(interact @#Tested #Tests) ok))
 
 ' Usage
@@ -714,7 +714,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
   #testlr})
 
 ' Modified :: macro that handles groups
-(new-declaration (::multi Tested TestGroup)
+(macro (::multi Tested TestGroup)
   (== @(interact @#Tested #TestGroup) ok))
 
 ' Usage
@@ -741,7 +741,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 **Idea:** Require users to explicitly list test names when checking record types.
 
 ```stellogen
-(new-declaration (::with-tests Tested Test TestList)
+(macro (::with-tests Tested Test TestList)
   (::check-all @#Tested #Test #TestList))
 
 (:= (::check-all Val Type Tests)
@@ -775,7 +775,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 **Use Solution 2 (Hardcoded Macro)** for the specific case:
 
 ```stellogen
-(new-declaration (::larrow Tested Test)
+(macro (::larrow Tested Test)
   {
     (== @(interact @#Tested (eval (interact #Test @[-testrl]))) ok)
     (== @(interact @#Tested (eval (interact #Test @[-testrr]))) ok)
@@ -861,7 +861,7 @@ This would enable truly general record-based type checking.
 ### Solution: Hardcoded Macro (Solution 2)
 
 ```stellogen
-(new-declaration (::larrow Tested Test)
+(macro (::larrow Tested Test)
   (process
     (== @(interact @#Tested (eval (interact #Test @[-testrl]))) ok (error "testrl failed"))
     (== @(interact @#Tested (eval (interact #Test @[-testrr]))) ok (error "testrr failed"))

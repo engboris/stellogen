@@ -78,7 +78,7 @@
 <show eval (interact #g2 @[(-field test2)])>
 
 'define type
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 (spec nat {
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
@@ -96,6 +96,6 @@
 '(use "examples/automata.sg")
 
 'declaration definition
-(new-declaration (:: Tested Test)
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 (:: 2 nat)
