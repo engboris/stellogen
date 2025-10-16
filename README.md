@@ -67,10 +67,10 @@ accepting words ending with `00`.
 ```
 ' We define a macro 'spec' for type definition
 ' It is just an alias for the definition [:=]
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 
 ' We define a macro for type assertion
-(new-declaration (:: Tested Test)
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok)) ' triggers interaction and expects [ok]
 
 ' The type [binary] is defined as a set of three interactive tests
