@@ -12,7 +12,7 @@ let parse input_file =
 
 let run input_file =
   let expr = parse input_file in
-  let preprocessed = Expr.preprocess expr in
+  let preprocessed = Sgen_parsing.preprocess_with_imports input_file expr in
   match Expr.program_of_expr preprocessed with
   | Ok program ->
     let (_ : (Sgen_ast.env, Sgen_ast.err) Result.t) =
@@ -103,7 +103,7 @@ let watch input_file timeout =
 
 let preprocess_only input_file =
   let expr = parse input_file in
-  let preprocessed = Expr.preprocess expr in
+  let preprocessed = Sgen_parsing.preprocess_with_imports input_file expr in
   preprocessed
   |> List.map ~f:(fun e -> Expr.to_string e.Expr.content)
   |> String.concat ~sep:"\n" |> Stdlib.print_endline

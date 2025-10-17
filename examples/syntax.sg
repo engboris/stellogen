@@ -93,7 +93,7 @@
 (== @(interact @#2 #nat) ok)
 
 'import file
-'(use "examples/automata.sg")
+(use-macros "milkyway/prelude.sg")
 
 'declaration definition
 (macro (:: Tested Test)
