@@ -1,0 +1,9 @@
+' Stellogen Prelude
+' Common macros for type system and testing
+
+' Macro for type specification
+(macro (spec X Y) (:= X Y))
+
+' Macro for type assertion
+(macro (:: Tested Test)
+  (== @(interact @#Tested #Test) ok))
