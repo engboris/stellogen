@@ -143,7 +143,7 @@ let rec replace_id (var_from : ident) replacement (expr : expr loc) : expr loc =
 
 let unfold_decl_def (macro_env : (string * (string list * expr loc list)) list)
   exprs =
-  let rec process_expr (env, acc) (expr : expr loc) =
+  let process_expr (env, acc) (expr : expr loc) =
     match expr.content with
     | List
         ( { content = Symbol "new-declaration"; _ }
@@ -200,7 +200,7 @@ let rec ray_of_expr : expr -> (ray, expr_err) Result.t = function
   | List (_ :: _) as e -> Error (NonConstantRayHeader (to_string e))
 
 let bans_of_expr ban_exprs : (ban list, expr_err) Result.t =
-  let rec ban_of_expr = function
+  let ban_of_expr = function
     | List [ { content = Symbol op; _ }; expr1; expr2 ]
       when String.equal op ineq_op ->
       let* ray1 = ray_of_expr expr1.content in
@@ -311,7 +311,7 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
    Stellogen program of Expr
    --------------------------------------- *)
 
-let rec decl_of_expr (expr : expr loc) : (declaration, expr_err) Result.t =
+let decl_of_expr (expr : expr loc) : (declaration, expr_err) Result.t =
   match expr.content with
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op expect_op ->
