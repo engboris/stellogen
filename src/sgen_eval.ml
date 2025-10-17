@@ -9,6 +9,21 @@ let ( let* ) x f = Result.bind x ~f
 
 let unifiable r r' = StellarRays.solution [ (r, r') ] |> Option.is_some
 
+let constellations_compatible c1 c2 =
+  (* Check if two constellations are compatible for Match (~=) *)
+  (* Uses unifiable which requires opposite polarities for interaction *)
+  let open Lsc_ast in
+  (* Extract all rays from both constellations *)
+  let rays_from_constellation c =
+    List.concat_map c ~f:(fun (star : Raw.star) -> star.content)
+  in
+  let rays1 = rays_from_constellation c1 in
+  let rays2 = rays_from_constellation c2 in
+
+  (* Check if any ray from c1 is unifiable with any ray from c2 *)
+  List.exists rays1 ~f:(fun r1 ->
+    List.exists rays2 ~f:(fun r2 -> unifiable r1 r2) )
+
 let rec find_with_solution env x =
   let rec search_objs = function
     | [] -> None
@@ -116,6 +131,34 @@ let pp_err error : (string, err) Result.t =
     Printf.sprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
     |> Result.return
   | ExpectError { message; location; _ } ->
+    let header = bold (red "error") ^ ": " ^ string_of_ray message in
+    let loc_str =
+      Option.map location ~f:format_location
+      |> Option.value ~default:"<unknown location>"
+    in
+    let source =
+      Option.map location ~f:show_source_location |> Option.value ~default:""
+    in
+    Printf.sprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
+    |> Result.return
+  | MatchError { term1; term2; message = Func ((Null, f), []); location }
+    when String.equal f "default" ->
+    let header = bold (red "error") ^ ": " ^ bold "unification failed" in
+    let loc_str =
+      Option.map location ~f:format_location
+      |> Option.value ~default:"<unknown location>"
+    in
+    let source =
+      Option.map location ~f:show_source_location |> Option.value ~default:""
+    in
+    let term1_str = term1 |> Marked.remove_all |> string_of_constellation in
+    let term2_str = term2 |> Marked.remove_all |> string_of_constellation in
+
+    Printf.sprintf "%s\n  %s %s\n%s\n  %s %s\n  %s %s\n\n" header (cyan "-->")
+      loc_str source (bold "Term 1:") (green term1_str) (bold "Term 2:")
+      (yellow term2_str)
+    |> Result.return
+  | MatchError { message; location; _ } ->
     let header = bold (red "error") ^ ": " ^ string_of_ray message in
     let loc_str =
       Option.map location ~f:format_location
@@ -257,6 +300,13 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     let normalized2 = Marked.normalize_all eval2 in
     if Marked.equal_constellation normalized1 normalized2 then Ok env
     else Error (ExpectError { got = eval1; expected = eval2; message; location })
+  | Match (expr1, expr2, message, location) ->
+    let* eval1 = eval_sgen_expr env expr1 in
+    let* eval2 = eval_sgen_expr env expr2 in
+    let const1 = List.map eval1 ~f:Marked.remove in
+    let const2 = List.map eval2 ~f:Marked.remove in
+    if constellations_compatible const1 const2 then Ok env
+    else Error (MatchError { term1 = eval1; term2 = eval2; message; location })
   | Use path -> (
     let open Lsc_ast.StellarRays in
     let filename =

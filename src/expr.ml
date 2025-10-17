@@ -58,6 +58,8 @@ let def_op = ":="
 
 let expect_op = "=="
 
+let match_op = "~="
+
 let params_op = primitive "params"
 
 let ineq_op = "!="
@@ -412,6 +414,17 @@ let decl_of_expr (expr : expr loc) : (declaration, expr_err) Result.t =
     let* sgen_expr2 = sgen_expr_of_expr expr2.content in
     let* message_ray = ray_of_expr message.content in
     Expect (sgen_expr1, sgen_expr2, message_ray, expr.loc) |> Result.return
+  | List [ { content = Symbol op; _ }; expr1; expr2 ]
+    when String.equal op match_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
+    Match (sgen_expr1, sgen_expr2, const "default", expr.loc) |> Result.return
+  | List [ { content = Symbol op; _ }; expr1; expr2; message ]
+    when String.equal op match_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
+    let* message_ray = ray_of_expr message.content in
+    Match (sgen_expr1, sgen_expr2, message_ray, expr.loc) |> Result.return
   | List [ { content = Symbol op; _ }; identifier; value ]
     when String.equal op def_op ->
     let* id_ray = ray_of_expr identifier.content in

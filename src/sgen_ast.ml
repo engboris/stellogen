@@ -30,6 +30,12 @@ type err =
       ; message : ident
       ; location : source_location option
       }
+  | MatchError of
+      { term1 : Marked.constellation
+      ; term2 : Marked.constellation
+      ; message : ident
+      ; location : source_location option
+      }
   | UnknownID of string * source_location option
   | ExprError of expr_err * source_location option
 
@@ -42,6 +48,7 @@ type declaration =
   | Show of sgen_expr
   | Run of sgen_expr
   | Expect of sgen_expr * sgen_expr * ident * source_location option
+  | Match of sgen_expr * sgen_expr * ident * source_location option
   | Use of ident
 
 type program = declaration list
