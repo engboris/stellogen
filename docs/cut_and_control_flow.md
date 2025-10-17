@@ -709,7 +709,7 @@ Or with syntactic sugar:
 **Syntax:**
 
 ```stellogen
-(new-declaration (not Test)
+(macro (not Test)
   (interact @#Test #failure-check))
 
 (:= failure-check {
@@ -802,7 +802,7 @@ Or with syntactic sugar:
 **Example - First-match macro:**
 
 ```stellogen
-(new-declaration (first-match Name Cases)
+(macro (first-match Name Cases)
   (:= Name {
     (expand-cases-with-flags Cases)}))
 
@@ -936,14 +936,14 @@ Or more directly, introduce `|` separator for alternatives:
 ' lib/control.sg
 
 ''' Deterministic if-then-else '''
-(new-declaration (if Cond Then Else)
+(macro (if Cond Then Else)
   (interact
     { [(+cond) @#Then]
       [(-cond) @#Else] }
     @#Cond))
 
 ''' First match from multiple options '''
-(new-declaration (first-of Options)
+(macro (first-of Options)
   (:= temp {
     [(+available)]
     @(expand-with-guards #Options)

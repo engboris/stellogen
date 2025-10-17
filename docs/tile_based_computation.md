@@ -1072,8 +1072,8 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
 
 ```stellogen
 ' Type checking helpers
-(new-declaration (spec X Y) (:= X Y))
-(new-declaration (:: Tested Test)
+(macro (spec X Y) (:= X Y))
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 
 ' Position type
