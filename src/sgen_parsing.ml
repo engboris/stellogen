@@ -214,3 +214,65 @@ let parse_with_error_recovery filename lexbuf =
 
 (* Original parse function for backward compatibility - now uses error recovery *)
 let parse_with_error filename lexbuf = parse_with_error_recovery filename lexbuf
+
+(* ---------------------------------------
+   Macro Import Handling
+   --------------------------------------- *)
+
+(* Resolve a path relative to a base file *)
+let resolve_path (base_file : string) (relative_path : string) : string =
+  if Stdlib.Filename.is_relative relative_path then
+    let base_dir = Stdlib.Filename.dirname base_file in
+    Stdlib.Filename.concat base_dir relative_path
+  else relative_path
+
+(* Load a file and extract its macro definitions *)
+let rec load_macro_file (filename : string) (current_file : string)
+  (visited : string list) : Expr.macro_env =
+  (* Resolve the filename relative to the current file *)
+  let resolved_filename = resolve_path current_file filename in
+
+  (* Check for circular imports *)
+  if List.mem visited resolved_filename ~equal:String.equal then
+    failwith
+      (Printf.sprintf "Circular macro import detected: %s" resolved_filename);
+
+  let visited = resolved_filename :: visited in
+
+  try
+    let ic = Stdlib.open_in resolved_filename in
+    let lexbuf = Sedlexing.Utf8.from_channel ic in
+    Sedlexing.set_filename lexbuf resolved_filename;
+
+    let expr = parse_with_error resolved_filename lexbuf in
+    Stdlib.close_in ic;
+
+    (* First, recursively load imports from this file *)
+    let nested_imports = Expr.collect_macro_imports expr in
+    let nested_macros =
+      List.concat_map nested_imports ~f:(fun import_path ->
+        load_macro_file import_path resolved_filename visited )
+    in
+
+    (* Then extract macros from this file *)
+    let file_macros = Expr.extract_macros expr in
+
+    (* Combine nested macros with this file's macros *)
+    (* Later imports override earlier ones *)
+    nested_macros @ file_macros
+  with Sys_error msg ->
+    failwith
+      (Printf.sprintf "Error loading macro file '%s': %s" resolved_filename msg)
+
+(* Preprocess with macro imports *)
+let preprocess_with_imports (source_file : string) (raw_exprs : Expr.Raw.t list)
+  : Expr.expr Expr.loc list =
+  (* Phase 1: Collect and load all imported macros *)
+  let import_files = Expr.collect_macro_imports raw_exprs in
+  let macro_env =
+    List.concat_map import_files ~f:(fun import_path ->
+      load_macro_file import_path source_file [] )
+  in
+
+  (* Phase 2: Preprocess with the macro environment *)
+  Expr.preprocess_with_macro_env macro_env raw_exprs

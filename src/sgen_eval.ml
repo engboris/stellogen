@@ -270,7 +270,7 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in filename) in
     Sedlexing.set_position lexbuf (create_start_pos filename);
     let expr = Sgen_parsing.parse_with_error filename lexbuf in
-    let preprocessed = Expr.preprocess expr in
+    let preprocessed = Sgen_parsing.preprocess_with_imports filename expr in
     match Expr.program_of_expr preprocessed with
     | Ok program ->
       let* new_env = eval_program program in
