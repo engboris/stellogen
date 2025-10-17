@@ -1,0 +1,132 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Stellogen",
+  "scopeName": "source.stellogen",
+  "fileTypes": ["sg"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#keywords" },
+    { "include": "#operators" },
+    { "include": "#constants" },
+    { "include": "#polarity" },
+    { "include": "#variables" },
+    { "include": "#identifiers" },
+    { "include": "#numbers" },
+    { "include": "#brackets" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.stellogen",
+          "begin": "'''",
+          "end": "'''"
+        },
+        {
+          "name": "comment.line.stellogen",
+          "match": "'[^'].*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.stellogen",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.stellogen",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.stellogen",
+          "match": "\\b(new|declaration|eval|slice|show|use|interact|fire|process|spec|macro)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.assignment.stellogen",
+          "match": ":="
+        },
+        {
+          "name": "keyword.operator.type.stellogen",
+          "match": "::"
+        },
+        {
+          "name": "keyword.operator.comparison.stellogen",
+          "match": "==|!="
+        },
+        {
+          "name": "keyword.operator.logical.stellogen",
+          "match": "\\|\\|"
+        },
+        {
+          "name": "keyword.operator.focus.stellogen",
+          "match": "@"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.stellogen",
+          "match": "\\b(ok)\\b"
+        }
+      ]
+    },
+    "polarity": {
+      "patterns": [
+        {
+          "name": "storage.modifier.polarity.stellogen",
+          "match": "[+-](?=\\w)"
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.constant.stellogen",
+          "match": "\\b[A-Z_][A-Z0-9_]*\\b"
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "variable.other.reference.stellogen",
+          "match": "#\\([^)]+\\)|#\\d+|#[a-z_][a-z0-9_]*"
+        },
+        {
+          "name": "entity.name.function.defined.stellogen",
+          "match": "(?<=:=\\s{1,10})[a-z_][a-z0-9_]*|(?<=:=\\s{1,10})\\d+|(?<=:=\\s*\\()[^)]+"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.stellogen",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
+    "brackets": {
+      "patterns": [
+        {
+          "name": "punctuation.section.brackets.stellogen",
+          "match": "[\\{\\}\\[\\]\\(\\)<>|]"
+        }
+      ]
+    }
+  }
+}

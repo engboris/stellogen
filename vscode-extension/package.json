@@ -1,0 +1,48 @@
+{
+  "name": "stellogen-language",
+  "displayName": "Stellogen Language Support",
+  "description": "Language support for Stellogen - a logic-agnostic programming language based on term unification",
+  "version": "0.1.0",
+  "publisher": "stellogen",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/engboris/stellogen"
+  },
+  "engines": {
+    "vscode": "^1.50.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "stellogen",
+    "logic programming",
+    "unification"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "stellogen",
+        "aliases": [
+          "Stellogen",
+          "stellogen"
+        ],
+        "extensions": [
+          ".sg"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icon.png",
+          "dark": "./icon.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "stellogen",
+        "scopeName": "source.stellogen",
+        "path": "./stellogen.tmLanguage.json"
+      }
+    ]
+  }
+}
