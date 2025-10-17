@@ -1,0 +1,476 @@
+'''
+Scroll Nets: Concrete Encodings in Stellogen
+
+This file demonstrates how to encode scroll net concepts in Stellogen,
+following the design principles outlined in the accompanying documentation.
+
+Based on Pablo Donato's "Scroll nets" (arXiv:2507.19689)
+'''
+
+' =============================================================================
+' PART 1: BASIC PRIMITIVES
+' =============================================================================
+
+'''
+Atoms: The leaves of scroll structures
+Encoded as simple labeled terms
+'''
+(:= atom_a (+atom a))
+(:= atom_b (+atom b))
+(:= atom_c (+atom c))
+
+'''
+Scroll: Implication structure [A ⊸ B]
+  - outloop: antecedent (input side)
+  - inloop: consequent (output side)
+  - attachment: connects inloop to outloop
+
+Encoding: Nested constellation with polarity-marked contexts
+'''
+(:= scroll_simple {
+  [(+outloop X)]        ' Antecedent (positive context)
+  [(-scroll_struct)]    ' Scroll boundary marker
+  [(+inloop Y)]         ' Consequent  (positive context at depth 2)
+  [(-scroll_struct) (+impl X Y)]})  ' Implication emerges
+
+' Example: [a ⊸ b]
+(:= scroll_a_impl_b {
+  [(+outloop (atom a))]
+  [(+inloop (atom b))]
+  [(-scroll S) (+impl S)]})
+
+(show #scroll_a_impl_b)
+
+'''
+Polarity: Determined by nesting depth
+  - Even depth (0, 2, 4, ...) → Positive (+)
+  - Odd depth (1, 3, 5, ...) → Negative (-)
+
+Encoding: Track depth explicitly or via nesting level
+'''
+(:= polarity {
+  [(+depth 0 pos)]
+  [(+depth N pos) (+depth (s (s N)) pos)]   ' Even depths
+  [(+depth (s N) neg) (+depth N pos)]})     ' Odd depths
+
+' Test polarity
+(show (interact #polarity @[(+depth 0 P)]))  ' P = pos
+(show (interact #polarity @[(+depth <s 0> P)]))  ' P = neg
+
+' =============================================================================
+' PART 2: ILLATIVE TRANSFORMATIONS (Inference Rules)
+' =============================================================================
+
+'''
+The six atomic proof steps:
+  1. Open: Introduce empty scroll around content
+  2. Close: Eliminate empty scroll
+  3. Insert: Introduce content in negative context (assumption)
+  4. Delete: Eliminate content from positive context (discard)
+  5. Iterate: Copy content from source to positive target
+  6. Deiterate: Remove duplicate from negative target
+'''
+
+' Open: Introduce scroll around content
+(:= open {
+  [(-content C)]
+  [(+opened (scroll [] C))]   ' Empty outloop, C in inloop
+})
+
+' Close: Eliminate empty scroll
+(:= close {
+  [(-closed (scroll [] C))]
+  [(+content C)]})            ' Just the inloop content remains
+
+' Insert: Assume content in negative context
+(:= insert {
+  [(-negative_context)]
+  [(+inserted C)]
+  [(+self_justified C)]})     ' Marked as assumption
+
+' Delete: Discard content from positive context
+(:= delete {
+  [(-positive_context)]
+  [(-deleted C)]
+  [(+self_justified C)]})     ' Marked as discarded
+
+' Iterate: Copy content to positive target
+(:= iterate {
+  [(-source C)]
+  [(-target_pos)]
+  [(+source C)]               ' Source remains
+  [(+iterated C)]             ' Target copy created
+  [(+justified_by source target)]})
+
+' Deiterate: Remove duplicate from negative target
+(:= deiterate {
+  [(-source C)]
+  [(-target_neg C)]           ' Target must match source
+  [(+source C)]               ' Source remains
+  [(+deiterated C)]           ' Target removed
+  [(+justified_by source target)]})
+
+' =============================================================================
+' PART 3: DETOURS (Redexes)
+' =============================================================================
+
+'''
+Detour: Node is both introduced and eliminated
+Four types:
+  - ii: Interaction/Interaction (open + close)
+  - ia: Interaction/Argumentation (open + delete)
+  - ai: Argumentation/Interaction (iterate + close)
+  - aa: Argumentation/Argumentation (iterate + delete)
+'''
+
+' Detour ii: Opened then closed scroll
+' Reduction: Remove scroll, keep content
+(:= detour_ii {
+  [(+opened (scroll [] C))]    ' Introduced
+  [(-closed (scroll [] C))]    ' Eliminated
+  ' These rays have opposite polarities → they fuse!
+  @[(+result C)]})             ' After reduction: just C
+
+' Test detour ii
+(show (interact #detour_ii @[(+opened (scroll [] (atom a)))]))
+' Expected: Just (atom a) remains
+
+' Detour aa (atom case): Iterated then deleted atom
+' Reduction: Remove target, source remains
+(:= detour_aa_atom {
+  [(+source (atom X))]
+  [(+iterated (atom X))]       ' Copy created
+  [(-deleted (atom X))]        ' Copy deleted
+  ' Iteration and deletion cancel
+  @[(+result (atom X))]})      ' Only source remains
+
+' =============================================================================
+' PART 4: EXAMPLE - IDENTITY FUNCTION
+' =============================================================================
+
+'''
+Identity: λx.x  encoded as scroll net
+  - Variable x in outloop
+  - Same x in inloop
+  - No transformations needed (direct connection)
+'''
+
+(:= identity {
+  [(+outloop X)]
+  [(+inloop X)]                ' Same variable → automatic connection
+  [(-identity_scroll) (+lambda X X)]})
+
+' Apply identity to atom a
+(:= id_app_a {
+  #identity
+  [(-outloop (atom a))]        ' Supply argument
+  @[(-inloop R)]               ' Extract result
+  R})
+
+(show #id_app_a)               ' Should show (atom a)
+
+' =============================================================================
+' PART 5: EXAMPLE - MODUS PONENS
+' =============================================================================
+
+'''
+Modus Ponens: From a ∧ (a → b), derive b
+
+Scroll net encoding:
+  1. Start with: a (juxtaposed with) [a ⊸ b]
+  2. Deiterate: Remove a from scroll outloop (justified by external a)
+  3. Close: Empty scroll collapses
+  4. Result: b
+'''
+
+(:= modus_ponens {
+  [(+premise_a (atom a))]                ' Standalone a
+  [(+premise_impl (scroll (atom a) (atom b)))]  ' a → b
+
+  ' Deiterate: a in outloop justified by premise_a
+  [(+premise_a A) (+justifies_outloop A)]
+  [(-scroll_outloop A) (+deiterated A)]
+
+  ' Close: Empty scroll collapses
+  [(-empty_scroll) (+closed)]
+
+  ' Result: b emerges
+  @[(+conclusion (atom b))]})
+
+(show #modus_ponens)
+
+' Alternative encoding using process
+(:= modus_ponens_v2 (process
+  (+premise [(atom a) (scroll (atom a) (atom b))])
+  [(-premise [A S]) (+deiterate A S)]       ' Remove a from scroll
+  [(-deiterate A (scroll A B)) (+close B)]  ' Close empty scroll
+  [(-close B) (+conclusion B)]))            ' Extract result
+
+(show #modus_ponens_v2)
+
+' =============================================================================
+' PART 6: JUSTIFICATION FOREST
+' =============================================================================
+
+'''
+Argumentation: Forest of justifications
+  - Nodes: Same as scroll structure
+  - Edges: u ⊢ v (u justifies v)
+  - Acyclic: No circular reasoning
+
+Encoding: Explicit justification relations
+'''
+
+(:= justification {
+  [(+source U Content)]
+  [(+target V Content)]     ' Must unify (same content)
+  [(+justified_by U V)]})
+
+' Example: Multiple justifications
+(:= multi_justify {
+  [(+source s1 (atom a))]
+  [(+target t1 (atom a))]
+  [(+target t2 (atom a))]
+  [(+target t3 (atom a))]
+  [(+justified_by s1 t1)]
+  [(+justified_by s1 t2)]
+  [(+justified_by s1 t3)]})  ' s1 justifies three targets
+
+' Check acyclicity (should fail on cycles)
+(:= check_acyclic {
+  [(-justification_graph G)]
+  [(+topsort G)]         ' Topological sort succeeds
+  [(+acyclic ok)]
+
+  [(-justification_graph G)]
+  [(+cycle_detected G)]  ' Cycle found
+  [(+acyclic fail)]})
+
+' =============================================================================
+' PART 7: SCROLL STRUCTURE (DAG)
+' =============================================================================
+
+'''
+Scroll Structure with Sharing:
+  - DAG (not forest): Inloops can share children
+  - Attachments: Inloop → Outloop edges
+
+Encoding: Multiple parents via shared variables
+'''
+
+' Simple scroll structure (forest)
+(:= scroll_forest {
+  [(+root r)]
+  [(+child r c1)]
+  [(+child r c2)]
+  [(+atom c1 a)]
+  [(+atom c2 b)]})
+
+' Scroll structure with sharing (DAG)
+(:= scroll_dag {
+  [(+inloop1 i1)]
+  [(+inloop2 i2)]
+  [(+shared_child i1 c)]   ' c has two parents
+  [(+shared_child i2 c)]   ' i1 and i2 both contain c
+  [(+atom c a)]})          ' c is atom a
+
+' Verify sharing
+(show #scroll_dag)
+
+' =============================================================================
+' PART 8: CORRECTNESS CRITERION (Test-Based)
+' =============================================================================
+
+'''
+Correctness: A scroll net is valid if it passes all tests
+  - Acyclicity: No cycles in justification forest
+  - Polarity: Justifications respect polarity rules
+  - Identity: Source ≈ Target (unification)
+  - Scope: No justifications escape scroll boundaries
+'''
+
+(macro (spec X Y) (:= X Y))
+
+' Acyclicity test
+(spec acyclic_scroll_net {
+  [(-scrollnet N) (+acyclic_check N) ok]
+  [(-scrollnet N) (+cycle_found N) fail]})
+
+' Polarity test
+(spec polarity_correct {
+  [(-scrollnet N) (+all_justifications_valid N) ok]
+  [(-scrollnet N) (+polarity_violation N) fail]})
+
+' Identity test (via unification)
+(spec identity_valid {
+  [(-just S T) (+unify S T) ok]
+  [(-just S T) (+unify_fail S T) fail]})
+
+' Composite correctness spec
+(spec correct_scroll_net {
+  [(-scrollnet N)
+   (+acyclic_check N)
+   (+all_justifications_valid N)
+   (+all_identities_valid N)
+   ok]})
+
+' =============================================================================
+' PART 9: NORMALIZATION (Detour Elimination)
+' =============================================================================
+
+'''
+Normalization: Eliminate all detours
+  - Find detour patterns
+  - Apply reduction rules
+  - Repeat until normal form
+
+This demonstrates automatic reduction via unification
+'''
+
+' Normalize: Repeatedly eliminate detours
+(:= normalize {
+  [(-scrollnet N) (+detour_free N)]
+  @[(+normal N)]                         ' Already normal
+
+  [(-scrollnet N) (+has_detour N D Type)]
+  [(+has_detour N D ii) (+reduce_ii D N')]
+  [(+has_detour N D aa) (+reduce_aa D N')]
+  [(-scrollnet N') (+normalize N')]      ' Recurse
+  @[(+normal N')]})
+
+' Reduce ii-detour: Opened then closed scroll
+(:= reduce_ii {
+  [(-detour (opened (scroll [] C)) (closed (scroll [] C)))]
+  [(+reduced C)]})                       ' Just content remains
+
+' Reduce aa-detour: Iterated then deleted
+(:= reduce_aa {
+  [(-detour (iterated Source C) (deleted C))]
+  [(+reduced Source)]})                  ' Just source remains
+
+' =============================================================================
+' PART 10: LAMBDA CALCULUS ENCODING
+' =============================================================================
+
+'''
+Simply Typed Lambda Calculus in Scroll Nets:
+  - Variable: Atom node
+  - Abstraction λx.t: Scroll with x in outloop, t in inloop
+  - Application (t u): Superposition of scroll nets
+'''
+
+' Variable
+(:= var {
+  [(+var X) (+atom X)]})
+
+' Abstraction: λx.t
+(:= lambda {
+  [(-var X) (-body T)]
+  [(+abstraction (scroll X T))]})
+
+' Example: λx.x (identity)
+(:= lambda_id {
+  [(+abstraction (scroll x x))]})
+
+' Example: λx.λy.x (const)
+(:= lambda_const {
+  [(+abstraction (scroll x (scroll y x)))]})
+
+' Application: (t u)
+' This requires composition (superposition) of scroll nets
+(:= application {
+  [(-function F) (-argument A)]
+  [(+apply F A Result)]
+
+  ' If F is abstraction, substitute A for parameter
+  [(+apply (scroll X Body) Arg Result)]
+  [(+substitute X Arg Body Result)]})
+
+' Substitution (simplified)
+(:= substitute {
+  [(-var V) (-value Val) (-term V) (+result Val)]       ' Replace var
+  [(-var V) (-value Val) (-term (scroll V T)) (+result T)]  ' β-reduction
+})
+
+' β-reduction example: (λx.x) a → a
+(:= beta_example {
+  [(+function (scroll x x))]
+  [(+argument (atom a))]
+  [(-function F) (-argument A) (+apply F A R)]
+  @[(+result R)]})
+
+(show #beta_example)  ' Should reduce to (atom a)
+
+' =============================================================================
+' PART 11: COMPOSITION (Vertical and Horizontal)
+' =============================================================================
+
+'''
+Horizontal composition (⊔): Parallel execution (conjunction)
+Vertical composition (∘): Sequential execution (implication)
+'''
+
+' Horizontal composition: Disjoint union
+(:= horizontal_comp {
+  [(-scrollnet N1) (-scrollnet N2)]
+  [(+union N1 N2 N12)]
+  @[(+composed N12)]})
+
+' Example: a ∧ b
+(:= conj_example {
+  [(+scrollnet1 (atom a))]
+  [(+scrollnet2 (atom b))]
+  [(+union N1 N2 [(atom a) (atom b)])]})
+
+' Vertical composition: Sequential (requires boundary matching)
+(:= vertical_comp {
+  [(-scrollnet N1) (-scrollnet N2)]
+  [(+conclusion N1 C1)]
+  [(+premiss N2 P2)]
+  [(+matches C1 P2)]       ' Boundary compatibility check
+  [(+superpose N1 N2 N12)]
+  @[(+composed N12)]})
+
+' Example: a → b, then b → c, yields a → c
+(:= trans_example (process
+  (+first (scroll a b))
+  (+second (scroll b c))
+  [(-first F) (-second S) (+compose F S)]
+  [(-compose (scroll A B) (scroll B C)) (+result (scroll A C))]
+  @[(-result R)]))
+
+(show #trans_example)
+
+' =============================================================================
+' EPILOGUE: Connection to Existing Examples
+' =============================================================================
+
+'''
+This scroll net encoding shares principles with:
+  - examples/mll.sg: Proof net correctness via interactive tests
+  - examples/lambda.sg: Lambda calculus encoding via paths
+  - examples/automata.sg: State transitions as justifications
+
+Key insight: Stellogen's unification = Scroll net composition
+'''
+
+' Comparison with MLL encoding
+' MLL uses paths [l|X], [r|X] for tensor/par structure
+' Scroll nets use depth and polarity for implication structure
+' Both rely on term unification for automatic interaction
+
+' Example: MLL-style path encoding for scroll nets
+(:= scroll_with_paths {
+  [(+scroll [outloop|X])]
+  [(+scroll [inloop|X])]
+  [(-scroll_path [P|X]) (+impl P X)]})
+
+(show #scroll_with_paths)
+
+'''
+Next steps:
+  1. Implement full detour elimination
+  2. Add correctness checking
+  3. Encode more complex lambda terms
+  4. Build interactive proof assistant
+'''
