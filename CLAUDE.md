@@ -252,7 +252,7 @@ GPL-3.0-only
 ## Maintainers
 
 - Author: Boris Eng
-- Maintainer: Pablo Donato
+- Maintainer: Boris Eng
 
 ---
 

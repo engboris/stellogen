@@ -21,7 +21,7 @@ correctness. Types act as **questions**, programs as **answers**. This is
 powerful but also constraining, it defines which questions you can even ask.
 
 **Stellogen explores a different path**:
-- Computation and meaning use the same mechanism (term unification)
+- Computation and typing use the same mechanism (term unification)
 - No primitive types or fixed logic imposed from above
 - The compiler only checks that blocks connect: **semantic power belongs to you**
 
@@ -154,7 +154,7 @@ sgen preprocess <filename>
 
 Useful for debugging macro expansions and understanding how syntactic sugar is desugared.
 
-### `watch` - Development Mode
+### `watch` - Development Mode (Linux)
 
 Automatically re-run your program when the file changes (great for development):
 
@@ -180,13 +180,6 @@ sgen run --help
 sgen preprocess --help
 sgen watch --help
 ```
-
----
-
-## Authors & Maintainers
-
-- **Author**: Boris Eng
-- **Maintainer**: Boris Eng, Pablo Donato
 
 ---
 

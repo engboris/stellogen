@@ -1,10 +1,28 @@
 # Learn Stellogen
 
-> **Disclaimer**: This document was written with the assistance of Claude Code and represents exploratory research and analysis. The content may contain inaccuracies or misinterpretations and should not be taken as definitive statements about the Stellogen language implementation.
-
-Stellogen is an experimental, logic-agnostic programming language built on **term unification**. Instead of types or fixed logic, programs and meaning are expressed with the same raw material.
+Stellogen is an experimental, logic-agnostic programming language built on
+**term unification**. Instead of types or fixed logic, programs and meaning are
+expressed with the same raw material.
 
 This guide walks you through the basics.
+
+---
+
+## Let's start!
+
+Follow the install instructions in the README file of the repository.
+
+Open your favorite text editor and create a file `test.sg`. If you use Linux,
+you can open the watcher with `sgen watch test.sg` on your terminal. Otherwise,
+you can run your file with `sgen run test.sg`.
+
+Check that everything works fine by writing and running the following program
+(if you use the watcher, it will run on change and display the result on your
+terminal):
+
+```
+(show "Hello, world")
+```
 
 ---
 
