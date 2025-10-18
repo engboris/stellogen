@@ -24,12 +24,21 @@ terminal):
 (show "Hello, world")
 ```
 
+## Show
+
+The `show` command is used to display an expression on the screen. It will be
+useful through this whole guide.
+
 ---
 
 ## Comments
 
+You can add comments to explain what your program does or to make it more
+readable.
+
 ```stellogen
 ' single line
+(show "Hello, world")
 
 '''
 multi
@@ -39,102 +48,30 @@ line
 
 ## Terms and Unification
 
+In stellogen **everything** is a term.
+
 A **term** is either:
 
 * A variable: starts with uppercase (`X`, `Y`, `Var`).
-* A function: a sequence beginning with a lowercase or special symbol, followed by terms (`(f a X)`).
+* A function: a sequence of symbols beginning with a lowercase or special
+  symbol, followed by terms (`(f a X)`, `(:: x t)`).
 
-Examples:
-
-```stellogen
-X
-(f X)
-(h a X)
-(add X Y Z)
-```
+In the special case of constants (function without argument) we can omit
+parentheses (`f`, `a`, `::`).
 
 **Unification** = finding substitutions that make two terms identical.
 
+For example:
+
 ```stellogen
 '''
-(f X)  ~  (f (h a))    =>  {X := (h a)}
+(f X)  ~  (f (h a))    =>  they match with {X := (h a)}
 (f X)  ~  X            =>  ❌ (circular)
-(f X)  ~  (g X)        =>  ❌ (different heads)
+(f X)  ~  (g X)        =>  ❌ (they don't match because different head symbol)
 '''
 ```
 
-**All Stellogen expressions are actually terms.**
-
----
-
-## Syntactic sugar
-
-### Omission
-
-A constant can be written without parentheses: `f` instead of `(f)`.
-
-### Cons lists
-
-```stellogen
-[a b c]
-```
-
-means
-
-```stellogen
-(%cons a (%cons b %nil))
-```
-
-The empty list is `[]` (denoting the constant `%nil`).
-
-### Stacks
-
-```stellogen
-<a b c>
-```
-
-is an interactive application representing
-
-```stellogen
-(a (b c))
-```
-
-### Groups
-
-```
-{ a b c }
-```
-
-means
-
-```
-(%group a b c)
-```
-
-### Special operators
-
-Some special operators are written as prefix of the expression:
-
-```stellogen
-#(f X)
-#[(f X)]
-@(f X)
-@[(f X)]
-```
-
-### Macros
-
-It is possible to declare aliases for expressions:
-
-```stellogen
-(macro (spec X Y) (:= X Y))
-```
-
-after this declaration, `(spec X Y)` stands for `(:= X Y)`.
-
----
-
-## Rays
+## Rays and compatibility
 
 A **ray** is a term with polarity:
 
@@ -142,13 +79,58 @@ A **ray** is a term with polarity:
 * `(-f X)` → negative
 * `(f X)`  → neutral (does not interact)
 
-Two rays interact if they have opposite polarities **and** their terms unify:
+Two rays and **compatible** and can interact if they have opposite polarities
+**and** their terms unify. You can check compatibility with the term
+`(~= t u)` with arguments `t` and `u` which are rays.
 
 ```stellogen
-'''
-(+f X)   ~   (-f (h a))    =>  {X := (h a)}
-(+f X)   ~   (+f a)        =>  ❌ (same polarity)
-'''
+(~= (+f X) (-f (h a)))   ' =>  succeeds with {X := (h a)}
+(~= (+f X) (+f a))       ' =>  ❌ (fails because same polarity)
+```
+
+---
+
+## Definitions and calls
+
+Our most useful term will be definitions written `(:= x t)` where `x` is the
+name associated to the definition and `t` is a term. For example:
+
+```stellogen
+(:= a (+f X))
+```
+
+You can invoke a definition by prefixing a name with `#`:
+
+```stellogen
+(show #a)
+```
+
+---
+
+## Syntactic sugar
+
+There are shorthands to build complex but useful terms.
+
+### Cons lists
+
+```stellogen
+(show [a b c])  ' means (%cons a (%cons b %nil)), a list containing a and b
+(show [])       ' means %nil, the empty list
+```
+
+### Stacks
+
+You can accumulate application of function symbols.
+
+```stellogen
+(show <a b c>)  ' means (a (b c))
+```
+
+### Groups
+
+```stellogen
+(show { a b c })  ' means (%group a b c)
+(show {})         ' means (%group), the empty group
 ```
 
 ---
@@ -157,25 +139,24 @@ Two rays interact if they have opposite polarities **and** their terms unify:
 
 * A **star** is a cons list of rays:
 
-  ```stellogen
-  [(+f X) (-f (h a)) (+g Y)]
-  ```
+```stellogen
+(show [(+f X) (-f (h a)) (+g Y)])
+```
 
-  Empty star: `[]`
+Square brackets are omitted when there is a single ray.
 
-* A **constellation** is a group of stars `{ }`:
+* A **constellation** is a group of stars:
 
-  ```stellogen
-  { (+f X) (-f X) (+g a) }
-  ```
+```stellogen
+(show { (+f X) [(-f X) (+g a)] })
+```
 
-  Empty constellation: `{}`
-
-Variables are local to each star.
+Variables are local to each star. So, in the above example, the `X` in `(+f X)`
+and the one in `[(-f X) (+g a)]` are not bound.
 
 ---
 
-## Execution by Fusion
+## Principles of Execution
 
 Execution = stars interacting through **fusion** (Robinson’s resolution rule).
 
@@ -188,62 +169,50 @@ When rays unify:
 Example of constellation:
 
 ```stellogen
-{ [(+f X) X] [(-f a)] }
+(:= c { [(+f X) X] (-f a) })
 ```
 
 Fusion along two matching rays: `[(+f X) X]` with `[(-f a)]` → `{X := a}`
-Result: `a`
-
----
+Result: `a`.
 
 ## Focus and Action/State
 
-During execution, we separate stars into *actions* and *states*.
+Before execution, we separate stars into *actions* and *states*.
 
 State stars are marked with `@`.
 They are the “targets” for interaction.
 
 ```stellogen
-{ [+a b] @[-c d] }
+(:= d { [+a b] @[-c d] })
 ```
 
-**Intuition:** Focus corresponds to distinguishing **data (states)** from **rules/program (actions)**:
+**Intuition:** Focus corresponds to distinguishing **data (states)** from
+**rules/program (actions)**:
 
 * **States** (`@`) = what you're computing (the data being transformed)
 * **Actions** (no `@`) = how you compute (the rules/program that transforms)
 
-This is like a subject-verb distinction: states are what the computation is "about", and actions are what "happens to" the states.
-
-Execution duplicates actions and fuses them with state stars until no more interactions are possible.
+Execution duplicates actions and fuses them with state stars until no more
+interactions are possible.
 The result is a new constellation, like the "normal form" of computation.
-
----
-
-## Defining Constellations
-
-You can give names to constellations with the `:=` operator:
-
-```stellogen
-(:= a)
-(:= x {[+a] [-a b]})
-(:= z (-f X))
-```
-
-Delimiters can be omitted when it is obvious that a single ray or star is defined.
-
-You can refer to identifiers with `#`:
-
-```stellogen
-(:= y #x)
-(:= union1 { #x #y #z })   ' unions constellations
-```
-
-Unlike functions, order does not matter.
 
 You can focus all stars of a constellation with `@`:
 
 ```stellogen
 (:= f @{ [a] [b] [c] })
+```
+
+## Let's execute constellations!
+
+```stellogen
+(:= x [(+f X) X])
+(:= y (-f a))
+
+(:= res1 (interact @#x #y)) ' normal execution
+(show #res1)
+
+(:= res2 (fire @#x #y))     ' actions are used exactly once
+(show #res2)
 ```
 
 ---
@@ -257,59 +226,13 @@ Add constraints with `[ some star || (!= X1 Y1) ... (!= Xn Yn)]`:
   [(+f a)]
   [(+f b)]
   @[(-f X) (-f Y) (r X Y) || (!= X Y)]})
+(show (interact #ineq))
 ```
 
 where several equality constraints can be chained after `||`.
 
 This prevents `X` and `Y` from unifying to the same concrete value.
 
----
-
-## Pre-execution
-
-You can precompute expressions:
-
-```stellogen
-(:= x [(+f X) X])
-(:= y (-f a))
-(:= ex (interact @#x #y)) ' normal execution
-(:= ex (fire @#x #y))     ' actions are used exactly once
-```
-
-This evaluates and stores the resulting constellation.
-
----
-
-## Let's write a program
-
-A program consists in a series of commands.
-
-### Commands
-
-* **Show without execution**:
-
-  ```stellogen
-  (show { [+a] [-a b] })
-  ```
-
-* **Show with execution**:
-
-  ```stellogen
-  <show interact { [+a] [-a b] }>
-  ```
-
-### Example
-
-```stellogen
-(:= add {
-  [(+add 0 Y Y)]
-  [(-add X Y Z) (+add (s X) Y (s Z))]})
-
-' 2 + 2 = R
-(:= query [(-add <s s 0> <s s 0> R) R])
-
-(show (interact #add @#query))
-```
 
 ---
 
@@ -320,15 +243,17 @@ Constellations can act like logic programs (à la Prolog).
 ### Facts
 
 ```stellogen
-(+childOf a b)
-(+childOf a c)
-(+childOf c d)
+(:= facts {
+  [(+childOf a b)]
+  [(+childOf a c)]
+  [(+childOf c d)]
+})
 ```
 
 ### Rule
 
 ```stellogen
-{ (-childOf X Y) (-childOf Y Z) (+grandParentOf Z X) }
+(:= rules { (-childOf X Y) (-childOf Y Z) (+grandParentOf Z X) })
 ```
 
 ### Query
@@ -340,15 +265,17 @@ Constellations can act like logic programs (à la Prolog).
 ### Putting it together
 
 ```stellogen
-(:= knowledge {
+(:= facts {
   [(+childOf a b)]
   [(+childOf a c)]
   [(+childOf c d)]
   [(-childOf X Y) (-childOf Y Z) (+grandParentOf Z X)]
 })
 
+(:= rules { (-childOf X Y) (-childOf Y Z) (+grandParentOf Z X) })
+
 (:= query [(-childOf X b) (res X)])
-<show interact { #knowledge @#query }>
+(show (interact { #facts #rules @#query }))
 ```
 
 This asks: *Who are the children of `b`?*
@@ -357,41 +284,28 @@ This asks: *Who are the children of `b`?*
 
 ## Expect assertion
 
+This is a more strict version of the matching `~=` term which expects
+syntactic equality.
+
 ```
-(== x y)
+(== a a)  ' does nothing
+(== a b)  ' fails with an error
 ```
-
-does nothing if `x` and `y` are equal or fails with an error when they are different.
-
----
-
-## Processes
-
-A **process** chains constellations step by step:
-
-```stellogen
-(:= c (process
-  (+n0 0)                 'base constellation
-  [(-n0 X) (+n1 (s X))]   'interacts with previous
-  [(-n1 X) (+n2 (s X))])) 'interacts with previous
-(show #c)
-```
-
-It’s similar to tactics in proof assistants (Rocq) or imperative programs that update state.
 
 ---
 
 ## Types as Sets of Tests
 
-In Stellogen, **types are sets of tests** that a constellation must pass to be of that type.
+In Stellogen, **types are sets of tests** that a constellation must pass to be
+of that type.
 
-For example, we define a type for natural numbers:
+For example, we define a type for natural numbers which is simply a
+constellation corresponding to a "test":
 
 ```stellogen
-(macro (spec X Y) (:= X Y))
-(spec nat {
-  [(-nat 0) ok]              ' test 1
-  [(-nat (s N)) (+nat N)]})  ' test 2
+(:= nat {
+  [(-nat 0) ok]
+  [(-nat (s N)) (+nat N)]})
 ```
 
 A constellation must pass **all tests** to be considered of type `nat`.
@@ -399,16 +313,18 @@ A constellation must pass **all tests** to be considered of type `nat`.
 We then define the behavior of type assertions with a macro:
 
 ```stellogen
-(macro (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+(macro (:: Tested Test) (== @(interact @#Tested #Test) ok))
 ```
 
-It says that a `Tested` is of type `Test` when their interaction with focus on `Tested` is equal to `ok`.
+It says that a `Tested` is of type `Test` when their interaction with focus on
+`Tested` is equal to `ok`.
 
 A constellation can have one or several types:
 
 ```stellogen
+(:= 2 (+nat <s s 0>))
 (:: 2 nat)
-(:: 2 otherType)
-(:: 2 otherType2)
 ```
+
+Notice that a constellation can have several types providing it passes all
+the tests of those types.
