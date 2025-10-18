@@ -63,14 +63,14 @@ Stellogen's constellation-based model supports multiple programming paradigms:
 ' Define variable x as positive first-order term +f(a)
 (:= x (+f a))
 
-' Define variable y as star (block of terms) containing +f(X) and X
+' Define variable y as block of terms containing +f(X) and X
 (:= y [(-f X) X])
 
 ' Display [(-f X) X] on screen
 (show #y)
 
 ' Make x and y interact along (+f a) and (-f X)
-' The conflict is resolved and propagated to the other ray X
+' The conflict is resolved and propagated to the other term X
 ' It results in [a]
 (:= result (interact #x @#y))
 
