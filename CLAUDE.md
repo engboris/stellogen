@@ -56,9 +56,10 @@ Unlike traditional typed languages where types constrain and shape program desig
 
 ### Declarations
 - **Definition**: `(:= name value)`
-- **Macro**: `(new-declaration (pattern) (expansion))`
+- **Macro**: `(macro (pattern) (expansion))`
 - **Show**: `(show expr)` - display result
-- **Expect**: Assertion/testing mechanism
+- **Expect**: `(== expr1 expr2)` - assertion/testing (checks equality)
+- **Match**: `(~= c1 c2)` - checks unifiability of constellations
 
 ### Syntax Reference
 **See `examples/syntax.sg`** for comprehensive examples of all syntactic features including:
@@ -71,6 +72,8 @@ Unlike traditional typed languages where types constrain and shape program desig
 - Fields and field access
 - Nested structures
 - File imports with `(use "path")`
+- Expect (`==`) for equality assertions
+- Match (`~=`) for unifiability checks
 
 ### Type System (Unconventional)
 Types are defined as **sets of interactive tests**:
@@ -171,10 +174,10 @@ dune exec sgen run -- <inputfile>
 
 ```stellogen
 ' Macro for type specification
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 
 ' Macro for type assertion
-(new-declaration (:: Tested Test)
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 
 ' Define nat type as interactive tests

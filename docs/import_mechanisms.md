@@ -66,7 +66,7 @@ let preprocess e = e |> List.map ~f:expand_macro |> unfold_decl_def []
 The preprocessing phase consists of two steps:
 
 1. **Syntactic expansion** (`expand_macro`): Desugars syntax like `[1|Tail]`, `<f a b>`, `"string"` into core forms
-2. **Macro expansion** (`unfold_decl_def`): Processes `new-declaration` forms and expands macro calls
+2. **Macro expansion** (`unfold_decl_def`): Processes `macro` forms and expands macro calls
 
 ### How Macros Work
 
@@ -78,7 +78,7 @@ The `unfold_decl_def` function:
 let unfold_decl_def (macro_env : (string * (string list * expr list)) list) exprs =
   let rec process_expr (env, acc) = function
     (* Macro definition *)
-    | List (Symbol "new-declaration" :: List (Symbol macro_name :: args) :: body) ->
+    | List (Symbol "macro" :: List (Symbol macro_name :: args) :: body) ->
       let var_args = List.map args ~f:(function | Var x -> x | _ -> failwith ...) in
       ((macro_name, (var_args, body)) :: env, acc)
 
@@ -791,8 +791,8 @@ let resolve_module module_name current_file =
 The same macro definitions appear at the beginning of **12+ example files**:
 
 ```stellogen
-(new-declaration (spec X Y) (:= X Y))
-(new-declaration (:: Tested Test)
+(macro (spec X Y) (:= X Y))
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 ```
 
@@ -847,8 +847,8 @@ Suppose we want to create `lib/prelude.sg`:
 
 ```stellogen
 ' lib/prelude.sg - Common macros
-(new-declaration (spec X Y) (:= X Y))
-(new-declaration (:: Tested Test)
+(macro (spec X Y) (:= X Y))
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 ```
 
@@ -1054,8 +1054,8 @@ The current architecture has a clean separation between:
 
 ```stellogen
 ' lib/prelude.sg
-(new-declaration (spec X Y) (:= X Y))
-(new-declaration (:: Tested Test)
+(macro (spec X Y) (:= X Y))
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 
 ' my_program.sg
@@ -1111,8 +1111,8 @@ The current architecture has a clean separation between:
 
 ```stellogen
 ' lib/prelude.sg
-(new-declaration (spec X Y) (:= X Y))
-(new-declaration (:: Tested Test)
+(macro (spec X Y) (:= X Y))
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 
 ' my_program.sg
@@ -1169,8 +1169,8 @@ sgen config set prelude lib/prelude.sg
 
 ```bash
 # Create prelude
-echo '(new-declaration (spec X Y) (:= X Y))' > prelude.sg
-echo '(new-declaration (:: Tested Test) (== @(interact @#Tested #Test) ok))' >> prelude.sg
+echo '(macro (spec X Y) (:= X Y))' > prelude.sg
+echo '(macro (:: Tested Test) (== @(interact @#Tested #Test) ok))' >> prelude.sg
 
 # Use it
 sgen run --prelude prelude.sg my_program.sg
@@ -1351,10 +1351,10 @@ sgen config set prelude lib/milkyway.sg
 ' lib/milkyway.sg - Stellogen Standard Library
 
 ''' Type system macros '''
-(new-declaration (spec X Y) (:= X Y))
-(new-declaration (:: Tested Test)
+(macro (spec X Y) (:= X Y))
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
-(new-declaration (::lin Tested Test)
+(macro (::lin Tested Test)
   (== @(fire @#Tested #Test) ok))
 
 ''' Common type definitions '''
@@ -1363,15 +1363,15 @@ sgen config set prelude lib/milkyway.sg
 (spec list {...})
 
 ''' Utility macros '''
-(new-declaration (alias X Y) (:= X Y))
-(new-declaration (type X Y) (spec X Y))
+(macro (alias X Y) (:= X Y))
+(macro (type X Y) (spec X Y))
 
 ''' Testing macros '''
-(new-declaration (test Name Body)
+(macro (test Name Body)
   (== Body ok Name))
 
 ''' Documentation helpers '''
-(new-declaration (doc _ Body) Body)
+(macro (doc _ Body) Body)
 ```
 
 **Organization:**

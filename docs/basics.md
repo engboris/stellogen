@@ -109,7 +109,7 @@ Some special operators are written as prefix of the expression:
 It is possible to declare aliases for expressions:
 
 ```stellogen
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 ```
 
 after this declaration, `(spec X Y)` stands for `(:= X Y)`.
@@ -189,8 +189,15 @@ They are the “targets” for interaction.
 { [+a b] @[-c d] }
 ```
 
+**Intuition:** Focus corresponds to distinguishing **data (states)** from **rules/program (actions)**:
+
+* **States** (`@`) = what you're computing (the data being transformed)
+* **Actions** (no `@`) = how you compute (the rules/program that transforms)
+
+This is like a subject-verb distinction: states are what the computation is "about", and actions are what "happens to" the states.
+
 Execution duplicates actions and fuses them with state stars until no more interactions are possible.
-The result is a new constellation, like the “normal form” of computation.
+The result is a new constellation, like the "normal form" of computation.
 
 ---
 
@@ -363,7 +370,7 @@ In Stellogen, **types are sets of tests** that a constellation must pass to be o
 For example, we define a type for natural numbers:
 
 ```stellogen
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 (spec nat {
   [(-nat 0) ok]              ' test 1
   [(-nat (s N)) (+nat N)]})  ' test 2
@@ -374,7 +381,7 @@ A constellation must pass **all tests** to be considered of type `nat`.
 We then define the behavior of type assertions with a macro:
 
 ```stellogen
-(new-declaration (:: Tested Test)
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 ```
 

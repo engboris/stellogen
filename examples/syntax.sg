@@ -78,24 +78,39 @@
 <show eval (interact #g2 @[(-field test2)])>
 
 'define type
-(new-declaration (spec X Y) (:= X Y))
+(macro (spec X Y) (:= X Y))
 (spec nat {
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 
-'expect
+'expect (equality check)
 (:= x 0)
 (== #x 0)
-'(== x 1)
+'(== #x 1) ' it fails (uncomment to see error)
+
+'match (unifiability check)
+' Checks if two constellations can unify (requires opposite polarities)
+(:= term1 (+f a))
+(:= term2 (-f X))
+(~= #term1 #term2)  'succeeds: they unify with X=a
+
+' Check if two patterns are compatible
+(:= pattern1 [(+add (s X) Y Z)])
+(:= pattern2 [(-add N M R)])
+(~= #pattern1 #pattern2)  'succeeds: they unify
+
+' This would fail (uncomment to see error):
+' (~= (+f a) (-g b))  'different function symbols
+' (~= (+f a) (+f b))  'same polarity, cannot interact
 
 'type checking
 (:= 2 <+nat s s 0>)
 (== @(interact @#2 #nat) ok)
 
 'import file
-'(use "examples/automata.sg")
+(use-macros "milkyway/prelude.sg")
 
 'declaration definition
-(new-declaration (:: Tested Test)
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 (:: 2 nat)

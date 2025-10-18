@@ -1,6 +1,4 @@
-(new-declaration (spec X Y) (:= X Y))
-(new-declaration (:: Tested Test)
-  (== @(interact #Tested #Test) ok))
+(use-macros "milkyway/prelude.sg")
 
 ' test of linear identity
 (spec (larrow a a) {
@@ -52,7 +50,7 @@
   [(-1 [g|X]) (-2 [g|X]) (+3 [g|X])]
   @[(-3 [g|X]) ok]})
 
-(new-declaration (::lin Tested Test)
+(macro (::lin Tested Test)
   (== @(fire #Tested #Test) ok))
 
 ' does not typecheck

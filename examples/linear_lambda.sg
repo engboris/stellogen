@@ -1,6 +1,4 @@
-(new-declaration (spec X Y) (:= X Y))
-(new-declaration (:: Tested Test)
-  (== @(interact #Tested #Test) ok))
+(use-macros "milkyway/prelude.sg")
 
 ' identity function (\x -> x)
 (:= id [(+id [l|X]) (+id [r|X])])

@@ -31,7 +31,7 @@ In Stellogen, many operations that users expect to run at **compile-time** curre
 **Example 1: Type checking:**
 
 ```stellogen
-(new-declaration (:: Tested Test)
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 
 (:= zero (+nat 0))
@@ -42,7 +42,7 @@ In Stellogen, many operations that users expect to run at **compile-time** curre
 
 ```stellogen
 ' Check that all branches return
-(new-declaration (check-exhaustive Cases)
+(macro (check-exhaustive Cases)
   (== @(verify-coverage #Cases) ok))
 
 (check-exhaustive my-function)  ' Verified at runtime
@@ -143,7 +143,7 @@ Final Environment + Results
 **Definition** (`examples/nat.sg:1-3`):
 
 ```stellogen
-(new-declaration (:: Tested Test)
+(macro (:: Tested Test)
   (== @(interact @#Tested #Test) ok))
 ```
 
@@ -1055,7 +1055,7 @@ While the primary motivation is type checking, the phasing system should support
 
 ```stellogen
 ' Check that pattern matching covers all cases
-(new-declaration (check-exhaustive Fn Cases)
+(macro (check-exhaustive Fn Cases)
   (== @(verify-all-cases-covered #Fn #Cases) ok))
 
 @compile-time
@@ -1069,7 +1069,7 @@ While the primary motivation is type checking, the phasing system should support
 
 ```stellogen
 ' Prove that recursion terminates
-(new-declaration (check-terminates Fn)
+(macro (check-terminates Fn)
   (== @(find-termination-measure #Fn) ok))
 
 @compile-time
@@ -1081,7 +1081,7 @@ While the primary motivation is type checking, the phasing system should support
 
 ```stellogen
 ' Verify that each resource is used exactly once
-(new-declaration (check-linear Fn)
+(macro (check-linear Fn)
   (== @(verify-linear-usage #Fn) ok))
 
 @compile-time
@@ -1332,7 +1332,7 @@ The phasing system should allow users to define **their own compile-time analyse
 
 ```stellogen
 ' Define a new analysis
-(new-declaration (my-analysis Subject)
+(macro (my-analysis Subject)
   @compile-time
   (:= result (run-my-analysis-logic #Subject))
   (report-results #result))
@@ -1346,7 +1346,7 @@ The phasing system should allow users to define **their own compile-time analyse
 
 ```stellogen
 ' Define exhaustiveness checker
-(new-declaration (check-cases Fn AllCases)
+(macro (check-cases Fn AllCases)
   @compile-time
   (let
     ([defined-cases (extract-cases #Fn)]
@@ -1364,7 +1364,7 @@ The phasing system should allow users to define **their own compile-time analyse
 
 ```stellogen
 ' Define resource analyzer
-(new-declaration (analyze-resources Fn MaxHeap MaxStack)
+(macro (analyze-resources Fn MaxHeap MaxStack)
   @compile-time
   (let
     ([heap-usage (estimate-heap-usage #Fn)]
@@ -1386,25 +1386,25 @@ Users could build a **standard library of compile-time tools**:
 ' lib/compile-time.sg
 
 ''' Type checking '''
-(new-declaration (:: Tested Test) ...)
+(macro (:: Tested Test) ...)
 
 ''' Static analysis '''
-(new-declaration (check-exhaustive Fn Cases) ...)
-(new-declaration (check-terminates Fn) ...)
-(new-declaration (check-linear Fn) ...)
+(macro (check-exhaustive Fn Cases) ...)
+(macro (check-terminates Fn) ...)
+(macro (check-linear Fn) ...)
 
 ''' Optimization '''
-(new-declaration (inline Fn) ...)
-(new-declaration (specialize Fn Args) ...)
-(new-declaration (fuse Pipeline) ...)
+(macro (inline Fn) ...)
+(macro (specialize Fn Args) ...)
+(macro (fuse Pipeline) ...)
 
 ''' Code generation '''
-(new-declaration (generate-record Fields) ...)
-(new-declaration (derive-for Type Traits) ...)
+(macro (generate-record Fields) ...)
+(macro (derive-for Type Traits) ...)
 
 ''' Linting '''
-(new-declaration (lint-rule Name Check) ...)
-(new-declaration (run-all-lints) ...)
+(macro (lint-rule Name Check) ...)
+(macro (run-all-lints) ...)
 ```
 
 Usage:
@@ -2056,7 +2056,7 @@ These questions will be answered through experimentation and user feedback.
 ' Define custom analysis at compile-time
 @compile-time {
   ' Analyze resource usage
-  (new-declaration (check-resources Fn MaxMem)
+  (macro (check-resources Fn MaxMem)
     (let ([usage (estimate-memory #Fn)])
       (assert (<= #usage #MaxMem) "Memory bound exceeded")))
 
@@ -2210,33 +2210,33 @@ Users can build libraries of compile-time analyses and tools.
 ''' Core compile-time utilities '''
 
 ' Type checking
-(new-declaration (:: Tested Test)
+(macro (:: Tested Test)
   @compile-time
   (== @(interact @#Tested #Test) ok))
 
 ' Type declaration (alias for spec)
-(new-declaration (type Name Spec)
+(macro (type Name Spec)
   (:= Name Spec))
 
 ' Function type
-(new-declaration (fn ArgType RetType)
+(macro (fn ArgType RetType)
   {:= fn-type {
     [(-fn Arg Ret) (-fn-arg Arg #ArgType) (-fn-ret Ret #RetType)]}})
 
 ' Exhaustiveness checking
-(new-declaration (check-exhaustive Fn Cases)
+(macro (check-exhaustive Fn Cases)
   @compile-time
   (let ([defined (extract-cases #Fn)]
         [expected #Cases])
     (== #defined #expected)))
 
 ' Termination checking
-(new-declaration (check-terminates Fn)
+(macro (check-terminates Fn)
   @compile-time
   (find-termination-measure #Fn))
 
 ' Linearity checking
-(new-declaration (check-linear Fn)
+(macro (check-linear Fn)
   @compile-time
   (verify-each-resource-used-once #Fn))
 ```
@@ -2247,24 +2247,24 @@ Users can build libraries of compile-time analyses and tools.
 ''' Optimization utilities '''
 
 ' Inline small functions
-(new-declaration (inline Fn)
+(macro (inline Fn)
   @compile-time
   (if (<= (size-of #Fn) 10)
     (mark-for-inlining #Fn)
     (warn "Function too large to inline:" #Fn)))
 
 ' Specialize function with constants
-(new-declaration (specialize Fn Args)
+(macro (specialize Fn Args)
   @compile-time
   (generate-specialized-version #Fn #Args))
 
 ' Fuse constellation pipeline
-(new-declaration (fuse Pipeline)
+(macro (fuse Pipeline)
   @compile-time
   (merge-constellations #Pipeline))
 
 ' Constant folding
-(new-declaration (fold-constants Expr)
+(macro (fold-constants Expr)
   @compile-time
   (evaluate-constant-expressions #Expr))
 ```
@@ -2275,18 +2275,18 @@ Users can build libraries of compile-time analyses and tools.
 ''' Code generation utilities '''
 
 ' Generate record type
-(new-declaration (generate-record Fields)
+(macro (generate-record Fields)
   @compile-time
   (create-record-constellation #Fields))
 
 ' Derive functionality
-(new-declaration (derive-for Type Traits)
+(macro (derive-for Type Traits)
   @compile-time
   (for-each #Traits (fn [Trait]
     (generate-trait-impl #Type #Trait))))
 
 ' Generate test cases
-(new-declaration (generate-tests Fn Properties)
+(macro (generate-tests Fn Properties)
   @compile-time
   (create-property-tests #Fn #Properties))
 ```
@@ -2297,22 +2297,22 @@ Users can build libraries of compile-time analyses and tools.
 ''' Static analysis utilities '''
 
 ' Resource analysis
-(new-declaration (analyze-resources Fn Bounds)
+(macro (analyze-resources Fn Bounds)
   @compile-time
   (verify-resource-bounds #Fn #Bounds))
 
 ' Complexity analysis
-(new-declaration (analyze-complexity Fn Expected)
+(macro (analyze-complexity Fn Expected)
   @compile-time
   (estimate-complexity #Fn #Expected))
 
 ' Security analysis
-(new-declaration (check-no-injection Fn)
+(macro (check-no-injection Fn)
   @compile-time
   (verify-input-sanitization #Fn))
 
 ' Concurrency analysis
-(new-declaration (check-race-free Fn)
+(macro (check-race-free Fn)
   @compile-time
   (analyze-data-races #Fn))
 ```

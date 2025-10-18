@@ -5,6 +5,7 @@
   (glob_files ./syntax/*.sg)
   (glob_files ./errors/*.sg)
   (glob_files ../examples/*.sg)
+  (glob_files ../examples/milkyway/*.sg)
   (glob_files ../exercises/solutions/*.sg)
   (package stellogen)))
 

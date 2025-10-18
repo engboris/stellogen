@@ -94,7 +94,7 @@ In this workshop, you can build **anything**:
 (:= nat { [(-nat 0) ok] [(-nat (s N)) (+nat N)] })
 
 ' Build a type system
-(new-declaration (:: Tested Test) ...)
+(macro (:: Tested Test) ...)
 
 ' Build a logic
 (:= prolog-rules { ... })
