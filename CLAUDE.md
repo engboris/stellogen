@@ -58,7 +58,8 @@ Unlike traditional typed languages where types constrain and shape program desig
 - **Definition**: `(:= name value)`
 - **Macro**: `(macro (pattern) (expansion))`
 - **Show**: `(show expr)` - display result
-- **Expect**: Assertion/testing mechanism
+- **Expect**: `(== expr1 expr2)` - assertion/testing (checks equality)
+- **Match**: `(~= c1 c2)` - checks unifiability of constellations
 
 ### Syntax Reference
 **See `examples/syntax.sg`** for comprehensive examples of all syntactic features including:
@@ -71,6 +72,8 @@ Unlike traditional typed languages where types constrain and shape program desig
 - Fields and field access
 - Nested structures
 - File imports with `(use "path")`
+- Expect (`==`) for equality assertions
+- Match (`~=`) for unifiability checks
 
 ### Type System (Unconventional)
 Types are defined as **sets of interactive tests**:
