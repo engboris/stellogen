@@ -275,7 +275,7 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     | Ok program ->
       let* new_env = eval_program program in
       Ok new_env
-    | Error expr_err -> Error (ExprError (expr_err, None)) )
+    | Error (expr_err, loc) -> Error (ExprError (expr_err, loc)) )
 
 and eval_program (p : program) =
   match

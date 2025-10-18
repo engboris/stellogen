@@ -311,31 +311,35 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
    Stellogen program of Expr
    --------------------------------------- *)
 
-let rec decl_of_expr (expr : expr loc) : (declaration, expr_err) Result.t =
+let rec decl_of_expr (expr : expr loc) :
+  (declaration, expr_err * source_location option) Result.t =
+  let wrap_error result =
+    Result.map_error result ~f:(fun err -> (err, expr.loc))
+  in
   match expr.content with
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op expect_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
-    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content |> wrap_error in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content |> wrap_error in
     Expect (sgen_expr1, sgen_expr2, const "default", expr.loc) |> Result.return
   | List [ { content = Symbol op; _ }; expr1; expr2; message ]
     when String.equal op expect_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
-    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
-    let* message_ray = ray_of_expr message.content in
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content |> wrap_error in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content |> wrap_error in
+    let* message_ray = ray_of_expr message.content |> wrap_error in
     Expect (sgen_expr1, sgen_expr2, message_ray, expr.loc) |> Result.return
   | List [ { content = Symbol op; _ }; identifier; value ]
     when String.equal op def_op ->
-    let* id_ray = ray_of_expr identifier.content in
-    let* value_expr = sgen_expr_of_expr value.content in
+    let* id_ray = ray_of_expr identifier.content |> wrap_error in
+    let* value_expr = sgen_expr_of_expr value.content |> wrap_error in
     Def (id_ray, value_expr) |> Result.return
   | List [ { content = Symbol "show"; _ }; arg ] ->
-    let* sgen_expr = sgen_expr_of_expr arg.content in
+    let* sgen_expr = sgen_expr_of_expr arg.content |> wrap_error in
     Show sgen_expr |> Result.return
   | List [ { content = Symbol "use"; _ }; path ] ->
-    let* path_ray = ray_of_expr path.content in
+    let* path_ray = ray_of_expr path.content |> wrap_error in
     Use path_ray |> Result.return
-  | invalid -> Error (InvalidDeclaration (to_string invalid))
+  | invalid -> Error (InvalidDeclaration (to_string invalid), expr.loc)
 
 let program_of_expr e = List.map ~f:decl_of_expr e |> Result.all
 
