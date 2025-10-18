@@ -58,6 +58,8 @@ let def_op = ":="
 
 let expect_op = "=="
 
+let match_op = "~="
+
 let params_op = primitive "params"
 
 let ineq_op = "!="
@@ -178,6 +180,94 @@ let unfold_decl_def (macro_env : (string * (string list * expr loc list)) list)
   List.fold_left exprs ~init:(macro_env, []) ~f:(fun (env, acc) e ->
     process_expr (env, acc) e )
   |> snd |> List.rev
+
+(* ---------------------------------------
+   Macro Import Mechanism
+   --------------------------------------- *)
+
+(* Type for macro environment *)
+type macro_env = (string * (string list * expr loc list)) list
+
+(* Collect all use-macros directives from raw expressions *)
+let rec collect_macro_imports (raw_exprs : Raw.t list) : string list =
+  List.concat_map raw_exprs ~f:(fun raw_expr ->
+    (* Unwrap Positioned if present *)
+    let unwrapped =
+      match raw_expr with
+      | Raw.Positioned (inner, _, _) -> inner
+      | other -> other
+    in
+    match unwrapped with
+    | Raw.List [ Raw.Symbol "use-macros"; Raw.String path ] -> [ path ]
+    | Raw.List [ Raw.Symbol "use-macros"; Raw.Symbol path ] -> [ path ]
+    | Raw.List
+        [ Raw.Symbol "use-macros"; Raw.Positioned (Raw.String path, _, _) ] ->
+      [ path ]
+    | Raw.List
+        [ Raw.Symbol "use-macros"; Raw.Positioned (Raw.Symbol path, _, _) ] ->
+      [ path ]
+    | Raw.List
+        [ Raw.Positioned (Raw.Symbol "use-macros", _, _); Raw.String path ] ->
+      [ path ]
+    | Raw.List
+        [ Raw.Positioned (Raw.Symbol "use-macros", _, _); Raw.Symbol path ] ->
+      [ path ]
+    | Raw.List
+        [ Raw.Positioned (Raw.Symbol "use-macros", _, _)
+        ; Raw.Positioned (Raw.String path, _, _)
+        ] ->
+      [ path ]
+    | Raw.List
+        [ Raw.Positioned (Raw.Symbol "use-macros", _, _)
+        ; Raw.Positioned (Raw.Symbol path, _, _)
+        ] ->
+      [ path ]
+    | _ -> [] )
+
+(* Extract macro definitions from a list of raw expressions *)
+let extract_macros (raw_exprs : Raw.t list) : macro_env =
+  let expanded = List.map raw_exprs ~f:expand_macro in
+  (* We need to extract just the macro environment, not the expanded expressions *)
+  let rec process_expr (env, acc) (expr : expr loc) =
+    match expr.content with
+    | List
+        ( { content = Symbol "macro"; _ }
+        :: { content = List ({ content = Symbol macro_name; _ } :: args); _ }
+        :: body ) ->
+      let var_args =
+        List.map args ~f:(fun arg ->
+          match arg.content with
+          | Var x -> x
+          | _ -> failwith "error: syntax declaration must contain variables" )
+      in
+      ((macro_name, (var_args, body)) :: env, acc)
+    | _ -> (env, acc)
+  in
+  List.fold_left expanded ~init:([], []) ~f:(fun (env, acc) e ->
+    process_expr (env, acc) e )
+  |> fst
+
+(* Preprocess with a given macro environment *)
+let preprocess_with_macro_env (macro_env : macro_env) (raw_exprs : Raw.t list) :
+  expr loc list =
+  (* Remove use-macros directives from the raw expression list *)
+  let is_use_macros raw_expr =
+    let unwrapped =
+      match raw_expr with
+      | Raw.Positioned (inner, _, _) -> inner
+      | other -> other
+    in
+    match unwrapped with
+    | Raw.List (Raw.Symbol "use-macros" :: _) -> true
+    | Raw.List (Raw.Positioned (Raw.Symbol "use-macros", _, _) :: _) -> true
+    | _ -> false
+  in
+  let filtered_raw_exprs =
+    List.filter raw_exprs ~f:(fun e -> not (is_use_macros e))
+  in
+
+  (* Expand to expr loc and apply macros *)
+  filtered_raw_exprs |> List.map ~f:expand_macro |> unfold_decl_def macro_env
 
 (* ---------------------------------------
    Constellation of Expr
@@ -324,6 +414,17 @@ let decl_of_expr (expr : expr loc) : (declaration, expr_err) Result.t =
     let* sgen_expr2 = sgen_expr_of_expr expr2.content in
     let* message_ray = ray_of_expr message.content in
     Expect (sgen_expr1, sgen_expr2, message_ray, expr.loc) |> Result.return
+  | List [ { content = Symbol op; _ }; expr1; expr2 ]
+    when String.equal op match_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
+    Match (sgen_expr1, sgen_expr2, const "default", expr.loc) |> Result.return
+  | List [ { content = Symbol op; _ }; expr1; expr2; message ]
+    when String.equal op match_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
+    let* message_ray = ray_of_expr message.content in
+    Match (sgen_expr1, sgen_expr2, message_ray, expr.loc) |> Result.return
   | List [ { content = Symbol op; _ }; identifier; value ]
     when String.equal op def_op ->
     let* id_ray = ray_of_expr identifier.content in

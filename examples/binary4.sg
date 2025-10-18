@@ -1,4 +1,4 @@
-(macro (spec X Y) (:= X Y))
+(use-macros "milkyway/prelude.sg")
 (macro (:: Tested Test)
   (== @(interact (process #Test #Tested)) ok))
 
