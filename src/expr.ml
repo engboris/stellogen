@@ -58,6 +58,8 @@ let def_op = ":="
 
 let expect_op = "=="
 
+let match_op = "~="
+
 let params_op = primitive "params"
 
 let ineq_op = "!="
@@ -187,7 +189,7 @@ let unfold_decl_def (macro_env : (string * (string list * expr loc list)) list)
 type macro_env = (string * (string list * expr loc list)) list
 
 (* Collect all use-macros directives from raw expressions *)
-let rec collect_macro_imports (raw_exprs : Raw.t list) : string list =
+let collect_macro_imports (raw_exprs : Raw.t list) : string list =
   List.concat_map raw_exprs ~f:(fun raw_expr ->
     (* Unwrap Positioned if present *)
     let unwrapped =
@@ -226,7 +228,7 @@ let rec collect_macro_imports (raw_exprs : Raw.t list) : string list =
 let extract_macros (raw_exprs : Raw.t list) : macro_env =
   let expanded = List.map raw_exprs ~f:expand_macro in
   (* We need to extract just the macro environment, not the expanded expressions *)
-  let rec process_expr (env, acc) (expr : expr loc) =
+  let process_expr (env, acc) (expr : expr loc) =
     match expr.content with
     | List
         ( { content = Symbol "macro"; _ }
@@ -399,31 +401,46 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
    Stellogen program of Expr
    --------------------------------------- *)
 
-let decl_of_expr (expr : expr loc) : (declaration, expr_err) Result.t =
+let decl_of_expr (expr : expr loc) :
+  (declaration, expr_err * source_location option) Result.t =
+  let wrap_error result =
+    Result.map_error result ~f:(fun err -> (err, expr.loc))
+  in
   match expr.content with
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op expect_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
-    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content |> wrap_error in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content |> wrap_error in
     Expect (sgen_expr1, sgen_expr2, const "default", expr.loc) |> Result.return
   | List [ { content = Symbol op; _ }; expr1; expr2; message ]
     when String.equal op expect_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
-    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
-    let* message_ray = ray_of_expr message.content in
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content |> wrap_error in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content |> wrap_error in
+    let* message_ray = ray_of_expr message.content |> wrap_error in
     Expect (sgen_expr1, sgen_expr2, message_ray, expr.loc) |> Result.return
+  | List [ { content = Symbol op; _ }; expr1; expr2 ]
+    when String.equal op match_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content |> wrap_error in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content |> wrap_error in
+    Match (sgen_expr1, sgen_expr2, const "default", expr.loc) |> Result.return
+  | List [ { content = Symbol op; _ }; expr1; expr2; message ]
+    when String.equal op match_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content |> wrap_error in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content |> wrap_error in
+    let* message_ray = ray_of_expr message.content |> wrap_error in
+    Match (sgen_expr1, sgen_expr2, message_ray, expr.loc) |> Result.return
   | List [ { content = Symbol op; _ }; identifier; value ]
     when String.equal op def_op ->
-    let* id_ray = ray_of_expr identifier.content in
-    let* value_expr = sgen_expr_of_expr value.content in
+    let* id_ray = ray_of_expr identifier.content |> wrap_error in
+    let* value_expr = sgen_expr_of_expr value.content |> wrap_error in
     Def (id_ray, value_expr) |> Result.return
   | List [ { content = Symbol "show"; _ }; arg ] ->
-    let* sgen_expr = sgen_expr_of_expr arg.content in
+    let* sgen_expr = sgen_expr_of_expr arg.content |> wrap_error in
     Show sgen_expr |> Result.return
   | List [ { content = Symbol "use"; _ }; path ] ->
-    let* path_ray = ray_of_expr path.content in
+    let* path_ray = ray_of_expr path.content |> wrap_error in
     Use path_ray |> Result.return
-  | invalid -> Error (InvalidDeclaration (to_string invalid))
+  | invalid -> Error (InvalidDeclaration (to_string invalid), expr.loc)
 
 let program_of_expr e = List.map ~f:decl_of_expr e |> Result.all
 

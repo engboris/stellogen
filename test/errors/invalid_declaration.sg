@@ -1,0 +1,2 @@
+' Test invalid declaration syntax
+(invalid-op foo bar)

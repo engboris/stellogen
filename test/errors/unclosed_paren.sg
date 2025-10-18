@@ -1,0 +1,2 @@
+' Test unclosed parenthesis
+(:= test (foo bar)

@@ -1,0 +1,2 @@
+' Test mismatched brackets
+(:= test [foo bar})

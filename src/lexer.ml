@@ -126,6 +126,7 @@ and read lexbuf =
 
 and string_literal lexbuf =
   let buffer = Buffer.create 32 in
+  let get_pos () = fst (Sedlexing.lexing_positions lexbuf) in
   let rec loop () =
     match%sedlex lexbuf with
     | '"' -> STRING (Buffer.contents buffer)
@@ -136,14 +137,24 @@ and string_literal lexbuf =
         | 't' -> '\t'
         | '\\' -> '\\'
         | '"' -> '"'
-        | _ -> failwith "Unknown escape sequence"
+        | _ ->
+          let msg =
+            Printf.sprintf "Unknown escape sequence '\\%s'"
+              (Sedlexing.Utf8.lexeme lexbuf)
+          in
+          raise (LexerError (msg, get_pos ()))
       in
       Buffer.add_char buffer escaped;
       loop ()
-    | eof -> failwith "Unterminated string literal"
+    | eof -> raise (LexerError ("Unterminated string literal", get_pos ()))
     | any ->
       Buffer.add_string buffer (Sedlexing.Utf8.lexeme lexbuf);
       loop ()
-    | _ -> failwith "Invalid character in string literal"
+    | _ ->
+      let msg =
+        Printf.sprintf "Invalid character in string literal: '%s'"
+          (Sedlexing.Utf8.lexeme lexbuf)
+      in
+      raise (LexerError (msg, get_pos ()))
   in
   loop ()

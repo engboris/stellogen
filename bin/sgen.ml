@@ -19,8 +19,8 @@ let run input_file =
       Sgen_eval.eval_program program
     in
     ()
-  | Error expr_error -> (
-    match Sgen_eval.pp_err (ExprError (expr_error, None)) with
+  | Error (expr_error, loc) -> (
+    match Sgen_eval.pp_err (ExprError (expr_error, loc)) with
     | Ok error_msg -> Stdlib.Printf.eprintf "%s" error_msg
     | Error _ -> () )
 
