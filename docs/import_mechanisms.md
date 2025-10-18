@@ -76,7 +76,7 @@ The `unfold_decl_def` function:
 
 ```ocaml
 let unfold_decl_def (macro_env : (string * (string list * expr list)) list) exprs =
-  let rec process_expr (env, acc) = function
+  let process_expr (env, acc) = function
     (* Macro definition *)
     | List (Symbol "macro" :: List (Symbol macro_name :: args) :: body) ->
       let var_args = List.map args ~f:(function | Var x -> x | _ -> failwith ...) in
@@ -1260,7 +1260,7 @@ sgen config set prelude lib/milkyway.sg
 2. **Implement two-phase preprocessing**
    ```ocaml
    (* Phase 1: Collect imported macros *)
-   let rec collect_macro_imports expr_list : string list = ...
+   let collect_macro_imports expr_list : string list = ...
    let load_macro_file filename : (string * (string list * expr list)) list = ...
 
    (* Phase 2: Preprocess with macro environment *)

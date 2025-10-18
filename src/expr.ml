@@ -189,7 +189,7 @@ let unfold_decl_def (macro_env : (string * (string list * expr loc list)) list)
 type macro_env = (string * (string list * expr loc list)) list
 
 (* Collect all use-macros directives from raw expressions *)
-let rec collect_macro_imports (raw_exprs : Raw.t list) : string list =
+let collect_macro_imports (raw_exprs : Raw.t list) : string list =
   List.concat_map raw_exprs ~f:(fun raw_expr ->
     (* Unwrap Positioned if present *)
     let unwrapped =
@@ -228,7 +228,7 @@ let rec collect_macro_imports (raw_exprs : Raw.t list) : string list =
 let extract_macros (raw_exprs : Raw.t list) : macro_env =
   let expanded = List.map raw_exprs ~f:expand_macro in
   (* We need to extract just the macro environment, not the expanded expressions *)
-  let rec process_expr (env, acc) (expr : expr loc) =
+  let process_expr (env, acc) (expr : expr loc) =
     match expr.content with
     | List
         ( { content = Symbol "macro"; _ }
