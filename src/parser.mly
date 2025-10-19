@@ -36,27 +36,24 @@ let expr_file :=
   | es=positioned_expr+; EOF; { es }
 
 let positioned_expr :=
-  | e=expr_ext; {
+  | e=expr; {
       let pos_start = { $startpos with Lexing.pos_fname = !(Parser_context.current_filename) } in
       let pos_end = { $endpos with Lexing.pos_fname = !(Parser_context.current_filename) } in
       Positioned (e, pos_start, pos_end)
     }
 
 let params :=
-  | BAR; BAR; ~=expr_ext+; <>
+  | BAR; BAR; ~=expr+; <>
 
-let expr_ext :=
-  | ~=pars(expr_int+); <List>
-  | ~=angles(revlist(expr_int)); <Stack>
-  | ~=bracks(revlist(expr_int)); <Cons>
-  | ~=braces(revlist(expr_int)); <Group>
-  | LBRACK; ~=revlist(expr_int); ~=params; RBRACK; <ConsWithParams>
-  | LBRACK; ~=revlist(expr_int); BAR; ~=expr_int; RBRACK; <ConsWithBase>
-
-let expr_int :=
-  | ~=expr_ext; <>
-  | SHARP; ~=expr_int; <Call>
-  | AT; ~=expr_int; <Focus>
+let expr :=
+  | ~=pars(expr+); <List>
+  | ~=angles(revlist(expr)); <Stack>
+  | ~=bracks(revlist(expr)); <Cons>
+  | ~=braces(revlist(expr)); <Group>
+  | LBRACK; ~=revlist(expr); ~=params; RBRACK; <ConsWithParams>
+  | LBRACK; ~=revlist(expr); BAR; ~=expr; RBRACK; <ConsWithBase>
+  | SHARP; ~=expr; <Call>
+  | AT; ~=expr; <Focus>
   | ~=SYM; <Symbol>
   | ~=VAR; <Var>
   | ~=STRING; <String>

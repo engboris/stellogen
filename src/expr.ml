@@ -143,43 +143,90 @@ let rec replace_id (var_from : ident) replacement (expr : expr loc) : expr loc =
     ; loc = expr.loc
     }
 
+(* Recursively expand macros in an expression *)
+let rec expand_macros_in_expr
+  (macro_env : (string * (string list * expr loc list)) list) (expr : expr loc)
+  : expr loc list =
+  match expr.content with
+  (* Macro definition - add to environment but don't emit *)
+  | List
+      ( { content = Symbol "macro"; _ }
+      :: { content = List ({ content = Symbol _; _ } :: _); _ }
+      :: _ ) ->
+    []
+  (* Macro call - expand and recursively process *)
+  | List ({ content = Symbol macro_name; _ } :: call_args) -> (
+    match List.Assoc.find macro_env macro_name ~equal:String.equal with
+    | Some (formal_params, body) ->
+      if List.length formal_params <> List.length call_args then
+        failwith
+          (Printf.sprintf "Error: macro '%s' expects %d args, got %d" macro_name
+             (List.length formal_params)
+             (List.length call_args) )
+      else
+        (* First, recursively expand macros in the arguments *)
+        let expanded_args =
+          List.map call_args ~f:(fun arg ->
+            match expand_macros_in_expr macro_env arg with
+            | [ single ] -> single
+            | multiple -> { content = List multiple; loc = arg.loc } )
+        in
+        (* Then substitute and expand the body *)
+        let apply_substitution e =
+          List.fold_left (List.zip_exn formal_params expanded_args) ~init:e
+            ~f:(fun acc (param, arg) -> replace_id param arg acc )
+        in
+        let substituted = List.map body ~f:apply_substitution in
+        (* Recursively expand macros in the substituted body *)
+        List.concat_map substituted ~f:(expand_macros_in_expr macro_env)
+    | None ->
+      (* Not a macro - recursively expand in sub-expressions *)
+      let expanded_subexprs =
+        List.map call_args ~f:(fun arg ->
+          match expand_macros_in_expr macro_env arg with
+          | [ single ] -> single
+          | multiple -> { content = List multiple; loc = arg.loc } )
+      in
+      [ { expr with
+          content =
+            List
+              ( { content = Symbol macro_name; loc = expr.loc }
+              :: expanded_subexprs )
+        }
+      ] )
+  (* Regular list - recursively expand in sub-expressions *)
+  | List subexprs ->
+    let expanded_subexprs =
+      List.map subexprs ~f:(fun sub ->
+        match expand_macros_in_expr macro_env sub with
+        | [ single ] -> single
+        | multiple -> { content = List multiple; loc = sub.loc } )
+    in
+    [ { expr with content = List expanded_subexprs } ]
+  (* Atoms - no expansion needed *)
+  | Symbol _ | Var _ -> [ expr ]
+
 let unfold_decl_def (macro_env : (string * (string list * expr loc list)) list)
   exprs =
-  let process_expr (env, acc) (expr : expr loc) =
-    match expr.content with
-    | List
-        ( { content = Symbol "macro"; _ }
-        :: { content = List ({ content = Symbol macro_name; _ } :: args); _ }
-        :: body ) ->
-      let var_args =
-        List.map args ~f:(fun arg ->
-          match arg.content with
-          | Var x -> x
-          | _ -> failwith "error: syntax declaration must contain variables" )
-      in
-      ((macro_name, (var_args, body)) :: env, acc)
-    | List ({ content = Symbol macro_name; _ } :: call_args) -> (
-      match List.Assoc.find env macro_name ~equal:String.equal with
-      | Some (formal_params, body) ->
-        if List.length formal_params <> List.length call_args then
-          failwith
-            (Printf.sprintf "Error: macro '%s' expects %d args, got %d"
-               macro_name
-               (List.length formal_params)
-               (List.length call_args) )
-        else
-          let apply_substitution e =
-            List.fold_left (List.zip_exn formal_params call_args) ~init:e
-              ~f:(fun acc (param, arg) -> replace_id param arg acc )
-          in
-          let expanded = List.map body ~f:apply_substitution |> List.rev in
-          (env, expanded @ acc)
-      | None -> (env, expr :: acc) )
-    | _ -> (env, expr :: acc)
+  (* First pass: collect macro definitions *)
+  let env =
+    List.fold_left exprs ~init:macro_env ~f:(fun acc (expr : expr loc) ->
+      match expr.content with
+      | List
+          ( { content = Symbol "macro"; _ }
+          :: { content = List ({ content = Symbol macro_name; _ } :: args); _ }
+          :: body ) ->
+        let var_args =
+          List.map args ~f:(fun arg ->
+            match arg.content with
+            | Var x -> x
+            | _ -> failwith "error: syntax declaration must contain variables" )
+        in
+        (macro_name, (var_args, body)) :: acc
+      | _ -> acc )
   in
-  List.fold_left exprs ~init:(macro_env, []) ~f:(fun (env, acc) e ->
-    process_expr (env, acc) e )
-  |> snd |> List.rev
+  (* Second pass: expand macros recursively *)
+  List.concat_map exprs ~f:(expand_macros_in_expr env)
 
 (* ---------------------------------------
    Macro Import Mechanism
@@ -393,6 +440,39 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
   | List [ { content = Symbol "eval"; _ }; arg ] ->
     let* sgen_expr = sgen_expr_of_expr arg.content in
     Eval sgen_expr |> Result.return
+  | List [ { content = Symbol op; _ }; expr1; expr2 ]
+    when String.equal op expect_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
+    Expect (sgen_expr1, sgen_expr2, const "default", None) |> Result.return
+  | List [ { content = Symbol op; _ }; expr1; expr2; message ]
+    when String.equal op expect_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
+    let* message_ray = ray_of_expr message.content in
+    Expect (sgen_expr1, sgen_expr2, message_ray, None) |> Result.return
+  | List [ { content = Symbol op; _ }; expr1; expr2 ]
+    when String.equal op match_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
+    Match (sgen_expr1, sgen_expr2, const "default", None) |> Result.return
+  | List [ { content = Symbol op; _ }; expr1; expr2; message ]
+    when String.equal op match_op ->
+    let* sgen_expr1 = sgen_expr_of_expr expr1.content in
+    let* sgen_expr2 = sgen_expr_of_expr expr2.content in
+    let* message_ray = ray_of_expr message.content in
+    Match (sgen_expr1, sgen_expr2, message_ray, None) |> Result.return
+  | List [ { content = Symbol op; _ }; identifier; value ]
+    when String.equal op def_op ->
+    let* id_ray = ray_of_expr identifier.content in
+    let* value_expr = sgen_expr_of_expr value.content in
+    Def (id_ray, value_expr) |> Result.return
+  | List [ { content = Symbol "show"; _ }; arg ] ->
+    let* sgen_expr = sgen_expr_of_expr arg.content in
+    Show sgen_expr |> Result.return
+  | List [ { content = Symbol "use"; _ }; path ] ->
+    let* path_ray = ray_of_expr path.content in
+    Use path_ray |> Result.return
   | List _ as list_expr ->
     let* constellation = constellation_of_expr list_expr in
     Raw constellation |> Result.return
@@ -401,47 +481,22 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
    Stellogen program of Expr
    --------------------------------------- *)
 
-let decl_of_expr (expr : expr loc) :
-  (declaration, expr_err * source_location option) Result.t =
+(* Helper to attach location info to declaration terms *)
+let attach_location (sgen : sgen_expr) (loc : source_location option) :
+  sgen_expr =
+  match sgen with
+  | Expect (e1, e2, msg, _) -> Expect (e1, e2, msg, loc)
+  | Match (e1, e2, msg, _) -> Match (e1, e2, msg, loc)
+  | other -> other
+
+let sgen_expr_of_expr_loc (expr : expr loc) :
+  (sgen_expr, expr_err * source_location option) Result.t =
   let wrap_error result =
     Result.map_error result ~f:(fun err -> (err, expr.loc))
   in
-  match expr.content with
-  | List [ { content = Symbol op; _ }; expr1; expr2 ]
-    when String.equal op expect_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1.content |> wrap_error in
-    let* sgen_expr2 = sgen_expr_of_expr expr2.content |> wrap_error in
-    Expect (sgen_expr1, sgen_expr2, const "default", expr.loc) |> Result.return
-  | List [ { content = Symbol op; _ }; expr1; expr2; message ]
-    when String.equal op expect_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1.content |> wrap_error in
-    let* sgen_expr2 = sgen_expr_of_expr expr2.content |> wrap_error in
-    let* message_ray = ray_of_expr message.content |> wrap_error in
-    Expect (sgen_expr1, sgen_expr2, message_ray, expr.loc) |> Result.return
-  | List [ { content = Symbol op; _ }; expr1; expr2 ]
-    when String.equal op match_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1.content |> wrap_error in
-    let* sgen_expr2 = sgen_expr_of_expr expr2.content |> wrap_error in
-    Match (sgen_expr1, sgen_expr2, const "default", expr.loc) |> Result.return
-  | List [ { content = Symbol op; _ }; expr1; expr2; message ]
-    when String.equal op match_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1.content |> wrap_error in
-    let* sgen_expr2 = sgen_expr_of_expr expr2.content |> wrap_error in
-    let* message_ray = ray_of_expr message.content |> wrap_error in
-    Match (sgen_expr1, sgen_expr2, message_ray, expr.loc) |> Result.return
-  | List [ { content = Symbol op; _ }; identifier; value ]
-    when String.equal op def_op ->
-    let* id_ray = ray_of_expr identifier.content |> wrap_error in
-    let* value_expr = sgen_expr_of_expr value.content |> wrap_error in
-    Def (id_ray, value_expr) |> Result.return
-  | List [ { content = Symbol "show"; _ }; arg ] ->
-    let* sgen_expr = sgen_expr_of_expr arg.content |> wrap_error in
-    Show sgen_expr |> Result.return
-  | List [ { content = Symbol "use"; _ }; path ] ->
-    let* path_ray = ray_of_expr path.content |> wrap_error in
-    Use path_ray |> Result.return
-  | invalid -> Error (InvalidDeclaration (to_string invalid), expr.loc)
+  let* sgen = sgen_expr_of_expr expr.content |> wrap_error in
+  Ok (attach_location sgen expr.loc)
 
-let program_of_expr e = List.map ~f:decl_of_expr e |> Result.all
+let program_of_expr e = List.map ~f:sgen_expr_of_expr_loc e |> Result.all
 
 let preprocess e = e |> List.map ~f:expand_macro |> unfold_decl_def []
