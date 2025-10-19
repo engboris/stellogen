@@ -23,6 +23,8 @@ depends: [
   "menhir"
   "sedlex"
   "ppx_deriving"
+  "js_of_ocaml"
+  "js_of_ocaml-ppx"
   "odoc" {with-doc}
 ]
 build: [
