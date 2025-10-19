@@ -288,11 +288,6 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     evaluated |> List.map ~f:Marked.remove |> string_of_constellation
     |> Stdlib.print_endline;
     Ok env
-  | Run expr ->
-    let (_ : (Marked.constellation, err) Result.t) =
-      eval_sgen_expr env (Exec (false, expr))
-    in
-    Ok env
   | Expect (expr1, expr2, message, location) ->
     let* eval1 = eval_sgen_expr env expr1 in
     let* eval2 = eval_sgen_expr env expr2 in

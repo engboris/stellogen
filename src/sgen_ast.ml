@@ -46,7 +46,6 @@ let initial_env = { objs = [] }
 type declaration =
   | Def of ident * sgen_expr
   | Show of sgen_expr
-  | Run of sgen_expr
   | Expect of sgen_expr * sgen_expr * ident * source_location option
   | Match of sgen_expr * sgen_expr * ident * source_location option
   | Use of ident
