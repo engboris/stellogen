@@ -18,16 +18,15 @@ let run_stellogen code_js =
 
     match result with
     | Ok output ->
-        Console.console##log (Js.string ("Success: " ^ output));
-        Js.string (strip_ansi_codes output)
+      Console.console##log (Js.string ("Success: " ^ output));
+      Js.string (strip_ansi_codes output)
     | Error err ->
-        Console.console##log (Js.string ("Error: " ^ err));
-        Js.string ("ERROR: " ^ strip_ansi_codes err)
-  with
-  | e ->
-      let msg = "Exception in run_stellogen: " ^ Printexc.to_string e in
-      Console.console##log (Js.string msg);
-      Js.string msg
+      Console.console##log (Js.string ("Error: " ^ err));
+      Js.string ("ERROR: " ^ strip_ansi_codes err)
+  with e ->
+    let msg = "Exception in run_stellogen: " ^ Printexc.to_string e in
+    Console.console##log (Js.string msg);
+    Js.string msg
 
 (* Export to JavaScript *)
 let () =
@@ -35,4 +34,4 @@ let () =
   Js.export "Stellogen"
     (object%js
        method run code = run_stellogen code
-     end)
+    end )
