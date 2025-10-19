@@ -21,7 +21,7 @@ correctness. Types act as **questions**, programs as **answers**. This is
 powerful but also constraining, it defines which questions you can even ask.
 
 **Stellogen explores a different path**:
-- Computation and meaning use the same mechanism (term unification)
+- Computation and typing use the same mechanism (term unification)
 - No primitive types or fixed logic imposed from above
 - The compiler only checks that blocks connect: **semantic power belongs to you**
 
@@ -63,14 +63,14 @@ Stellogen's constellation-based model supports multiple programming paradigms:
 ' Define variable x as positive first-order term +f(a)
 (:= x (+f a))
 
-' Define variable y as star (block of terms) containing +f(X) and X
+' Define variable y as block of terms containing +f(X) and X
 (:= y [(-f X) X])
 
 ' Display [(-f X) X] on screen
 (show #y)
 
 ' Make x and y interact along (+f a) and (-f X)
-' The conflict is resolved and propagated to the other ray X
+' The conflict is resolved and propagated to the other term X
 ' It results in [a]
 (:= result (interact #x @#y))
 
@@ -154,7 +154,7 @@ sgen preprocess <filename>
 
 Useful for debugging macro expansions and understanding how syntactic sugar is desugared.
 
-### `watch` - Development Mode
+### `watch` - Development Mode (Linux)
 
 Automatically re-run your program when the file changes (great for development):
 
@@ -180,13 +180,6 @@ sgen run --help
 sgen preprocess --help
 sgen watch --help
 ```
-
----
-
-## Authors & Maintainers
-
-- **Author**: Boris Eng
-- **Maintainer**: Boris Eng, Pablo Donato
 
 ---
 
