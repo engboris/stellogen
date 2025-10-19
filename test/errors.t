@@ -87,16 +87,9 @@ Test unclosed parenthesis:
 Declaration Errors
 ------------------
 
-Test invalid declaration syntax:
+Test that any expression is now valid as a term (unified design):
   $ sgen run errors/invalid_declaration.sg
-  error: expression '(invalid-op foo bar)' is not a valid declaration
-    --> errors/invalid_declaration.sg:2:1
-  
-      2 | (invalid-op foo bar)
-        | ^
-  
-    help: Declarations must use :=, show, ==, or use.
-  
+
 
 Error Recovery
 --------------

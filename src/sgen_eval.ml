@@ -59,6 +59,13 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
   | Eval e ->
     let map_e = map_ray env ~f e in
     Eval map_e
+  | Def (id, e) -> Def (f id, map_ray env ~f e)
+  | Show e -> Show (map_ray env ~f e)
+  | Expect (e1, e2, msg, loc) ->
+    Expect (map_ray env ~f e1, map_ray env ~f e2, f msg, loc)
+  | Match (e1, e2, msg, loc) ->
+    Match (map_ray env ~f e1, map_ray env ~f e2, f msg, loc)
+  | Use id -> Use (f id)
 
 let pp_err error : (string, err) Result.t =
   let red text = "\x1b[31m" ^ text ^ "\x1b[0m" in
@@ -214,8 +221,8 @@ let pp_err error : (string, err) Result.t =
     |> Result.return
 
 let rec eval_sgen_expr (env : env) :
-  sgen_expr -> (Marked.constellation, err) Result.t = function
-  | Raw mcs -> Ok mcs
+  sgen_expr -> (env * Marked.constellation, err) Result.t = function
+  | Raw mcs -> Ok (env, mcs)
   | Call x -> begin
     match get_obj env x with
     | None -> Error (UnknownID (string_of_ray x, None))
@@ -228,35 +235,45 @@ let rec eval_sgen_expr (env : env) :
       Result.bind result ~f:(eval_sgen_expr env)
   end
   | Group es ->
-    let* eval_es = List.map ~f:(eval_sgen_expr env) es |> Result.all in
-    let* mcs = Ok eval_es in
-    Ok (List.concat mcs)
-  | Exec (b, e) ->
-    let* eval_e = eval_sgen_expr env e in
-    Ok (exec ~linear:b eval_e |> Marked.make_action_all)
-  | Focus e ->
-    let* eval_e = eval_sgen_expr env e in
-    eval_e |> Marked.remove_all |> Marked.make_state_all |> Result.return
-  | Process [] -> Ok []
-  | Process (h :: t) ->
-    let* eval_e = eval_sgen_expr env h in
-    let init = eval_e |> Marked.remove_all |> Marked.make_state_all in
-    let* res =
-      List.fold_left t ~init:(Ok init) ~f:(fun acc x ->
-        let* acc = acc in
-        let origin = acc |> Marked.remove_all |> Marked.make_state_all in
-        eval_sgen_expr env (Focus (Exec (false, Group [ x; Raw origin ]))) )
+    let* env', eval_es =
+      List.fold_left es
+        ~init:(Ok (env, []))
+        ~f:(fun acc e ->
+          let* env_acc, results = acc in
+          let* env_new, result = eval_sgen_expr env_acc e in
+          Ok (env_new, result :: results) )
     in
-    res |> Result.return
+    Ok (env', List.concat (List.rev eval_es))
+  | Exec (b, e) ->
+    let* env', eval_e = eval_sgen_expr env e in
+    Ok (env', exec ~linear:b eval_e |> Marked.make_action_all)
+  | Focus e ->
+    let* env', eval_e = eval_sgen_expr env e in
+    eval_e |> Marked.remove_all |> Marked.make_state_all |> fun c -> Ok (env', c)
+  | Process [] -> Ok (env, [])
+  | Process (h :: t) ->
+    let* env', eval_e = eval_sgen_expr env h in
+    let init = eval_e |> Marked.remove_all |> Marked.make_state_all in
+    let* env_final, res =
+      List.fold_left t
+        ~init:(Ok (env', init))
+        ~f:(fun acc x ->
+          let* env_acc, acc_const = acc in
+          let origin =
+            acc_const |> Marked.remove_all |> Marked.make_state_all
+          in
+          eval_sgen_expr env_acc (Focus (Exec (false, Group [ x; Raw origin ]))) )
+    in
+    Ok (env_final, res)
   | Eval e -> (
-    let* eval_e = eval_sgen_expr env e in
+    let* env', eval_e = eval_sgen_expr env e in
     match eval_e with
     | [ State { content = [ r ]; bans = _ } ]
     | [ Action { content = [ r ]; bans = _ } ] ->
       let er = expr_of_ray r in
       begin
         match Expr.sgen_expr_of_expr er with
-        | Ok sg -> eval_sgen_expr env sg
+        | Ok sg -> eval_sgen_expr env' sg
         | Error e -> Error (ExprError (e, None))
       end
     | e ->
@@ -264,43 +281,26 @@ let rec eval_sgen_expr (env : env) :
         ( "eval error: "
         ^ string_of_constellation (Marked.remove_all e)
         ^ " is not a ray." ) )
-
-and expr_of_ray : ray -> Expr.expr = function
-  | Var (x, None) -> Expr.Var x
-  | Var (x, Some i) -> Expr.Var (x ^ Int.to_string i)
-  | Func (pf, []) -> Symbol (string_of_polsym pf)
-  | Func (pf, args) ->
-    Expr.List
-      ( { Expr.content = Symbol (string_of_polsym pf); loc = None }
-      :: List.map
-           ~f:(fun r -> { Expr.content = expr_of_ray r; loc = None })
-           args )
-
-let rec eval_decl env : declaration -> (env, err) Result.t = function
-  | Def (identifier, expr) -> Ok { objs = add_obj env identifier expr }
-  | Show (Raw marked_constellation) ->
-    marked_constellation |> Marked.remove_all |> string_of_constellation
-    |> Stdlib.print_endline;
-    Stdlib.flush Stdlib.stdout;
-    Ok env
+  | Def (identifier, expr) -> Ok ({ objs = add_obj env identifier expr }, [])
   | Show expr ->
-    let* evaluated = eval_sgen_expr env expr in
+    let* env', evaluated = eval_sgen_expr env expr in
     evaluated |> List.map ~f:Marked.remove |> string_of_constellation
     |> Stdlib.print_endline;
-    Ok env
+    Stdlib.flush Stdlib.stdout;
+    Ok (env', [])
   | Expect (expr1, expr2, message, location) ->
-    let* eval1 = eval_sgen_expr env expr1 in
-    let* eval2 = eval_sgen_expr env expr2 in
+    let* env1, eval1 = eval_sgen_expr env expr1 in
+    let* env2, eval2 = eval_sgen_expr env1 expr2 in
     let normalized1 = Marked.normalize_all eval1 in
     let normalized2 = Marked.normalize_all eval2 in
-    if Marked.equal_constellation normalized1 normalized2 then Ok env
+    if Marked.equal_constellation normalized1 normalized2 then Ok (env2, [])
     else Error (ExpectError { got = eval1; expected = eval2; message; location })
   | Match (expr1, expr2, message, location) ->
-    let* eval1 = eval_sgen_expr env expr1 in
-    let* eval2 = eval_sgen_expr env expr2 in
+    let* env1, eval1 = eval_sgen_expr env expr1 in
+    let* env2, eval2 = eval_sgen_expr env1 expr2 in
     let const1 = List.map eval1 ~f:Marked.remove in
     let const2 = List.map eval2 ~f:Marked.remove in
-    if constellations_compatible const1 const2 then Ok env
+    if constellations_compatible const1 const2 then Ok (env2, [])
     else Error (MatchError { term1 = eval1; term2 = eval2; message; location })
   | Use path -> (
     let open Lsc_ast.StellarRays in
@@ -318,20 +318,33 @@ let rec eval_decl env : declaration -> (env, err) Result.t = function
     let preprocessed = Sgen_parsing.preprocess_with_imports filename expr in
     match Expr.program_of_expr preprocessed with
     | Ok program ->
-      let* new_env = eval_program program in
-      Ok new_env
+      let* new_env = eval_program_internal env program in
+      Ok (new_env, [])
     | Error (expr_err, loc) -> Error (ExprError (expr_err, loc)) )
 
+and expr_of_ray : ray -> Expr.expr = function
+  | Var (x, None) -> Expr.Var x
+  | Var (x, Some i) -> Expr.Var (x ^ Int.to_string i)
+  | Func (pf, []) -> Symbol (string_of_polsym pf)
+  | Func (pf, args) ->
+    Expr.List
+      ( { Expr.content = Symbol (string_of_polsym pf); loc = None }
+      :: List.map
+           ~f:(fun r -> { Expr.content = expr_of_ray r; loc = None })
+           args )
+
 and eval_program (p : program) =
-  match
-    List.fold_left
-      ~f:(fun acc x ->
-        let* acc = acc in
-        eval_decl acc x )
-      ~init:(Ok initial_env) p
-  with
+  match eval_program_internal initial_env p with
   | Ok env -> Ok env
   | Error e ->
     let* pp = pp_err e in
     output_string stderr pp;
     Error e
+
+and eval_program_internal (env : env) (p : program) =
+  List.fold_left
+    ~f:(fun acc x ->
+      let* acc_env = acc in
+      let* new_env, _ = eval_sgen_expr acc_env x in
+      Ok new_env )
+    ~init:(Ok env) p

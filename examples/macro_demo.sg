@@ -1,0 +1,29 @@
+' Define some utility macros
+(macro (double X) (add X X))
+(macro (triple X) (add X (double X)))
+(macro (deftype Name Body) (:= Name Body))
+
+' 1. Macros in definitions
+(:= two (double 1))
+(:= six (triple 2))
+
+' 2. Nested macro calls (triple uses double internally)
+(show (triple 5))
+
+' 3. Macros in constellations
+(:= compute {
+  [(+calc X) (result (double X))]
+  [(-calc Y) (output (triple Y))]
+})
+
+' 4. Macros expanding to declarations
+(deftype mytype {
+  [(-check 0) ok]
+  [(-check (s N)) (+check N)]
+})
+
+' 5. Multiple levels of nesting
+(:= nested (interact {
+  [(+init) (:= inner (double 42))]
+  [(-init) (triple 3)]
+}))
