@@ -9,7 +9,7 @@
 
 (authors "Boris Eng")
 
-(maintainers "Pablo Donato")
+(maintainers "Boris Eng")
 
 (license GPL-3.0-only)
 

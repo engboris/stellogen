@@ -3,7 +3,7 @@ opam-version: "2.0"
 synopsis: """
 Stellogen is a minimalistic and logic-agnostic programming
 language based on term unification."""
-maintainer: ["Pablo Donato"]
+maintainer: ["Boris Eng"]
 authors: ["Boris Eng"]
 license: "GPL-3.0-only"
 tags: [
