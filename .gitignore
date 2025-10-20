@@ -2,3 +2,6 @@ _build/*
 *.cmi
 *.cmo
 _opam/
+
+# Web playground deployment directory
+web_deploy/

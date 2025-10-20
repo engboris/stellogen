@@ -19,7 +19,7 @@
  (name stellogen)
  (synopsis "Stellogen is a minimalistic and logic-agnostic programming
 language based on term unification.")
- (depends base menhir sedlex ppx_deriving)
+ (depends base menhir sedlex ppx_deriving js_of_ocaml js_of_ocaml-ppx)
  (tags
   ("transcendental syntax" "logic programming" "constraint programming" "resolution logic" "unification" "self-assembly")))
 

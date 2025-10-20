@@ -276,3 +276,22 @@ let preprocess_with_imports (source_file : string) (raw_exprs : Expr.Raw.t list)
 
   (* Phase 2: Preprocess with the macro environment *)
   Expr.preprocess_with_macro_env macro_env raw_exprs
+
+(* ---------------------------------------
+   String-based API for Web Playground
+   --------------------------------------- *)
+
+let create_start_pos_for_string () =
+  { Lexing.pos_fname = "<playground>"; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
+
+(* Parse from string instead of file *)
+let parse_from_string (code : string) : Expr.Raw.t list =
+  let lexbuf = Sedlexing.Utf8.from_string code in
+  Sedlexing.set_position lexbuf (create_start_pos_for_string ());
+  parse_with_error "<playground>" lexbuf
+
+(* Preprocess without file imports (for web playground) *)
+let preprocess_without_imports (raw_exprs : Expr.Raw.t list) :
+  Expr.expr Expr.loc list =
+  (* Just expand macros defined in the code itself, no file imports *)
+  Expr.preprocess_with_macro_env [] raw_exprs
