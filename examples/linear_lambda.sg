@@ -10,7 +10,7 @@
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]])
 
-(show (interact #id #id_arg #linker))
+(show (exec #id #id_arg #linker))
 
 ' id x
 (:= x_arg [(x X) (+arg [l X])])
@@ -19,7 +19,7 @@
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]])
 
-(show (interact #id #x_arg #linker))
+(show (exec #id #x_arg #linker))
 
 ' linear types
 (spec (larrow a a) {

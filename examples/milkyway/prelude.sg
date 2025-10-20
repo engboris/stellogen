@@ -6,4 +6,4 @@
 
 ' Macro for type assertion
 (macro (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+  (== @(exec @#Tested #Test) ok))

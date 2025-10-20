@@ -9,6 +9,6 @@
 
 (:= cut [(-5 X) (-3 X)])
 
-<show interact (process
+<show exec (process
   #with
   { #plus #cut })>

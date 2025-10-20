@@ -39,10 +39,10 @@
   ]]
 })
 
-(:= vehicle (eval (interact #ps1 @[-vehicle])))
-(:= cuts    (eval (interact #ps1 @[-cuts])))
+(:= vehicle (eval (exec #ps1 @[-vehicle])))
+(:= cuts    (eval (exec #ps1 @[-cuts])))
 
-(show (interact #vehicle #cuts))
+(show (exec #vehicle #cuts))
 
 (spec (tens a b) {
   [-1 -2 +3]

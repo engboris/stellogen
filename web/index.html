@@ -207,7 +207,7 @@
 
 ' 2 + 2 = R
 (:= query1 [(-add <s s 0> <s s 0> R) R])
-(show (interact #add @#query1))
+(show (exec #add @#query1))
 
 
 ''' FAMILY RELATIONSHIPS '''
@@ -226,7 +226,7 @@
 
 ' who is tom's grandchild?
 (:= query5 [(-grandparent tom Z) Z])
-(show (interact #grandparent @(process #query5 #family)))
+(show (exec #grandparent @(process #query5 #family)))
 
 
 ''' GRAPH TRAVERSAL '''
@@ -274,7 +274,7 @@
 })
 
 ' 5. Multiple levels of nesting
-(:= nested (interact {
+(:= nested (exec {
   [(+init) (:= inner (double 42))]
   [(-init) (triple 3)]
 }))`,
@@ -282,7 +282,7 @@
             nat: `' Prelude macros (normally imported)
 (macro (spec X Y) (:= X Y))
 (macro (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+  (== @(exec @#Tested #Test) ok))
 
 ' Natural number type specification
 (spec nat {
@@ -302,14 +302,14 @@
   [(-nat 0) (res 1)]
   [(-nat (s _)) (res 0)]})
 
-(show (interact @#add1 #2))
-(show (interact #is_empty @#0))
-(show (interact #is_empty @#1))`,
+(show (exec @#add1 #2))
+(show (exec #is_empty @#0))
+(show (exec #is_empty @#1))`,
 
             automata: `' Prelude macros (normally imported)
 (macro (spec X Y) (:= X Y))
 (macro (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+  (== @(exec @#Tested #Test) ok))
 
 ' Binary input type
 (spec binary {
@@ -340,10 +340,10 @@
 
 (:= kill (-a _ _))
 
-(show (process (interact @#e #a1)   #kill))
-(show (process (interact @#000 #a1) #kill))
-(show (process (interact @#010 #a1) #kill))
-(show (process (interact @#110 #a1) #kill))`,
+(show (process (exec @#e #a1)   #kill))
+(show (process (exec @#000 #a1) #kill))
+(show (process (exec @#010 #a1) #kill))
+(show (process (exec @#110 #a1) #kill))`,
 
             stack: `' Stack operations demonstration
 (:= (init C) (+stack 0 []))

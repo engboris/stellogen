@@ -427,7 +427,7 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in
     Process sgen_exprs |> Result.return
-  | List ({ content = Symbol "interact"; _ } :: args) ->
+  | List ({ content = Symbol "exec"; _ } :: args) ->
     let* sgen_exprs =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in

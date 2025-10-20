@@ -8,7 +8,7 @@ FIXME
   [(+not 1 0)] [(+not 0 1)]
   [(+and 1 X X)][(+and 0 X 0)]})
 
-<show interact (process
+<show exec (process
   'inputs
   [(-1 X) (+c0 X)]
   'layer 1
@@ -21,7 +21,7 @@ FIXME
   [(-c4 R) R]
   #semantics)>
 
-<show interact (process
+<show exec (process
   'inputs
   {
     [(-0 X) (+c0 X)]

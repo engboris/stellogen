@@ -396,8 +396,8 @@ Let's create a simple tile set and validate a 2x2 tiling:
   #assembly1
   #wang-checker})
 
-(show (interact @#check1 [(-adjacent-ok 0 0 1 0)]))  ' Should succeed
-(show (interact @#check1 [(-adjacent-ok 0 0 0 1)]))  ' Should succeed
+(show (exec @#check1 [(-adjacent-ok 0 0 1 0)]))  ' Should succeed
+(show (exec @#check1 [(-adjacent-ok 0 0 0 1)]))  ' Should succeed
 ```
 
 ### 5.5 Advanced Example: Aperiodic Tiling
@@ -621,7 +621,7 @@ A classic aTAM system computes binary counter:
     #binary-counter-tiles
     2))  ' Temperature = 2
 
-(show (interact @#counter-assembly [(-start-growth)]))
+(show (exec @#counter-assembly [(-start-growth)]))
 ```
 
 ### 6.5 Example: Sierpinski Triangle
@@ -731,7 +731,7 @@ aTAM assembly is inherently non-deterministic:
 
 ' Explore all possibilities
 (:= (explore-all Start)
-  (interact @#Start #atam-nd))
+  (exec @#Start #atam-nd))
 ```
 
 Stellogen's interaction model naturally explores non-deterministic choices.
@@ -1074,7 +1074,7 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
 ' Type checking helpers
 (macro (spec X Y) (:= X Y))
 (macro (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+  (== @(exec @#Tested #Test) ok))
 
 ' Position type
 (spec position {
@@ -1122,8 +1122,8 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
   #wang-check})
 
 ' Check specific adjacencies
-(show (interact @#validation [(-check-horizontal 0 0 1 0)]))
-(show (interact @#validation [(-check-vertical 0 0 0 1)]))
+(show (exec @#validation [(-check-horizontal 0 0 1 0)]))
+(show (exec @#validation [(-check-vertical 0 0 0 1)]))
 ```
 
 ### 10.2 Example 2: aTAM Binary Counter (Simplified)
@@ -1230,7 +1230,7 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
   #tiles
   #(attach-check 2)})
 
-(show (interact @#grow [(-can-attach inc 1 0 seed-assembly)]))
+(show (exec @#grow [(-can-attach inc 1 0 seed-assembly)]))
 ```
 
 ### 10.3 Example 3: Minimal Aperiodic Tiling

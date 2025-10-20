@@ -167,7 +167,7 @@ dune exec sgen run -- <inputfile>
 (:= query [(-add <s s 0> <s s 0> R) R])
 
 ' Execute interaction
-(show (interact #add @#query))
+(show (exec #add @#query))
 ```
 
 ## Example: Type Definition
@@ -178,7 +178,7 @@ dune exec sgen run -- <inputfile>
 
 ' Macro for type assertion
 (macro (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+  (== @(exec @#Tested #Test) ok))
 
 ' Define nat type as interactive tests
 (spec nat {

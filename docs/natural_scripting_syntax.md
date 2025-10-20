@@ -500,7 +500,7 @@ For more flexibility, allow system scoping within a file:
 )
 
 ' Back to regular Stellogen
-(show (interact @#e #automaton))
+(show (exec @#e #automaton))
 
 ' Another system in the same file
 (within-system state-machine
@@ -1303,7 +1303,7 @@ type nat = zero | succ of nat
 
 ' File 5: Core Stellogen (no system)
 (:= x 42)
-(show (interact @#a @#b))
+(show (exec @#a @#b))
 ```
 
 **All files** compile to the same core Stellogen, interact seamlessly, but each has the **natural syntax** for its domain.

@@ -32,7 +32,7 @@ In Stellogen, many operations that users expect to run at **compile-time** curre
 
 ```stellogen
 (macro (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+  (== @(exec @#Tested #Test) ok))
 
 (:= zero (+nat 0))
 (:: zero nat)  ' Checked at runtime
@@ -51,7 +51,7 @@ In Stellogen, many operations that users expect to run at **compile-time** curre
 **Example 3: Compile-time constants:**
 
 ```stellogen
-(:= table-size (interact #compute-optimal-size ...))
+(:= table-size (exec #compute-optimal-size ...))
 (show (generate-table #table-size))  ' Computed at runtime
 ```
 
@@ -144,7 +144,7 @@ Final Environment + Results
 
 ```stellogen
 (macro (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+  (== @(exec @#Tested #Test) ok))
 ```
 
 **Usage:**
@@ -158,14 +158,14 @@ Final Environment + Results
 
 ```stellogen
 (:= zero (+nat 0))
-(== @(interact @#zero #nat) ok)
+(== @(exec @#zero #nat) ok)
 ```
 
 **Evaluation** (during runtime):
 
 ```
 1. Define zero: env["zero"] = (+nat 0)
-2. Execute: (== @(interact @#zero #nat) ok)
+2. Execute: (== @(exec @#zero #nat) ok)
    a. Retrieve zero: @#zero → (+nat 0)
    b. Retrieve nat: #nat → { [(-nat 0) ok] [(-nat (s N)) (+nat N)] }
    c. Interact: (+nat 0) with [(-nat 0) ok] → ok
@@ -194,7 +194,7 @@ Final Environment + Results
 (:: zero nat)              ' Check at compile-time
 
 (:= add-numbers ...)
-(show (interact #add-numbers ...))  ' Run at execution-time
+(show (exec #add-numbers ...))  ' Run at execution-time
 ```
 
 **Desired behavior:**
@@ -214,7 +214,7 @@ Final Environment + Results
 **Complex case** (needs runtime values):
 
 ```stellogen
-(:= compute-number (interact #some-computation ...))
+(:= compute-number (exec #some-computation ...))
 (:: compute-number nat)    ' Depends on result of computation!
 ```
 
@@ -228,10 +228,10 @@ How can we check the type of `compute-number` before running `some-computation`?
 (:= base (+nat 0))
 (:: base nat)                           ' Check 1
 
-(:= incremented (interact #add1 @#base))
+(:= incremented (exec #add1 @#base))
 (:: incremented nat)                    ' Check 2 (depends on Check 1)
 
-(:= doubled (interact #double @#incremented))
+(:= doubled (exec #double @#incremented))
 (:: doubled nat)                        ' Check 3 (depends on Check 2)
 ```
 
@@ -270,7 +270,7 @@ Users might want **multiple phases** beyond just "type check" and "execute":
 (:= connect-modules ...)
 
 @run-time
-(show (interact ...))
+(show (exec ...))
 ```
 
 How general should the phasing system be?
@@ -477,7 +477,7 @@ Execution Phase:
 **Example:**
 
 ```stellogen
-(:= computed (interact #complex-computation ...))
+(:= computed (exec #complex-computation ...))
 (:: computed nat)
 ```
 
@@ -495,7 +495,7 @@ Execution Phase:
 
 3. **Require explicit annotation**
    ```stellogen
-   (:= computed @type:(nat) (interact #complex-computation ...))
+   (:= computed @type:(nat) (exec #complex-computation ...))
    ```
    - Type is promised, checked at runtime if needed
 
@@ -510,8 +510,8 @@ Execution Phase:
 
 ```stellogen
 (:= a (+nat 0))
-(:= b (interact #add1 @#a))
-(:= c (interact #double @#b))
+(:= b (exec #add1 @#a))
+(:= c (exec #double @#b))
 
 (:: a nat)
 (:: b nat)
@@ -634,7 +634,7 @@ Final Results
 
 ' Execution (phase 2)
 @runtime
-(show (interact #zero ...))
+(show (exec #zero ...))
 ```
 
 **Pros:**
@@ -670,10 +670,10 @@ Final Results
 (:= zero (+nat 0))
 (:: zero nat)              ' Depends on zero
 
-(:= one (interact #add1 @#zero))
+(:= one (exec #add1 @#zero))
 (:: one nat)               ' Depends on one, add1, zero
 
-(show (interact #one ...))  ' Depends on one
+(show (exec #one ...))  ' Depends on one
 ```
 
 **Dependency analysis:**
@@ -730,7 +730,7 @@ Topological order:
 (check-linearity my-function)
 
 @phase(2)  ' Execution phase
-(show (interact #zero ...))
+(show (exec #zero ...))
 ```
 
 Or with named phases:
@@ -745,7 +745,7 @@ Or with named phases:
 (analyze-coverage my-cases)
 
 @runtime
-(show (interact #zero ...))
+(show (exec #zero ...))
 ```
 
 Or user-defined phases:
@@ -766,7 +766,7 @@ Or user-defined phases:
 (fuse-constellations)
 
 @phase:execute
-(show (interact ...))
+(show (exec ...))
 ```
 
 **Semantics:**
@@ -814,7 +814,7 @@ etc.
   ...)
 
 ' Main execution
-(show (interact #zero ...))
+(show (exec #zero ...))
 ```
 
 **Semantics:**
@@ -853,7 +853,7 @@ etc.
 (:= zero (+nat 0))
 (:: zero nat @lazy)        ' Checked when zero is first used
 
-(:= one (interact #add1 @#zero))  ' Triggers check of zero
+(:= one (exec #add1 @#zero))  ' Triggers check of zero
 (:: one nat @lazy)
 
 (show @#one)               ' Triggers check of one (and transitively zero)
@@ -906,7 +906,7 @@ etc.
 
 ' Execution phase
 (in-phase execution
-  (show (interact ...)))
+  (show (exec ...)))
 ```
 
 **Semantics:**
@@ -943,7 +943,7 @@ Pass 3: Execute (in-phase execution ...) blocks
 @stage(1) (:: zero nat)
 
 ' Stage 2: Main execution
-@stage(2) (show (interact #zero ...))
+@stage(2) (show (exec #zero ...))
 
 ' Or more explicit:
 (:= zero @stage(1) (+nat 0))
@@ -1096,7 +1096,7 @@ While the primary motivation is type checking, the phasing system should support
 ```stellogen
 ' Compute constants at compile-time
 @compile-time
-(:= table-size (interact #compute-optimal-size #input-parameters))
+(:= table-size (exec #compute-optimal-size #input-parameters))
 
 ' Use computed constant at runtime
 @runtime
@@ -1112,7 +1112,7 @@ While the primary motivation is type checking, the phasing system should support
 
 ' Use specialized version at runtime
 @runtime
-(show (interact #power-of-3 27))  ' Much faster than general power
+(show (exec #power-of-3 27))  ' Much faster than general power
 ```
 
 **Lookup table generation:**
@@ -1321,7 +1321,7 @@ All these use cases follow a pattern:
 
 ' Runtime: Use optimized version
 @runtime
-(show (interact #fib-optimized 40))
+(show (exec #fib-optimized 40))
 ```
 
 ### Enabling User-Defined Analyses
@@ -1506,8 +1506,8 @@ Phase 2: Runtime (explicit or implicit)
 }
 
 ' Phase 2: Runtime (implicit)
-(show (interact #add1 @#zero))
-(show (interact #add1 @#one))
+(show (exec #add1 @#zero))
+(show (exec #add1 @#one))
 ```
 
 **Option 2: Multi-phase (for advanced users):**
@@ -1552,7 +1552,7 @@ Phase 2: Runtime (explicit or implicit)
 (:: zero nat @compile-time)
 
 ' Runtime
-(show @runtime (interact #add1 @#zero))
+(show @runtime (exec #add1 @#zero))
 ```
 
 #### Semantics
@@ -1692,8 +1692,8 @@ Execution order:
 
 ' Phase 2: Runtime
 @runtime {
-  (show (interact #factorial-optimized 10))
-  (show (interact #power-of-3 27))
+  (show (exec #factorial-optimized 10))
+  (show (exec #power-of-3 27))
 }
 ```
 
@@ -2015,7 +2015,7 @@ These questions will be answered through experimentation and user feedback.
 }
 
 ' Phase 2: Runtime
-(show (interact #add1 @#zero))
+(show (exec #add1 @#zero))
 ```
 
 **Example 2: Mixed compile-time computations:**
@@ -2039,13 +2039,13 @@ These questions will be answered through experimentation and user feedback.
   (:= factorial-opt (specialize #factorial))
 
   ' Pre-computation
-  (:= table-size (interact #compute-optimal-size ...))
+  (:= table-size (exec #compute-optimal-size ...))
   (:= lookup-table (generate-table #table-size))
 }
 
 ' Runtime: use pre-computed and optimized code
 @runtime {
-  (show (interact #factorial-opt 20))
+  (show (exec #factorial-opt 20))
   (show (lookup #lookup-table key))
 }
 ```
@@ -2139,7 +2139,7 @@ These questions will be answered through experimentation and user feedback.
 
 ' Phase 2: Runtime
 @runtime {
-  (show (interact #my-function-opt ...))
+  (show (exec #my-function-opt ...))
 }
 ```
 
@@ -2212,7 +2212,7 @@ Users can build libraries of compile-time analyses and tools.
 ' Type checking
 (macro (:: Tested Test)
   @compile-time
-  (== @(interact @#Tested #Test) ok))
+  (== @(exec @#Tested #Test) ok))
 
 ' Type declaration (alias for spec)
 (macro (type Name Spec)

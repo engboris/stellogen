@@ -27,7 +27,7 @@ Stellogen uses **term unification** and **polarity-based interaction** as its fu
 
 1. **Polarity matching**: Positive rays `(+field name)` paired with negative queries `(-field name)`
 2. **The `eval` primitive**: Reifies a term back into an expression and evaluates it
-3. **Field access pattern**: `(eval (interact #record @[(-field name)]))`
+3. **Field access pattern**: `(eval (exec #record @[(-field name)]))`
 
 This document analyzes whether this encoding is **viable and sufficient** for general use, particularly for implementing a type system where types are records of tests.
 
@@ -100,7 +100,7 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
 **Access:**
 
 ```stellogen
-(:= field1 (eval (interact #record @[-fieldname1])))
+(:= field1 (eval (exec #record @[-fieldname1])))
 ```
 
 **Mechanism:**
@@ -121,8 +121,8 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
   [+cuts [
     [(-7 X) (-8 X)]]]})
 
-(:= vehicle (eval (interact #ps1 @[-vehicle])))
-(:= cuts    (eval (interact #ps1 @[-cuts])))
+(:= vehicle (eval (exec #ps1 @[-vehicle])))
+(:= cuts    (eval (exec #ps1 @[-cuts])))
 ```
 
 **Pros:**
@@ -152,7 +152,7 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
 **Access:**
 
 ```stellogen
-(:= (get Record FieldName) (eval (interact #Record @[(-field FieldName)])))
+(:= (get Record FieldName) (eval (exec #Record @[(-field FieldName)])))
 (:= result (get record name1))
 ```
 
@@ -170,7 +170,7 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
   [(+field test1) [(+f a) ok]]
   [(+field test2) [(+f b) ok]]})
 
-(:= (get G X) (eval (interact #G @[(-field X)])))
+(:= (get G X) (eval (exec #G @[(-field X)])))
 (show #(get g test1))  ' Returns: [(+f a) ok]
 (show #(get g test2))  ' Returns: [(+f b) ok]
 ```
@@ -182,8 +182,8 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
   [(+field test1) [
     [(+field test2) [(+f c) ok]]]]])
 
-(:= g2 (eval (interact #g1 @[(-field test1)])))
-(show (eval (interact #g2 @[(-field test2)])))  ' Returns: [(+f c) ok]
+(:= g2 (eval (exec #g1 @[(-field test1)])))
+(show (eval (exec #g2 @[(-field test2)])))  ' Returns: [(+f c) ok]
 ```
 
 **Pros:**
@@ -257,7 +257,7 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
    - Field names are not statically checked
 
 3. **Verbosity**: Requires explicit `eval` and `interact`
-   - `(eval (interact #record @[(-field name)]))` is longer than `record.name`
+   - `(eval (exec #record @[(-field name)]))` is longer than `record.name`
    - Could be mitigated with macros
 
 4. **No pattern matching on records**: Can't destructure records
@@ -329,7 +329,7 @@ The spec is a **single constellation** containing multiple test cases. Testing a
   [(-nat (s N)) (+nat N)]})
 
 (:= zero (+nat 0))
-(:: zero nat)  ' Expands to: (== @(interact @#zero #nat) ok)
+(:: zero nat)  ' Expands to: (== @(exec @#zero #nat) ok)
 ```
 
 **How it works:**
@@ -397,14 +397,14 @@ A single test cannot capture all these aspects—you need **multiple independent
 
 ```stellogen
 (macro (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+  (== @(exec @#Tested #Test) ok))
 ```
 
 **Works for simple specs:**
 
 ```stellogen
 (:: zero nat)
-' Expands to: (== @(interact @#zero #nat) ok)
+' Expands to: (== @(exec @#zero #nat) ok)
 ' nat is a single constellation → interaction works ✓
 ```
 
@@ -412,7 +412,7 @@ A single test cannot capture all these aspects—you need **multiple independent
 
 ```stellogen
 (:: id (larrow a a))
-' Expands to: (== @(interact @#id #(larrow a a)) ok)
+' Expands to: (== @(exec @#id #(larrow a a)) ok)
 ' (larrow a a) is a RECORD, not a single test → interaction doesn't test all fields ✗
 ```
 
@@ -463,10 +463,10 @@ The TODO exists because:
 3. **No mechanism exists** to iterate over all fields in a record and test each one
 4. **Manual testing is tedious**:
    ```stellogen
-   (:= testrl (eval (interact #(larrow a a) @[-testrl])))
-   (== @(interact @#id #testrl) ok)
-   (:= testrr (eval (interact #(larrow a a) @[-testrr])))
-   (== @(interact @#id #testrr) ok)
+   (:= testrl (eval (exec #(larrow a a) @[-testrl])))
+   (== @(exec @#id #testrl) ok)
+   (:= testrr (eval (exec #(larrow a a) @[-testrr])))
+   (== @(exec @#id #testrr) ok)
    ' ... repeat for testll and testlr
    ```
 
@@ -494,16 +494,16 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 
 ```stellogen
 ' Extract all tests from (larrow a a)
-(:= testrl (eval (interact #(larrow a a) @[-testrl])))
-(:= testrr (eval (interact #(larrow a a) @[-testrr])))
-(:= testll (eval (interact #(larrow a a) @[-testll])))
-(:= testlr (eval (interact #(larrow a a) @[-testlr])))
+(:= testrl (eval (exec #(larrow a a) @[-testrl])))
+(:= testrr (eval (exec #(larrow a a) @[-testrr])))
+(:= testll (eval (exec #(larrow a a) @[-testll])))
+(:= testlr (eval (exec #(larrow a a) @[-testlr])))
 
 ' Test id against each
-(== @(interact @#id #testrl) ok)
-(== @(interact @#id #testrr) ok)
-(== @(interact @#id #testll) ok)
-(== @(interact @#id #testlr) ok)
+(== @(exec @#id #testrl) ok)
+(== @(exec @#id #testrr) ok)
+(== @(exec @#id #testll) ok)
+(== @(exec @#id #testlr) ok)
 ```
 
 **Pros:**
@@ -526,10 +526,10 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 
 ```stellogen
 (macro (::larrow Tested Test)
-  (== @(interact @#Tested (eval (interact #Test @[-testrl]))) ok)
-  (== @(interact @#Tested (eval (interact #Test @[-testrr]))) ok)
-  (== @(interact @#Tested (eval (interact #Test @[-testll]))) ok)
-  (== @(interact @#Tested (eval (interact #Test @[-testlr]))) ok))
+  (== @(exec @#Tested (eval (exec #Test @[-testrl]))) ok)
+  (== @(exec @#Tested (eval (exec #Test @[-testrr]))) ok)
+  (== @(exec @#Tested (eval (exec #Test @[-testll]))) ok)
+  (== @(exec @#Tested (eval (exec #Test @[-testlr]))) ok))
 
 ' Usage
 (::larrow id (larrow a a))
@@ -574,10 +574,10 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 ' General macro that tests up to 4 tests
 (macro (::record Tested Test)
   (process
-    (== @(interact @#Tested (eval (interact #Test @[-test1]))) ok (error "test1 failed"))
-    (== @(interact @#Tested (eval (interact #Test @[-test2]))) ok (error "test2 failed"))
-    (== @(interact @#Tested (eval (interact #Test @[-test3]))) ok (error "test3 failed"))
-    (== @(interact @#Tested (eval (interact #Test @[-test4]))) ok (error "test4 failed"))))
+    (== @(exec @#Tested (eval (exec #Test @[-test1]))) ok (error "test1 failed"))
+    (== @(exec @#Tested (eval (exec #Test @[-test2]))) ok (error "test2 failed"))
+    (== @(exec @#Tested (eval (exec #Test @[-test3]))) ok (error "test3 failed"))
+    (== @(exec @#Tested (eval (exec #Test @[-test4]))) ok (error "test4 failed"))))
 ```
 
 **How it works:**
@@ -609,10 +609,10 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 (macro (::chain Tested Test TestNames)
   (== @(process
         @#Tested
-        { (eval (interact #Test @[(-test1)])) }
-        { (eval (interact #Test @[(-test2)])) }
-        { (eval (interact #Test @[(-test3)])) }
-        { (eval (interact #Test @[(-test4)])) }
+        { (eval (exec #Test @[(-test1)])) }
+        { (eval (exec #Test @[(-test2)])) }
+        { (eval (exec #Test @[(-test3)])) }
+        { (eval (exec #Test @[(-test4)])) }
         { [@(... some final check ...)] })
       ok))
 ```
@@ -697,7 +697,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 
 ' New macro: Test against multiple specs
 (macro (::all Tested Tests)
-  (== @(interact @#Tested #Tests) ok))
+  (== @(exec @#Tested #Tests) ok))
 
 ' Usage
 (::all id (larrow a a))
@@ -715,7 +715,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 
 ' Modified :: macro that handles groups
 (macro (::multi Tested TestGroup)
-  (== @(interact @#Tested #TestGroup) ok))
+  (== @(exec @#Tested #TestGroup) ok))
 
 ' Usage
 (::multi id (larrow-a-a-type))
@@ -777,10 +777,10 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 ```stellogen
 (macro (::larrow Tested Test)
   {
-    (== @(interact @#Tested (eval (interact #Test @[-testrl]))) ok)
-    (== @(interact @#Tested (eval (interact #Test @[-testrr]))) ok)
-    (== @(interact @#Tested (eval (interact #Test @[-testll]))) ok)
-    (== @(interact @#Tested (eval (interact #Test @[-testlr]))) ok)
+    (== @(exec @#Tested (eval (exec #Test @[-testrl]))) ok)
+    (== @(exec @#Tested (eval (exec #Test @[-testrr]))) ok)
+    (== @(exec @#Tested (eval (exec #Test @[-testll]))) ok)
+    (== @(exec @#Tested (eval (exec #Test @[-testlr]))) ok)
   })
 
 ' Now this works:
@@ -863,18 +863,18 @@ This would enable truly general record-based type checking.
 ```stellogen
 (macro (::larrow Tested Test)
   (process
-    (== @(interact @#Tested (eval (interact #Test @[-testrl]))) ok (error "testrl failed"))
-    (== @(interact @#Tested (eval (interact #Test @[-testrr]))) ok (error "testrr failed"))
-    (== @(interact @#Tested (eval (interact #Test @[-testll]))) ok (error "testll failed"))
-    (== @(interact @#Tested (eval (interact #Test @[-testlr]))) ok (error "testlr failed"))))
+    (== @(exec @#Tested (eval (exec #Test @[-testrl]))) ok (error "testrl failed"))
+    (== @(exec @#Tested (eval (exec #Test @[-testrr]))) ok (error "testrr failed"))
+    (== @(exec @#Tested (eval (exec #Test @[-testll]))) ok (error "testll failed"))
+    (== @(exec @#Tested (eval (exec #Test @[-testlr]))) ok (error "testlr failed"))))
 
 ' Now this works:
 (::larrow id (larrow a a))
 ```
 
 **Explanation:**
-1. Extract `testrl` from `(larrow a a)` using field access: `(eval (interact #Test @[-testrl]))`
-2. Test `id` against extracted test: `(interact @#id <extracted-test>)`
+1. Extract `testrl` from `(larrow a a)` using field access: `(eval (exec #Test @[-testrl]))`
+2. Test `id` against extracted test: `(exec @#id <extracted-test>)`
 3. Focus result and assert it's `ok`: `(== @(...) ok ...)`
 4. Repeat for `testrr`, `testll`, `testlr`
 5. Use `process` to chain all checks (or just use multiple `==` declarations)
@@ -929,7 +929,7 @@ This would enable truly general record-based type checking.
 ### What are the limitations?
 
 1. **No field validation**: Accessing non-existent fields doesn't error
-2. **Verbose**: Requires explicit `eval (interact ...)` pattern
+2. **Verbose**: Requires explicit `eval (exec ...)` pattern
 3. **No iteration**: Cannot programmatically enumerate fields
 4. **Type checking multi-test specs requires workarounds**
 

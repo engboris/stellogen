@@ -41,10 +41,10 @@
   [+cuts [
     [(-7 X) (-8 X)]]]})
 
-(:= vehicle (eval (interact #ps1 @[-vehicle])))
-(:= cuts    (eval (interact #ps1 @[-cuts])))
+(:= vehicle (eval (exec #ps1 @[-vehicle])))
+(:= cuts    (eval (exec #ps1 @[-cuts])))
 
-(show (interact #vehicle #cuts))
+(show (exec #vehicle #cuts))
 
 (spec (tens a b) {
   [(-1 [g|X]) (-2 [g|X]) (+3 [g|X])]

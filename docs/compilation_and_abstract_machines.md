@@ -645,7 +645,7 @@ HALT:
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
 (:= query [(-add <s s 0> <s s 0> R) R])
-(interact #add @#query)
+(exec #add @#query)
 ```
 
 **Step 1: Compile constellation definitions**
@@ -868,7 +868,7 @@ unify result X
 **Evaluate interactions at compile-time when possible:**
 
 ```stellogen
-(:= constant (interact #add @#two @#three))
+(:= constant (exec #add @#two @#three))
 ```
 
 If `add`, `two`, and `three` are all known at compile-time, evaluate now and store the result.
@@ -1895,7 +1895,7 @@ Term: (+add (s 0) (s 0) R)
 ```
 [Debugger] Starting type check for 'bad'
 [Step 1] Evaluating: (:: bad nat)
-[Step 2] Expanding macro: (== @(interact @#bad #nat) ok)
+[Step 2] Expanding macro: (== @(exec @#bad #nat) ok)
 [Step 3] Focusing @#bad → (+nat [])
 [Step 4] Loading #nat → { [(-nat 0) ok], [(-nat (s N)) (+nat N)] }
 [Step 5] Scheduling interaction: (+nat []) with #nat
@@ -1922,7 +1922,7 @@ Term: (+add (s 0) (s 0) R)
 (:= loop {
   [(-loop X) (+loop X)]})  ' Bug: infinite loop
 
-(interact #loop @#start)
+(exec #loop @#start)
 ```
 
 **Debug session:**
@@ -1968,7 +1968,7 @@ Term: (+add (s 0) (s 0) R)
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
 (:= query [(-add <s s 0> <s s 0> R) R])
-(show (interact #add @#query))
+(show (exec #add @#query))
 ```
 
 **Debug session with visualization:**
@@ -2089,7 +2089,7 @@ sgen debug --trace program.sg
 stellogen> :debug on
 [Debugger enabled]
 
-stellogen> (interact #add @#query)
+stellogen> (exec #add @#query)
 [Breakpoint] Entering constellation 'add'
 
 (debug) :step

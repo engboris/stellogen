@@ -212,7 +212,7 @@ In Stellogen, computation happens through **interaction** (from examples):
 (:= query [(-add <s s 0> <s s 0> R) R])
 
 ' Interaction performs fusion
-(show (interact #add @#query))
+(show (exec #add @#query))
 ```
 
 The `interact` operation:

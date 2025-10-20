@@ -362,7 +362,7 @@ Prolog maintains a **choice point** at each clause. Backtracking explores altern
   [(-member X [_|T]) (+member X T)]})
 
 (:= query [(-member X [1 2 3]) X])
-(show (interact #member @#query))
+(show (exec #member @#query))
 ' Result: [1, 2, 3]  (all at once, or depends on implementation)
 ```
 
@@ -427,7 +427,7 @@ R = 5.         % Deterministic
   [(-max X Y Y)]})
 
 (:= query [(-max 5 3 R) R])
-(show (interact #max @#query))
+(show (exec #max @#query))
 ```
 
 **Problem:** Both stars might match (or neither, depending on constraint handling). There's no way to say "if the first matches, don't try the second."
@@ -479,7 +479,7 @@ While Stellogen can't reproduce Prolog's cut, it has **different mechanisms** fo
 
 (:= query [(-f X) (-f Y) (result X Y)])
 
-(interact #facts @#query)
+(exec #facts @#query)
 ' All combinations: (result 1 1), (result 1 2), (result 2 1), (result 2 2)
 ```
 
@@ -710,7 +710,7 @@ Or with syntactic sugar:
 
 ```stellogen
 (macro (not Test)
-  (interact @#Test #failure-check))
+  (exec @#Test #failure-check))
 
 (:= failure-check {
   [(+anything) fail]})
@@ -937,7 +937,7 @@ Or more directly, introduce `|` separator for alternatives:
 
 ''' Deterministic if-then-else '''
 (macro (if Cond Then Else)
-  (interact
+  (exec
     { [(+cond) @#Then]
       [(-cond) @#Else] }
     @#Cond))

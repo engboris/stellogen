@@ -29,7 +29,7 @@
 
 (:= kill (-a _ _ _))
 
-(show (process (interact @#e #a1)    #kill))
-(show (process (interact @#0000 #a1) #kill))
-(show (process (interact @#0110 #a1) #kill))
-(show (process (interact @#1110 #a1) #kill))
+(show (process (exec @#e #a1)    #kill))
+(show (process (exec @#0000 #a1) #kill))
+(show (process (exec @#0110 #a1) #kill))
+(show (process (exec @#1110 #a1) #kill))

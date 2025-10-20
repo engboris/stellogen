@@ -10,7 +10,7 @@ syn match sgComment "'[^'].*$"
 syn region sgString start=/\v"/ skip=/\v\\./ end=/\v"/
 
 " Keywords
-syn keyword sgKeyword macro macros eval slice show use interact fire process spec
+syn keyword sgKeyword macro macros eval slice show use exec fire process spec
 syn keyword sgConstant ok
 
 " Operators and separators
