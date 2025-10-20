@@ -38,7 +38,6 @@ readable.
 
 ```stellogen
 ' single line
-(show "Hello, world")
 
 '''
 multi
@@ -46,18 +45,35 @@ line
 '''
 ```
 
-## Terms and Unification
+## Everything is a term!
 
 In stellogen **everything** is a term.
 
 A **term** is either:
 
 * A variable: starts with uppercase (`X`, `Y`, `Var`).
-* A function: a sequence of symbols beginning with a lowercase or special
-  symbol, followed by terms (`(f a X)`, `(:: x t)`).
+* A function: a sequence of symbols surrounded by parentheses, beginning with a
+  lowercase or special symbol, followed by terms:
+
+```
+' this program does nothing but you can check the validity of expressions
+(f a X)
+(:: x t)
+
+' several terms can be on the same line
+(add 2 2) (fact 3)
+```
 
 In the special case of constants (function without argument) we can omit
-parentheses (`f`, `a`, `::`).
+parentheses:
+
+```
+a
+$
+a $ :b c
+```
+
+## Rays and compatibility
 
 **Unification** = finding substitutions that make two terms identical.
 
@@ -71,8 +87,6 @@ For example:
 '''
 ```
 
-## Rays and compatibility
-
 A **ray** is a term with polarity:
 
 * `(+f X)` → positive
@@ -85,7 +99,7 @@ Two rays and **compatible** and can interact if they have opposite polarities
 
 ```stellogen
 (~= (+f X) (-f (h a)))   ' =>  succeeds with {X := (h a)}
-(~= (+f X) (+f a))       ' =>  ❌ (fails because same polarity)
+' (~= (+f X) (+f a))     ' =>  ❌ (fails because same polarity)
 ```
 
 ---
@@ -135,12 +149,14 @@ You can accumulate application of function symbols.
 
 ---
 
-## Stars and Constellations
+## Make terms interact with Stars and Constellations
 
-* A **star** is a cons list of rays:
+Stars and constellations are special terms which can interact with each other.
+
+* A **star** block of rays:
 
 ```stellogen
-(show [(+f X) (-f (h a)) (+g Y)])
+[(+f X) (-f (h a)) (+g Y)]
 ```
 
 Square brackets are omitted when there is a single ray.
@@ -148,70 +164,88 @@ Square brackets are omitted when there is a single ray.
 * A **constellation** is a group of stars:
 
 ```stellogen
-(show { (+f X) [(-f X) (+g a)] })
+{ (+f X) [(-f X) (+g a)] }
 ```
 
 Variables are local to each star. So, in the above example, the `X` in `(+f X)`
 and the one in `[(-f X) (+g a)]` are not bound.
 
----
+## Principles of Star Fusion
 
-## Principles of Execution
+The idea of **fusion** is that stars can collide along compatible rays and merge.
 
-Execution = stars interacting through **fusion** (Robinson’s resolution rule).
-
-When rays unify:
+When rays of two stars unify:
 
 * They disappear (consumed).
-* Their substitution applies to the rest of the star.
-* Stars merge.
+* Their substitution applies to their neighbors rays.
+* Their stars merge.
 
-Example of constellation:
+Example of interaction:
 
 ```stellogen
-(:= c { [(+f X) X] (-f a) })
+'''
+star 1: [(+f X) X]
+star 2: (-f a)
+
+' connexion
+(-f a) ------ (+f X) X
+
+' annihilation and merge with resolution {X:=a}
+X
+
+' propagation
+a         ' <-- this is the result of execution
+'''
 ```
 
-Fusion along two matching rays: `[(+f X) X]` with `[(-f a)]` → `{X := a}`
-Result: `a`.
+Note: this corresponds to the so-called Robinson's resolution rule in formal
+logic.
 
 ## Focus and Action/State
 
-Before execution, we separate stars into *actions* and *states*.
+For execution to even work in the first place, we need to group stars into
+*actions* and *states*.
 
-State stars are marked with `@`.
-They are the “targets” for interaction.
+State stars are marked with `@`. They are the “targets” for interaction.
+The other stars are actions.
+
+For example:
 
 ```stellogen
+' state:  @[-c d]
+' action: [+a b]
 (:= d { [+a b] @[-c d] })
 ```
 
-**Intuition:** Focus corresponds to distinguishing **data (states)** from
-**rules/program (actions)**:
+**Intuition:** Focus corresponds to distinguishing **data** from
+**rules/program**:
 
 * **States** (`@`) = what you're computing (the data being transformed)
 * **Actions** (no `@`) = how you compute (the rules/program that transforms)
 
-Execution duplicates actions and fuses them with state stars until no more
-interactions are possible.
-The result is a new constellation, like the "normal form" of computation.
-
-You can focus all stars of a constellation with `@`:
+You can also focus all stars of a constellation with `@`:
 
 ```stellogen
 (:= f @{ [a] [b] [c] })
 ```
 
-## Let's execute constellations!
+## Execution of Constellations
+
+Execution = stars interacting through **fusion**.
+
+Execution duplicates actions and fuses them with state stars until no more
+interactions are possible. The result is a new constellation.
+
+**Let's execute constellations!**
 
 ```stellogen
 (:= x [(+f X) X])
 (:= y (-f a))
 
-(:= res1 (exec @#x #y)) ' normal execution
+(:= res1 (exec @#x #y))  ' normal execution
 (show #res1)
 
-(:= res2 (fire @#x #y))     ' actions are used exactly once
+(:= res2 (fire @#x #y))  ' actions are used exactly once
 (show #res2)
 ```
 
@@ -232,7 +266,6 @@ Add constraints with `[ some star || (!= X1 Y1) ... (!= Xn Yn)]`:
 where several equality constraints can be chained after `||`.
 
 This prevents `X` and `Y` from unifying to the same concrete value.
-
 
 ---
 
@@ -287,10 +320,81 @@ This asks: *Who are the children of `b`?*
 This is a more strict version of the matching `~=` term which expects
 syntactic equality.
 
+```stellogen
+(== a a)    ' does nothing
+' (== a b)  ' fails with an error
 ```
-(== a a)  ' does nothing
-(== a b)  ' fails with an error
+
+---
+
+## Advanced syntax manipulation
+
+### Parametric definitions
+
+Definitions are actually terms like others so they can be *parametric*:
+
+```stellogen
+(:= (initial Q) [(-i W) (+a W Q)])
 ```
+
+In this case, calling
+
+```stellogen
+#(initial q0)
+```
+
+will replace `Q` by `q0` in `[(-i W) (+a W Q)]` so we get
+
+```stellogen
+[(-i W) (+a W q0)]
+```
+
+### Macros
+
+**Macros** work like definitions except that are applied before actual
+execution in a preprocessing phase:
+
+```
+' replace (spec X Y) by (:= X Y) everywhere in the code
+(macro (spec X Y) (:= X Y))
+```
+
+Notice that they do not involve any call with `#`, they replace terms.
+
+### Nested phantom constellations
+
+Some terms like `:=`, `show` or `==` are not interactive terms which can
+be executed as constellations but they have an effect on the environement.
+
+In fact, they can occur anywhere in the code and produce an effect when
+evaluated but they and considered like empty constellations `{}`.
+
+For example:
+
+```stellogen
+(exec [(+f X) X] (-f a) (:= x "Hello1"))
+(show #x)
+(:= y (show "Hello2"))
+#y
+```
+
+---
+
+## File import
+
+It is possible to import the content of a file through their relative path:
+
+```stellogen
+(use "filename")
+```
+
+For macros use:
+
+```stellogen
+(use-macros "filename")
+```
+
+Because macros are applied before actual execution.
 
 ---
 
@@ -322,8 +426,13 @@ It says that a `Tested` is of type `Test` when their interaction with focus on
 A constellation can have one or several types:
 
 ```stellogen
+' passes the test
 (:= 2 (+nat <s s 0>))
 (:: 2 nat)
+
+' does not pass the test
+(:= 2 (+nat 2)
+' (:: 2 nat)
 ```
 
 Notice that a constellation can have several types providing it passes all
