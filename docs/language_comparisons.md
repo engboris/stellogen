@@ -104,7 +104,7 @@ Z = ann.
   [(-grandparent X Z) (-parent X Y) (+parent Y Z)]})
 
 (:= query [(-grandparent tom Z) Z])
-(show (interact #grandparent @(process #query #family)))
+(show (exec #grandparent @(process #query #family)))
 ' Result: [ann, jim]
 ```
 
@@ -128,7 +128,7 @@ R = s(s(s(s(0)))).
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
 (:= query1 [(-add <s s 0> <s s 0> R) R])
-(show (interact #add @#query1))
+(show (exec #add @#query1))
 ' Result: (s (s (s (s 0))))
 ```
 
@@ -198,7 +198,7 @@ X = 3.     % backtrack
 (:= x (+f a))
 #x          ' Just the identifier
 @#x         ' Focused/evaluated
-(interact @#x #y)  ' Explicit interaction
+(exec @#x #y)  ' Explicit interaction
 ```
 
 #### 5. Type Systems
@@ -257,7 +257,7 @@ Both use S-expressions as the primary syntactic form.
 **Stellogen:**
 ```stellogen
 (:= add { ... })
-(show (interact #add @#query))
+(show (exec #add @#query))
 ```
 
 Both are homoiconic—code is data represented as lists/trees.
@@ -281,7 +281,7 @@ Both support powerful macro systems for syntactic extension.
 ```stellogen
 (macro (spec X Y) (:= X Y))
 (macro (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+  (== @(exec @#Tested #Test) ok))
 
 (spec nat { ... })
 (:: zero nat)
@@ -438,7 +438,7 @@ Both use unification to relate terms.
 ```stellogen
 (:= fact [(+hello q)])
 (:= query [(-hello X) X])
-(show (interact #fact @#query))
+(show (exec #fact @#query))
 ```
 
 #### 2. Relational Queries
@@ -474,11 +474,11 @@ Both can express relations that work in multiple directions.
 
 ' Forward
 (:= q1 [(-append [1 2] [3 4] R) R])
-(show (interact #appendo @#q1))
+(show (exec #appendo @#q1))
 
 ' Backward (if properly defined)
 (:= q2 [(-append X [3 4] [1 2 3 4]) X])
-(show (interact #appendo @#q2))
+(show (exec #appendo @#q2))
 ```
 
 #### 3. Logic Variables
@@ -997,7 +997,7 @@ map f xs
 **Stellogen:** Interaction-based.
 
 ```stellogen
-(interact #map @#f @#xs)
+(exec #map @#f @#xs)
 ```
 
 #### 3. Narrowing
@@ -1128,7 +1128,7 @@ Both track resources and control their use.
 
 ```stellogen
 (fire #a #b)      ' Linear
-(interact #a #b)  ' Non-linear
+(exec #a #b)  ' Non-linear
 ```
 
 ### Differences from Stellogen
@@ -1451,7 +1451,7 @@ Most languages evaluate automatically. Stellogen gives **fine-grained control**:
 ```stellogen
 #x            ' Reference (no evaluation)
 @#x           ' Focus (evaluate)
-(interact #x #y)   ' Non-linear interaction
+(exec #x #y)   ' Non-linear interaction
 (fire #x #y)       ' Linear interaction
 (process #a #b #c) ' Chained interaction
 (eval #x)          ' Meta-level evaluation
@@ -1468,7 +1468,7 @@ Most languages evaluate automatically. Stellogen gives **fine-grained control**:
 
 (:= zero (+nat 0))
 (:: zero nat)
-' Type check ≡ (== @(interact @#zero #nat) ok)
+' Type check ≡ (== @(exec @#zero #nat) ok)
 ```
 
 This is a radically different approach from all other languages.

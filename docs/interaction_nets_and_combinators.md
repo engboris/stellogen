@@ -421,10 +421,10 @@ This encodes the identity agent in multiplicative linear logic (MLL):
   [+cuts [
     [(-7 X) (-8 X)]]]})
 
-(:= vehicle (eval (interact #ps1 @[-vehicle])))
-(:= cuts    (eval (interact #ps1 @[-cuts])))
+(:= vehicle (eval (exec #ps1 @[-vehicle])))
+(:= cuts    (eval (exec #ps1 @[-cuts])))
 
-(show (interact #vehicle #cuts))
+(show (exec #vehicle #cuts))
 ```
 
 **Analysis:**
@@ -466,7 +466,7 @@ This is the classic **cut elimination** from linear logic proof theory:
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]])
 
-(show (interact #id #id_arg #linker))
+(show (exec #id #id_arg #linker))
 ```
 
 **Analysis:**

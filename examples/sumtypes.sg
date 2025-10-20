@@ -17,4 +17,4 @@
   [(-ok X) X]
   [(-error X) (+error X)]})
 
-(show (interact #get_ok @#x))
+(show (exec #get_ok @#x))

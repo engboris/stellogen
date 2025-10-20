@@ -1,6 +1,6 @@
 (use-macros "milkyway/prelude.sg")
 (macro (:: Tested Test)
-  (== @(interact (process #Test #Tested)) ok))
+  (== @(exec (process #Test #Tested)) ok))
 
 (spec u4 [(-b _ 1 _) (-b _ 2 _) (-b _ 3 _) (-b _ 4 _) ok])
 

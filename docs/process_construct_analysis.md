@@ -67,7 +67,7 @@ Its evaluation semantics:
 is semantically equivalent to:
 
 ```stellogen
-@(interact e3 @(interact e2 @e1))
+@(exec e3 @(exec e2 @e1))
 ```
 
 More precisely:
@@ -130,9 +130,9 @@ Analysis of 9 example files reveals 5 distinct usage patterns:
 **Example from `automata.sg`:**
 
 ```stellogen
-(show (process (interact @#e #a1)   #kill))
-(show (process (interact @#000 #a1) #kill))
-(show (process (interact @#010 #a1) #kill))
+(show (process (exec @#e #a1)   #kill))
+(show (process (exec @#000 #a1) #kill))
+(show (process (exec @#010 #a1) #kill))
 ```
 
 Where `kill` is defined as: `(:= kill (-a _ _))`
@@ -142,8 +142,8 @@ Where `kill` is defined as: `(:= kill (-a _ _))`
 **Without `process`:**
 
 ```stellogen
-(:= tmp1 (interact @#000 #a1))
-(show (interact @#tmp1 #kill))
+(:= tmp1 (exec @#000 #a1))
+(show (exec @#tmp1 #kill))
 ```
 
 Not terrible, but creates namespace pollution with `tmp1`, `tmp2`, etc.
@@ -168,9 +168,9 @@ Not terrible, but creates namespace pollution with `tmp1`, `tmp2`, etc.
 **Without `process`:**
 
 ```stellogen
-(:= tmp_and (interact @#b1 #(and b1 b2 r1)))
-(:= tmp_b2 (interact @#tmp_and #b2))
-(:= rnand (interact @#tmp_b2 #(not r1 r2)))
+(:= tmp_and (exec @#b1 #(and b1 b2 r1)))
+(:= tmp_b2 (exec @#tmp_and #b2))
+(:= rnand (exec @#tmp_b2 #(not r1 r2)))
 ```
 
 Much more verbose, and intermediate names are ad-hoc.
@@ -230,7 +230,7 @@ This works in some cases but loses control over evaluation order (see `docs/sync
 
 (:= query5 [(-grandparent tom Z) Z])
 
-(show (interact #grandparent @(process #query5 #family)))
+(show (exec #grandparent @(process #query5 #family)))
 ```
 
 **Rationale:** First combine query with family facts, then apply grandparent rule. The nesting makes the order explicit.
@@ -238,8 +238,8 @@ This works in some cases but loses control over evaluation order (see `docs/sync
 **Alternative:**
 
 ```stellogen
-(:= combined (interact @#query5 #family))
-(show (interact #grandparent @#combined))
+(:= combined (exec @#query5 #family))
+(show (exec #grandparent @#combined))
 ```
 
 Equivalent, but again requires an intermediate definition.
@@ -262,9 +262,9 @@ becomes:
 
 ```stellogen
 (:= tmp1 e1)
-(:= tmp2 (interact @#tmp1 #e2))
-(:= tmp3 (interact @#tmp2 #e3))
-(:= result (interact @#tmp3 #e4))
+(:= tmp2 (exec @#tmp1 #e2))
+(:= tmp3 (exec @#tmp2 #e3))
+(:= result (exec @#tmp3 #e4))
 ```
 
 ### 3.2 Practical Considerations
@@ -296,13 +296,13 @@ After (8 definitions):
 
 ```stellogen
 (:= step0 #(init 0))
-(:= step1 (interact @#step0 [(-stack 0 X) (+stack 1 [1|X])]))
-(:= step2 (interact @#step1 [(-stack 1 X) (+stack 2 [0|X])]))
-(:= step3 (interact @#step2 [(-stack 2 [C|X]) (+stack 3 X) (+save C)]))
-(:= step4a (interact @#step3 [(-stack 3 [0|X]) (+stack 4 [0 0|X])]))
-(:= step4b (interact @#step4a [(-stack 3 [1|X]) (+stack 4 [1 1|X])]))
-(:= step5 (interact @#step4b [(-save C) (save C)]))
-(:= result (interact @#step5 [(-stack 4 _)]))
+(:= step1 (exec @#step0 [(-stack 0 X) (+stack 1 [1|X])]))
+(:= step2 (exec @#step1 [(-stack 1 X) (+stack 2 [0|X])]))
+(:= step3 (exec @#step2 [(-stack 2 [C|X]) (+stack 3 X) (+save C)]))
+(:= step4a (exec @#step3 [(-stack 3 [0|X]) (+stack 4 [0 0|X])]))
+(:= step4b (exec @#step4a [(-stack 3 [1|X]) (+stack 4 [1 1|X])]))
+(:= step5 (exec @#step4b [(-save C) (save C)]))
+(:= result (exec @#step5 [(-stack 4 _)]))
 ```
 
 **Verdict:** While technically possible, elimination would make sequential code significantly harder to read and write.
@@ -381,7 +381,7 @@ Possible interpretations:
 **Syntactically inconsistent?**
 - True: `(process ...)` doesn't look like `[(+f X)]` or `{ [star] }`
 - Compare to:
-  - `(interact ...)` - also a function-like construct
+  - `(exec ...)` - also a function-like construct
   - `@` - special prefix operator
   - `#` - identifier reference
 - Verdict: Yes, somewhat inconsistent
@@ -407,7 +407,7 @@ Introduce a binary operator for composition:
 (:= result (e1 >> e2 >> e3 >> e4))
 ```
 
-**Semantics:** `a >> b` means `(interact @#a #b)` with result focused.
+**Semantics:** `a >> b` means `(exec @#a #b)` with result focused.
 
 **Pros:**
 - Familiar from functional programming (`>>=`, `|>`, etc.)
@@ -450,7 +450,7 @@ Define `process` as a user-level macro instead of primitive:
 
 ```stellogen
 (macro (process E1 E2 E3)
-  (interact @(interact @#E1 #E2) #E3))
+  (exec @(exec @#E1 #E2) #E3))
 ```
 
 **Problem:** This only works for fixed arity. Would need variadic macros.
@@ -564,11 +564,11 @@ Consider providing library functions/macros for common patterns:
 ```stellogen
 ' Two-step pattern
 (macro (then-cleanup EXPR CLEANUP)
-  (interact @#EXPR #CLEANUP))
+  (exec @#EXPR #CLEANUP))
 
 ' Three-step pattern
 (macro (chain3 E1 E2 E3)
-  (interact @(interact @#E1 #E2) #E3))
+  (exec @(exec @#E1 #E2) #E3))
 ```
 
 **Pros:**

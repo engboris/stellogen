@@ -20,7 +20,7 @@ let show_to_buffer constellation =
 let eval_program_with_buffer (p : program) =
   clear_output ();
 
-  let rec eval_term env = function
+  let eval_term env = function
     | Sgen_ast.Show expr -> (
       (* Evaluate and print to buffer *)
       match Sgen_eval.eval_sgen_expr env expr with

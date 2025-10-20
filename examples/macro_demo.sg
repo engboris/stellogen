@@ -23,7 +23,7 @@
 })
 
 ' 5. Multiple levels of nesting
-(:= nested (interact {
+(:= nested (exec {
   [(+init) (:= inner (double 42))]
   [(-init) (triple 3)]
 }))

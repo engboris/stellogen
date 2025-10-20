@@ -208,7 +208,7 @@ You can focus all stars of a constellation with `@`:
 (:= x [(+f X) X])
 (:= y (-f a))
 
-(:= res1 (interact @#x #y)) ' normal execution
+(:= res1 (exec @#x #y)) ' normal execution
 (show #res1)
 
 (:= res2 (fire @#x #y))     ' actions are used exactly once
@@ -226,7 +226,7 @@ Add constraints with `[ some star || (!= X1 Y1) ... (!= Xn Yn)]`:
   [(+f a)]
   [(+f b)]
   @[(-f X) (-f Y) (r X Y) || (!= X Y)]})
-(show (interact #ineq))
+(show (exec #ineq))
 ```
 
 where several equality constraints can be chained after `||`.
@@ -275,7 +275,7 @@ Constellations can act like logic programs (à la Prolog).
 (:= rules { (-childOf X Y) (-childOf Y Z) (+grandParentOf Z X) })
 
 (:= query [(-childOf X b) (res X)])
-(show (interact { #facts #rules @#query }))
+(show (exec { #facts #rules @#query }))
 ```
 
 This asks: *Who are the children of `b`?*
@@ -313,7 +313,7 @@ A constellation must pass **all tests** to be considered of type `nat`.
 We then define the behavior of type assertions with a macro:
 
 ```stellogen
-(macro (:: Tested Test) (== @(interact @#Tested #Test) ok))
+(macro (:: Tested Test) (== @(exec @#Tested #Test) ok))
 ```
 
 It says that a `Tested` is of type `Test` when their interaction with focus on

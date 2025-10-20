@@ -47,12 +47,12 @@
 
 (:= (word W) (+i W))
 
-(show (interact @#(word [a e]) #mt))
-(show (interact @#(word [b e]) #mt))
-(show (interact @#(word [a b b e]) #mt))
+(show (exec @#(word [a e]) #mt))
+(show (exec @#(word [b e]) #mt))
+(show (exec @#(word [a b b e]) #mt))
 
-(show (interact @#(word [e]) #mt))
-(show (interact @#(word [a b e]) #mt))
-(show (interact @#(word [a a b b e]) #mt))
-(show (interact @#(word [a b b a e]) #mt))
-(show (interact @#(word [a b a b e]) #mt))
+(show (exec @#(word [e]) #mt))
+(show (exec @#(word [a b e]) #mt))
+(show (exec @#(word [a a b b e]) #mt))
+(show (exec @#(word [a b b a e]) #mt))
+(show (exec @#(word [a b a b e]) #mt))

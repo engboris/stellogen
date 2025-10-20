@@ -1184,7 +1184,7 @@ Systems can **extend** other systems:
 
   ; Use escape hatch
   (escape
-    (interact #debug-print @#z))
+    (exec #debug-print @#z))
 )
 ```
 

@@ -33,7 +33,7 @@
 (:= x [(+f X) X])
 (:= y (-f a))
 (:= ex (fire @#x #y)) 'linear
-(:= ex (interact @#x #y))    'non-linear
+(:= ex (exec @#x #y))    'non-linear
 
 'show constellation
 (show #ex)
@@ -50,7 +50,7 @@
   [(+f b)]
   @[(-f X) (-f Y) (r X Y) || (!= X Y)]})
 (show #ineq)
-<show interact #ineq>
+<show exec #ineq>
 
 'process
 (:= c (process
@@ -66,7 +66,7 @@
 (show #g)
 
 'field access and evaluation
-(:= (get G X) (eval (interact #G @[(-field X)])))
+(:= (get G X) (eval (exec #G @[(-field X)])))
 (show #(get g test1))
 (show #(get g test2))
 
@@ -74,8 +74,8 @@
 (:= g1 [
   [(+field test1) [
     [(+field test2) [(+f c) ok]]]]])
-(:= g2 (eval (interact #g1 @[(-field test1)])))
-<show eval (interact #g2 @[(-field test2)])>
+(:= g2 (eval (exec #g1 @[(-field test1)])))
+<show eval (exec #g2 @[(-field test2)])>
 
 'define type
 (macro (spec X Y) (:= X Y))
@@ -105,12 +105,12 @@
 
 'type checking
 (:= 2 <+nat s s 0>)
-(== @(interact @#2 #nat) ok)
+(== @(exec @#2 #nat) ok)
 
 'import file
 (use-macros "milkyway/prelude.sg")
 
 'declaration definition
 (macro (:: Tested Test)
-  (== @(interact @#Tested #Test) ok))
+  (== @(exec @#Tested #Test) ok))
 (:: 2 nat)

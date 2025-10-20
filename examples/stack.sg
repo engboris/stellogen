@@ -1,6 +1,6 @@
 (:= (init C) (+stack 0 []))
 
-<show interact (process
+<show exec (process
   #(init 0)
   'push 1 then 0
   [(-stack 0 X) (+stack 1 [1|X])]

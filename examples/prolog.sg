@@ -7,7 +7,7 @@
 
 ' 2 + 2 = R
 (:= query1 [(-add <s s 0> <s s 0> R) R])
-(show (interact #add @#query1))
+(show (exec #add @#query1))
 
 
 ''' FAMILY RELATIONSHIPS '''
@@ -26,7 +26,7 @@
 
 ' who is tom's grandchild?
 (:= query5 [(-grandparent tom Z) Z])
-(show (interact #grandparent @(process #query5 #family)))
+(show (exec #grandparent @(process #query5 #family)))
 
 
 ''' GRAPH TRAVERSAL '''
@@ -45,6 +45,6 @@
   @[(-from 1)]
   [(-to 4) ok]})
 
-<show interact (process
+<show exec (process
   #query6
   { #graph #composition })>
