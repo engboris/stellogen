@@ -186,7 +186,7 @@ The encoding process involves representing computational structures as interacti
 
 **Repository:** https://github.com/faiface/par-lang
 
-### HVM (Higher-Order Virtual Machine)
+### HVM (Higher-Order Virtual Machine) & Bend
 
 **HVM** is Victor Taelin's massively parallel runtime based on interaction combinators.
 
@@ -216,7 +216,106 @@ The encoding process involves representing computational structures as interacti
 
 This enables optimal lambda calculus reduction (Lamping's algorithm).
 
+**Bend** is a high-level parallel programming language that compiles to HVM, providing a more approachable syntax while maintaining automatic parallelization capabilities.
+
 **Repository:** https://github.com/HigherOrderCO/HVM
+
+### Inpla (Interaction Nets Programming Language)
+
+**Inpla** is a multi-threaded parallel interpreter for interaction nets that demonstrates competitive performance with established functional languages.
+
+**Key Features:**
+- **Sequential and parallel modes**: Single-threaded (`make`) and multi-threaded (`make thread`) compilation
+- **Automatic parallelization**: Programs scale to multiple cores without modification using POSIX threads
+- **Built in C**: Uses flex/bison for parser generation
+- **Competitive performance**: Benchmarks show execution times comparable to or faster than Haskell, OCaml, and Standard ML
+
+**Syntax Elements:**
+
+Rules define agent interactions with pattern matching:
+```inpla
+gcd(ret) >< (int a, int b)
+| b==0 => ret ~ a
+| _ => gcd(ret) ~ (b, a%b);
+```
+
+Nets represent computation instances:
+```inpla
+gcd(r) ~ (14,21);
+r;  // outputs: 7
+```
+
+**Notable Features:**
+- Pattern matching with guards (`|` syntax)
+- Abbreviation notation (`<<`) for port specifications
+- Reuse annotations for memory optimization
+- Interactive REPL and batch execution modes
+- Built-in agents for common operations
+
+**Relevance to Stellogen:** Inpla demonstrates that interaction nets can achieve practical performance while maintaining clear, high-level syntax. Its automatic parallelization shows the inherent concurrency benefits of the interaction nets model.
+
+**Repository:** https://github.com/inpla/inpla
+
+### Vine & Ivy
+
+**Vine** is an experimental multi-paradigm programming language that seamlessly blends functional and imperative patterns.
+
+**Architecture:**
+- Vine compiles to **Ivy**, a low-level interaction-combinator language
+- Ivy executes on the **IVM** (Ivy Virtual Machine), a performant interaction combinator runtime
+- Two-stage compilation separates high-level design from low-level optimization
+
+**Implementation:**
+- Primarily written in Rust (97.5%)
+- Systems-level implementation optimized for performance
+- Active development with evolving specification
+
+**Relevance to Stellogen:** Vine demonstrates a layered approach where a high-level language compiles to interaction combinators. This is similar to how Stellogen could potentially serve as both a high-level notation and a compilation target.
+
+**Resources:**
+- Documentation: https://vine.dev/docs/
+- Repository: https://github.com/VineLang/vine
+- Community: Discord server
+
+### inet-forth
+
+**inet-forth** is a Forth-like language implementing interaction nets for automatic parallelization.
+
+**Design Philosophy:**
+- Addresses post-2003 computing reality: "single-threaded performance halted... increasing performance requires parallelism"
+- Combines Forth's stack-based evaluation with node-graph operations
+- Graph-structured programs enable automatic multi-core utilization
+
+**Core Constructs:**
+```forth
+define-node <name> <input-ports> -- <output-ports> end
+define-rule <name> <name> <function-body> end
+define <name> <function-body> end
+```
+
+**Execution Model:**
+- Stack-based operations push/pop wires and values
+- Node creation takes arguments from the stack
+- Interaction rules specify how connected nodes eliminate each other
+- Local variables capture disconnected wires during rule application
+
+**Example - Natural Numbers:**
+```forth
+define-node zero -- value! end
+define-node add1 prev -- value! end
+define-node add target! addend -- result end
+```
+
+When `add1` interacts with `add`, the rule: (1) saves wires as local variables, (2) creates new nodes reconnecting the transformed graph.
+
+**Implementation:**
+- Built in C (99.4% of codebase)
+- Compiled via Make
+- GPLv3 licensed
+
+**Relevance to Stellogen:** inet-forth shows how interaction nets can be embedded in a concatenative programming paradigm, demonstrating the flexibility of the interaction nets model across different language design philosophies.
+
+**Repository:** https://github.com/xieyuheng/inet-forth
 
 ### Other Implementations
 
@@ -227,6 +326,8 @@ Several research implementations exist on GitHub:
 - **ia0/lafont** - 3D visualization of Lafont's original system
 - **noughtmare/lafont90** - Compiler in Rascal
 - **chemlambda/molecular** - Graph rewrite systems with interaction combinators
+- **BOHM** - Bologna Optimal Higher-Order Machine
+- **Optiscope** - Lévy-optimal lambda calculus reducer
 
 These projects demonstrate the versatility and ongoing research interest in interaction combinators.
 
@@ -356,6 +457,295 @@ Stellogen can be seen as:
 - A **generalized interaction net system** where users define their own agents
 - A **textual notation** for interaction nets with flexible addressing
 - A **meta-level** above interaction combinators, allowing direct expression of computational patterns
+
+---
+
+## Comparative Analysis: Stellogen Among Interaction Net Languages
+
+This section compares Stellogen's design decisions with other interaction net implementations.
+
+### Language Design Spectrum
+
+Interaction net languages occupy different points on several design spectra:
+
+#### Abstraction Level
+
+```
+Low-level IR                                    High-level Language
+├─────────────┼─────────────┼─────────────┼─────────────┤
+HVM/Ivy       inet-forth    Inpla         Stellogen/Vine
+```
+
+- **HVM/Ivy**: Bare interaction combinators, compilation target
+- **inet-forth**: Stack-based primitives with explicit node/rule definitions
+- **Inpla**: Pattern-matching rules with implicit graph operations
+- **Stellogen/Vine**: Declarative constellations with term unification
+
+#### Syntax Philosophy
+
+| Language | Paradigm Base | Syntax Style | Port/Wire Notation |
+|----------|--------------|--------------|-------------------|
+| **Stellogen** | Logic programming | Declarative, unification-based | Variables + polarity (`+`/`-`) |
+| **Inpla** | Multi-paradigm | Imperative-style rules | Explicit agent connections (`~`) |
+| **inet-forth** | Concatenative | Stack-based, postfix | Stack operations on wires |
+| **Vine** | Multi-paradigm | Functional + imperative blend | (Compiles to Ivy) |
+| **HVM** | Functional | Lambda calculus-inspired | Low-level node references |
+
+#### Parallelization Strategy
+
+| Language | Parallel Execution | Mechanism | User Control |
+|----------|-------------------|-----------|--------------|
+| **HVM** | Massively parallel | GPU-optimized runtime | Implicit, automatic |
+| **Inpla** | Multi-threaded | POSIX threads | Compile flag (`-t`) |
+| **Stellogen** | Potential (not implemented) | Concurrent fusion | Would be implicit |
+| **inet-forth** | Designed for parallelism | Graph-based concurrency | Automatic via graph structure |
+| **Vine/Ivy** | IVM runtime | Interaction combinator execution | Implicit through compilation |
+
+### Unique Design Decisions
+
+#### Stellogen's Distinctive Features
+
+1. **Explicit Polarity as First-Class Syntax**
+   - Most languages encode polarity implicitly (principal vs. auxiliary ports)
+   - Stellogen makes it visible: `(+f X)` vs `(-f X)`
+   - Enables clear visual distinction between providers and requesters
+
+2. **Term Unification Foundation**
+   - Built on Robinson unification rather than graph matching
+   - Variables are local to stars (constellation clauses)
+   - Substitution propagates during fusion
+
+3. **Focus (`@`) Operator**
+   - Distinguishes **state** (data being computed) from **actions** (rules)
+   - Non-focused stars can be reused (duplicated during `exec`)
+   - Focused stars are targets for interaction
+   - No direct equivalent in other interaction net languages
+
+4. **Flexible Port Addressing**
+   - Not limited to numeric ports or fixed conventions
+   - Supports cons lists: `[l|X]`, `[r|X]` for binary trees
+   - Allows structured terms: `(exp [r l|X] d)` for complex addressing
+   - Enables domain-specific encoding schemes
+
+#### Inpla's Distinctive Features
+
+1. **Pattern Matching with Guards**
+   - Conditional rules: `| b==0 => ...`
+   - Multiple clauses per interaction rule
+   - Familiar to functional programmers
+
+2. **Performance Focus**
+   - Competitive with OCaml/Haskell
+   - Reuse annotations for memory optimization
+   - Both interpreted and compiled modes
+
+3. **Abbreviated Syntax**
+   - `r << qsort([3,6,1,9,2])` shorthand
+   - Reduces verbosity for common patterns
+
+#### inet-forth's Distinctive Features
+
+1. **Stack-Based Wire Manipulation**
+   - Wires are values on the stack
+   - `connect` operation explicitly joins wires
+   - Natural for Forth programmers
+
+2. **Explicit Node/Rule Separation**
+   - `define-node`: declares agent types with port signatures
+   - `define-rule`: specifies interactions between pairs
+   - Clear separation of structure and behavior
+
+3. **Local Variables in Rules**
+   - Rules capture disconnected wires as locals
+   - Enables complex rewiring during interaction
+
+#### Vine/Ivy's Distinctive Features
+
+1. **Two-Tier Architecture**
+   - High-level language (Vine) compiles to low-level IR (Ivy)
+   - Similar to HVM's approach (Bend → HVM)
+   - Separates language design from runtime optimization
+
+2. **Multi-Paradigm Integration**
+   - Seamless functional/imperative interop
+   - Goal: best of both worlds without artificial boundaries
+
+### Stellogen's Position in the Ecosystem
+
+Stellogen occupies a unique niche:
+
+1. **Closest to Logic Programming**
+   - Prolog-like declarative style
+   - Unification-based rather than pattern-matching
+   - Queries with negative polarity, facts with positive
+
+2. **Highest Abstraction for Interaction Nets**
+   - No need to think about low-level combinators
+   - Direct expression of logical relationships
+   - Port addressing as complex as needed
+
+3. **Research/Educational Focus**
+   - Explores interaction nets as a **foundation** rather than compilation target
+   - Logic-agnostic philosophy allows experimentation
+   - Not (yet) optimized for production performance
+
+4. **Generalized Interaction Rules**
+   - Not limited to 3 symbols + 6 rules
+   - Users define domain-specific agents
+   - Could still serve as compilation target (like Ivy/HVM)
+
+### Comparison Matrix
+
+| Feature | Stellogen | Inpla | inet-forth | Vine/Ivy | HVM |
+|---------|-----------|-------|------------|----------|-----|
+| **Primary Goal** | Logic-agnostic foundation | Practical parallelism | Forth-based nets | Multi-paradigm blend | Optimal λ-calculus |
+| **Syntax Inspiration** | Prolog/Datalog | Functional/imperative | Forth | Functional/imperative | Lambda calculus |
+| **Polarity** | Explicit (`+`/`-`) | Implicit | Implicit | Implicit | Implicit |
+| **Port Addressing** | Flexible terms | Agent ports | Stack wires | Low-level refs | Node IDs |
+| **Unification** | Built-in (Robinson) | Pattern matching | Manual in rules | Compiled away | Compiled away |
+| **Parallelism** | Theoretical | Multi-threaded (POSIX) | Graph-based | IVM runtime | GPU-optimized |
+| **Implementation** | OCaml | C (flex/bison) | C | Rust | Rust |
+| **Type System** | Interaction tests | (Not emphasized) | (Not emphasized) | (Under development) | Structural |
+| **Focus Operator** | Yes (`@`) | No | No | No | No |
+| **Variable Scope** | Star-local | Agent-local | Rule-local | (Depends on Ivy) | Node-local |
+| **Production Ready** | No (research) | Yes (benchmarked) | No (research) | No (in development) | Yes |
+
+### Lessons for Stellogen Development
+
+From reviewing these implementations, Stellogen could benefit from:
+
+1. **Performance Benchmarking** (from Inpla)
+   - Systematic comparison with functional languages
+   - Identify optimization opportunities
+   - Measure parallelization benefits
+
+2. **Explicit Parallelization Flags** (from Inpla)
+   - Allow users to control thread count
+   - Single-threaded mode for debugging
+   - Multi-threaded mode for production
+
+3. **Compilation to Lower-Level IR** (from Vine/Ivy, HVM/Bend)
+   - Stellogen → Interaction Combinators → HVM/IVM
+   - Enables backend optimization without changing syntax
+   - Could leverage existing runtimes
+
+4. **Stack-Based Operations** (from inet-forth)
+   - Alternative execution model for imperative patterns
+   - Could coexist with declarative constellations
+   - Useful for imperative recipes
+
+5. **Pattern Matching Guards** (from Inpla)
+   - Inequality constraints (`|| (!= X Y)`) are a start
+   - Could add numeric comparisons, type guards
+   - More expressive conditional interactions
+
+6. **Visual Debugging Tools** (common gap)
+   - Graph visualization of constellations
+   - Step-by-step interaction animation
+   - Wire tracing during reduction
+
+### Syntax Comparison: Same Algorithm, Different Languages
+
+To illustrate the design differences, here's how **GCD (greatest common divisor)** is implemented across interaction net languages:
+
+#### Stellogen (Logic Programming Style)
+
+```stellogen
+' GCD using declarative rules
+(:= gcd {
+  [(+gcd X 0 X)]                         ' Base case: gcd(X, 0) = X
+  [(+gcd 0 Y Y)]                         ' Base case: gcd(0, Y) = Y
+  [(-gcd X Y R) (+gcd Y (mod X Y) R)     ' Recursive: gcd(X, Y) = gcd(Y, X mod Y)
+   || (!= Y 0)]})                        ' Guard: Y ≠ 0
+
+' Query
+(:= query @[(-gcd 14 21 R) (result R)])
+(show (exec #gcd #query))
+```
+
+**Characteristics:**
+- Declarative rules with polarity
+- Variables connect ports implicitly
+- Guard syntax with `||`
+- Focus `@` marks query
+
+#### Inpla (Pattern Matching Style)
+
+```inpla
+gcd(ret) >< (int a, int b)
+| b==0 => ret ~ a
+| _ => gcd(ret) ~ (b, a%b);
+
+gcd(r) ~ (14, 21);
+r;  // outputs: 7
+```
+
+**Characteristics:**
+- Explicit agent interaction syntax (`><`)
+- Guards with `|` pattern
+- Connection operator `~`
+- Return port explicitly named
+
+#### inet-forth (Stack-Based Style)
+
+```forth
+define-node gcd-base value! -- result! end
+define-node gcd-step a b -- result! end
+
+define-rule gcd-step gcd-base
+  @b value!  ' Get b from gcd-step
+  dup 0 = if
+    drop @a result!  ' If b=0, return a
+  else
+    @a @b % @b swap gcd-step connect result!  ' Else gcd(b, a%b)
+  then
+end
+
+14 21 gcd-step gcd-base
+```
+
+**Characteristics:**
+- Stack operations on wires
+- Explicit control flow (`if/then`)
+- Manual wire connections
+- Postfix notation
+
+#### Comparative Observations
+
+| Aspect | Stellogen | Inpla | inet-forth |
+|--------|-----------|-------|------------|
+| **Style** | Declarative | Functional | Imperative |
+| **Polarity** | Explicit (`+`/`-`) | Implicit in ports | Implicit in arrows |
+| **Guards** | `|| (!= Y 0)` | `\| b==0 =>` | `dup 0 = if` |
+| **Connections** | Via variables | Via `~` operator | Via `connect` |
+| **Readability** | Mathematical | Functional | Procedural |
+| **Verbosity** | Moderate | Low | High |
+
+### Cross-Language Patterns
+
+Despite syntactic differences, all three languages express the same **interaction net structure**:
+
+1. **Agents** (nodes):
+   - Stellogen: Constellations `gcd`
+   - Inpla: Agent definition `gcd(ret) >< (int a, int b)`
+   - inet-forth: Node types `gcd-base`, `gcd-step`
+
+2. **Ports** (connection points):
+   - Stellogen: Variables `X`, `Y`, `R`
+   - Inpla: Named ports `ret`, `a`, `b`
+   - inet-forth: Stack values and wires
+
+3. **Interaction Rules** (rewrites):
+   - Stellogen: Constellation clauses
+   - Inpla: Pattern-match branches with `=>`
+   - inet-forth: `define-rule` blocks
+
+4. **Active Pairs** (triggers):
+   - Stellogen: Opposite polarity rays `(+gcd ...) × (-gcd ...)`
+   - Inpla: Agent connection `gcd(r) ~ (14, 21)`
+   - inet-forth: Node connection via `connect`
+
+This demonstrates that **interaction nets are the common semantic foundation**, while each language chooses different syntactic surface forms optimized for different programming paradigms.
 
 ---
 
@@ -650,13 +1040,35 @@ Develop real-world programs demonstrating:
    https://github.com/VictorTaelin/Symmetric-Interaction-Calculus
    Symmetric variant with uniform rules
 
-5. **Interaction Nets Research Sandbox (Rust)**
+5. **Inpla (Interaction Nets Programming Language)**
+   https://github.com/inpla/inpla
+   Multi-threaded parallel interpreter with competitive performance
+
+6. **Vine Language**
+   https://github.com/VineLang/vine
+   Multi-paradigm language compiling to Ivy (interaction combinator IR)
+
+7. **inet-forth**
+   https://github.com/xieyuheng/inet-forth
+   Forth-like interaction nets language for automatic parallelization
+
+8. **Interaction Nets Resources Collection**
+   https://github.com/etiamz/interaction-net-resources
+   Curated bibliography and implementation list (1989-2014+)
+
+9. **Interaction Nets Research Sandbox (Rust)**
    https://github.com/dowlandaiello/ic-sandbox
    REPL for interaction combinators and lambda calculus
 
-6. **Lafont Animation (3D visualization)**
-   https://github.com/ia0/lafont
-   Visual representation of interaction combinator execution
+10. **Lafont Animation (3D visualization)**
+    https://github.com/ia0/lafont
+    Visual representation of interaction combinator execution
+
+11. **BOHM (Bologna Optimal Higher-Order Machine)**
+    Early implementation of optimal lambda calculus reduction
+
+12. **Optiscope**
+    Lévy-optimal lambda calculus reducer
 
 ### Articles and Tutorials
 

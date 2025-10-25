@@ -14,7 +14,27 @@ opam install js_of_ocaml js_of_ocaml-compiler js_of_ocaml-ppx
 
 ### Build Steps
 
-1. **Build the JavaScript file:**
+**Recommended: Use the build script**
+
+```bash
+# From the project root
+./web/build.sh
+```
+
+This will:
+1. Generate `examples.js` from `examples/*.sg` files
+2. Compile OCaml to JavaScript
+3. Copy all files to `web_deploy/`
+
+**Manual build:**
+
+1. **Generate examples:**
+
+```bash
+node web/build-examples.js
+```
+
+2. **Build the JavaScript file:**
 
 ```bash
 # From the project root
@@ -24,16 +44,17 @@ dune build web/playground.bc.js
 This will create:
 - `_build/default/web/playground.bc.js` - The compiled JavaScript
 
-2. **Copy files to serve:**
+3. **Copy files to serve:**
 
 ```bash
 # Create a deploy directory
 mkdir -p web_deploy
 cp _build/default/web/playground.bc.js web_deploy/playground.js
 cp web/index.html web_deploy/
+cp web/examples.js web_deploy/
 ```
 
-3. **Serve locally (for testing):**
+4. **Serve locally (for testing):**
 
 ```bash
 # Using Python
@@ -44,13 +65,24 @@ python3 -m http.server 8000
 # Then open http://localhost:8000 in your browser
 ```
 
-### Quick Build Script
+### Examples Management
 
-You can also use this one-liner:
+The playground loads examples from `web/examples.js`, which is **auto-generated** from the actual `examples/*.sg` files.
 
-```bash
-dune build web/playground.bc.js && mkdir -p web_deploy && cp _build/default/web/playground.bc.js web_deploy/playground.js && cp web/index.html web_deploy/ && echo "Build complete! Serve the web_deploy/ directory."
-```
+**To update examples:**
+
+1. Edit the `.sg` files in `examples/`
+2. Run `node web/build-examples.js` to regenerate `web/examples.js`
+3. Or simply run `./web/build.sh` which includes this step
+
+**Adding new examples:**
+
+1. Create your `.sg` file in `examples/`
+2. Add an entry to `EXAMPLE_MAPPING` in `web/build-examples.js`
+3. Add a `<option>` tag in `web/index.html`
+4. Rebuild: `node web/build-examples.js`
+
+This approach eliminates duplication and ensures examples stay in sync with the source files.
 
 ## Development
 
