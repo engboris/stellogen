@@ -47,7 +47,7 @@
 '     \________/
 '
 '    then
-
+'
 '   [3, 6]
 '
 ' This corresponds to the following execution in stellogen
@@ -60,81 +60,7 @@
 ''' ======================================================== '''
 ''' SUCCESSFUL TYPING '''
 ''' ======================================================== '''
-' We want to check that we have a proof of identity
-' (A ⊗ B) -o (A ⊗ B)
-' with the following constellation (two axioms)
+' Typing works exactly the same as in examples/proofnets/mll.sg
+' with the same specifications (providing you have the right adapters)
+' except that the proof of identity (A ⊗ B) -o (A ⊗ B) is
 (:= proof? { [+1 +3] [+2 +4]})
-
-' We do it in two steps.
-' 1. checking the structure of the candidate
-' 2. checking that the duality of variables is coherent
-
-' Specification with tests returning [ok] when interacting
-' with a constellation having the shape of a proof of
-' (_ ⊗ _) -o (_ ⊗ _)
-(spec (-o (⊗ A B) (⊗ C D)) {
-  [+testrl [
-    [-A -B +(⊗ A B)]
-    [-C] [-D +(⅋ C D)]
-    [-(⊗ A B) +concl] [-(⅋ C D)]
-    @[-concl ok]]]
-  [+testrr [
-    [-A -B +(⊗ A B)]
-    [-C] [-D +(⅋ C D)]
-    [-(⊗ A B)] [+concl -(⅋ C D)]
-    @[-concl ok]]]
-  [+testll [
-    [-A -B +(⊗ A B)]
-    [-D] [-C +(⅋ C D)]
-    [-(⊗ A B) +concl] [-(⅋ C D)]
-    @[-concl ok]]]
-  [+testlr [
-    [-A -B +(⊗ A B)]
-    [-D] [-C +(⅋ C D)]
-    [-(⊗ A B)] [+concl -(⅋ C D)]
-    @[-concl ok]]]})
-
-' Check if proof? satisfies the test-based specification
-'(:: proof? (-o (⊗ 1 2) (⊗ 3 4))
-
-' Check if duality is coherent
-' TODO
-
-''' ======================================================== '''
-''' FAILING TYPING '''
-''' ======================================================== '''
-
-(spec (⊗ A B) {
-  [-A -B +(⊗ A B)]
-  @[-(⊗ A B) ok]
-})
-
-' To avoid unecessary infinite loop,
-' we use a linear type assertion
-(macro (::lin Tested Test) (== @(fire #Tested #Test) ok))
-
-(:= proof? [+1 +2])
-' (::lin proof? (⊗ 1 2)) ' does not typecheck
-
-''' ======================================================== '''
-''' COMPRESSED TESTS '''
-''' ======================================================== '''
-' Actually, have internal connections which could be compressed
-' by pre-executing them, thus avoiding unecessary computation.
-' The two specifications above become:
-
-(spec (comp-o (⊗ A B) (⊗ C D)) {
-  [+testrl [
-    [-A -B +concl] [-C] [-D]
-    @[-concl ok]]]
-  [+testrr [
-    [-A -B] [-C] [-D +concl]
-    @[-concl ok]]]
-  [+testll [
-    [-A -B +concl] [-D] [-C]
-    @[-concl ok]]]
-  [+testlr [
-    [-A -B] [-D] [-C +concl]
-    @[-concl ok]]]})
-
-(spec (⊗ A B) @[-A -B ok])

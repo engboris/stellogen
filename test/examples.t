@@ -38,7 +38,6 @@ MALL (multiplicative-additive linear logic) example:
 
 MLL (multiplicative linear logic) example:
   $ sgen run ../examples/proofnets/mll.sg
-  {}
 
 Natural numbers example:
   $ sgen run ../examples/nat.sg
