@@ -271,10 +271,9 @@ let rec eval_sgen_expr (env : env) :
     | [ State { content = [ r ]; bans = _ } ]
     | [ Action { content = [ r ]; bans = _ } ] ->
       let er = expr_of_ray r in
-      begin
-        match Expr.sgen_expr_of_expr er with
-        | Ok sg -> eval_sgen_expr env' sg
-        | Error e -> Error (ExprError (e, None))
+      begin match Expr.sgen_expr_of_expr er with
+      | Ok sg -> eval_sgen_expr env' sg
+      | Error e -> Error (ExprError (e, None))
       end
     | e ->
       failwith
