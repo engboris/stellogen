@@ -178,7 +178,11 @@ let rec expand_macros_in_expr
         in
         let substituted = List.map body ~f:apply_substitution in
         (* Recursively expand macros in the substituted body *)
-        List.concat_map substituted ~f:(expand_macros_in_expr macro_env)
+        let expanded =
+          List.concat_map substituted ~f:(expand_macros_in_expr macro_env)
+        in
+        (* Attach the call site location to the expanded expressions *)
+        List.map expanded ~f:(fun e -> { e with loc = expr.loc })
     | None ->
       (* Not a macro - recursively expand in sub-expressions *)
       let expanded_subexprs =

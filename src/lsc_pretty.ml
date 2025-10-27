@@ -20,7 +20,7 @@ let rec string_of_ray = function
 let string_of_subst substitution =
   substitution
   |> List.map ~f:(fun (var, ray) ->
-       Printf.sprintf "%s->%s" (string_of_var var) (string_of_ray ray) )
+    Printf.sprintf "%s->%s" (string_of_var var) (string_of_ray ray) )
   |> String.concat ~sep:", " |> Printf.sprintf "{%s}"
 
 let string_of_ban = function

@@ -22,7 +22,9 @@ module StellarSig = struct
   let compatible (p1, f1) (p2, f2) =
     String.equal f1 f2
     &&
-    match (p1, p2) with Pos, Neg | Neg, Pos | Null, Null -> true | _ -> false
+    match (p1, p2) with
+    | Pos, Neg | Neg, Pos | Null, Null -> true
+    | _ -> false
 end
 
 module StellarRays = Unification.Make (StellarSig)
@@ -140,7 +142,7 @@ let subst_all_vars sub = List.map ~f:(Marked.map ~f:(subst sub))
 let all_vars mcs : StellarSig.idvar list =
   mcs
   |> List.concat_map ~f:(function Marked.State s | Marked.Action s ->
-       List.concat_map s.content ~f:StellarRays.vars )
+    List.concat_map s.content ~f:StellarRays.vars )
 
 let normalize_vars (mcs : Marked.constellation) =
   let vars = all_vars mcs in

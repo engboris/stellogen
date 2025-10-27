@@ -32,6 +32,6 @@ let run_stellogen code_js =
 let () =
   Console.console##log (Js.string "Stellogen playground loaded");
   Js.export "Stellogen"
-    (object%js
-       method run code = run_stellogen code
-    end )
+    object%js
+      method run code = run_stellogen code
+    end

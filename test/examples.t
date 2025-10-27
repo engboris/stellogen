@@ -33,12 +33,11 @@ Linear lambda example:
   {}
 
 MALL (multiplicative-additive linear logic) example:
-  $ sgen run ../examples/mall.sg
+  $ sgen run ../examples/proofnets/mall.sg
   { [(-3 (%cons r (%cons l X4))) (-3 (%cons r (%cons r X4))) || (slice c b)] [(c X11) (d X11) || (slice c a)] }
 
 MLL (multiplicative linear logic) example:
-  $ sgen run ../examples/mll.sg
-  {}
+  $ sgen run ../examples/proofnets/mll.sg
 
 Natural numbers example:
   $ sgen run ../examples/nat.sg
