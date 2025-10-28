@@ -55,7 +55,7 @@ NPDA (non-deterministic pushdown automaton) example:
 Prolog-style examples:
   $ sgen run ../examples/prolog.sg
   (s (s (s (s 0))))
-  [(-grandparent tom Z0) Z0]
+  [(-grandparent tom Z) Z]
   { [ok (-to 1)] [(-from 5)] [(-from 4)] [(-from 5)] }
 
 Stack example:
@@ -72,7 +72,7 @@ Syntax reference:
   { [c] [b] [a] }
   (%string hello world)
   (function a b)
-  { [(-f X0) (-f Y0) (r X0 Y0) || (!= X Y)] [(+f b)] [(+f a)] }
+  { [(-f X) (-f Y) (r X Y) || (!= X Y)] [(+f b)] [(+f a)] }
   { [(r b a) || (!= b a)] [(r a b) || (!= a b)] }
   (+n2 (s (s 0)))
   { [(+field test2) (%cons (+f b) (%cons ok %nil))] [(+field test1) (%cons (+f a) (%cons ok %nil))] }

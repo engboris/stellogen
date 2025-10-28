@@ -32,7 +32,12 @@ let rec find_with_solution env x =
       let value_normalized = map_ray env ~f:(replace_indices 0) value in
       let x_normalized = replace_indices 1 x in
       match StellarRays.solution [ (key_normalized, x_normalized) ] with
-      | Some substitution -> Some (value_normalized, substitution)
+      | Some substitution ->
+        (* Only use renamed value if there's actual parameter substitution *)
+        let result_value =
+          if List.is_empty substitution then value else value_normalized
+        in
+        Some (result_value, substitution)
       | None -> search_objs rest )
   in
   search_objs env.objs

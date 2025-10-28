@@ -115,11 +115,11 @@
 '
 '   [3, 6]
 '
-' This corresponds to the following executio in stellogen
+' This corresponds to the following execution in stellogen
 ' in which [] is a way to initiate a starting point in computation
 (:= comp (exec #x @[(-3 X) (+3 X)]))
-(:= res { [(+3 X9) (+6 X9)] })
-' (== #comp #res)
+(:= res { [(+3 X) (+6 X)] })
+(~= #comp #res)
 
 ' as for the proof of identity (A ⊗ B) -o (A ⊗ B):
 '
