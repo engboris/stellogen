@@ -9,9 +9,9 @@ let ( let* ) x f = Result.bind x ~f
 
 let unifiable r r' = StellarRays.solution [ (r, r') ] |> Option.is_some
 
-let constellations_compatible c1 c2 =
-  (* Check if two constellations are compatible for Match (~=) *)
-  (* Uses unifiable which requires opposite polarities for interaction *)
+let constellations_matchable c1 c2 =
+  (* Check if two constellations are matchable for Match (~=) *)
+  (* Uses term unification (ignoring polarity, only checking function name equality) *)
   let open Lsc_ast in
   (* Extract all rays from both constellations *)
   let rays_from_constellation c =
@@ -20,9 +20,9 @@ let constellations_compatible c1 c2 =
   let rays1 = rays_from_constellation c1 in
   let rays2 = rays_from_constellation c2 in
 
-  (* Check if any ray from c1 is unifiable with any ray from c2 *)
+  (* Check if any ray from c1 can unify with any ray from c2 (ignoring polarity) *)
   List.exists rays1 ~f:(fun r1 ->
-    List.exists rays2 ~f:(fun r2 -> unifiable r1 r2) )
+    List.exists rays2 ~f:(fun r2 -> terms_unifiable r1 r2) )
 
 let rec find_with_solution env x =
   let rec search_objs = function
@@ -32,7 +32,12 @@ let rec find_with_solution env x =
       let value_normalized = map_ray env ~f:(replace_indices 0) value in
       let x_normalized = replace_indices 1 x in
       match StellarRays.solution [ (key_normalized, x_normalized) ] with
-      | Some substitution -> Some (value_normalized, substitution)
+      | Some substitution ->
+        (* Only use renamed value if there's actual parameter substitution *)
+        let result_value =
+          if List.is_empty substitution then value else value_normalized
+        in
+        Some (result_value, substitution)
       | None -> search_objs rest )
   in
   search_objs env.objs
@@ -299,7 +304,7 @@ let rec eval_sgen_expr (env : env) :
     let* env2, eval2 = eval_sgen_expr env1 expr2 in
     let const1 = List.map eval1 ~f:Marked.remove in
     let const2 = List.map eval2 ~f:Marked.remove in
-    if constellations_compatible const1 const2 then Ok (env2, [])
+    if constellations_matchable const1 const2 then Ok (env2, [])
     else Error (MatchError { term1 = eval1; term2 = eval2; message; location })
   | Use path -> (
     let open Lsc_ast.StellarRays in
