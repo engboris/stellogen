@@ -17,49 +17,42 @@ const EXAMPLE_MAPPING = {
   automata: 'automata.sg',
   stackmachine: 'npda.sg',
   turing: 'turing.sg',
-  stack: 'stack.sg'
+  stack: 'stack.sg',
+  mll: 'proofnets/mll.sg',
+  fomll: 'proofnets/fomll.sg'
 };
 
 // Path configuration
 const EXAMPLES_DIR = path.join(__dirname, '..', 'examples');
 const OUTPUT_FILE = path.join(__dirname, 'examples.js');
+const PRELUDE_FILE = path.join(EXAMPLES_DIR, 'milkyway', 'prelude.sg');
+
+/**
+ * Load and prepare prelude content for inlining
+ */
+function loadPrelude() {
+  try {
+    const preludeContent = fs.readFileSync(PRELUDE_FILE, 'utf-8');
+    return `' Prelude macros (normally imported)\n${preludeContent.trim()}`;
+  } catch (error) {
+    console.error('❌ Error loading prelude:', error.message);
+    process.exit(1);
+  }
+}
 
 /**
  * Process example file content for the playground
  * - Replace (use-macros "milkyway/prelude.sg") with inline macro definitions
  * - Adjust any other syntax needed for standalone execution
  */
-function processExampleContent(content, filename) {
+function processExampleContent(content, _filename, preludeMacros) {
   // For files that use prelude macros, inline them
+  // Handle both direct and relative paths to prelude
   if (content.includes('(use-macros "milkyway/prelude.sg")')) {
-    const preludeMacros = `' Prelude macros (normally imported)
-(macro (spec X Y) (:= X Y))
-(macro (:: Tested Test)
-  (== @(exec @#Tested #Test) ok))`;
-
     content = content.replace('(use-macros "milkyway/prelude.sg")', preludeMacros);
   }
-
-  // Specific fixes for known issues
-  if (filename === 'prolog.sg') {
-    // Change 'exec' to 'interact' in the graph traversal example (line 48)
-    content = content.replace(
-      '<show exec (process',
-      '<show interact (process'
-    );
-  }
-
-  if (filename === 'stack.sg') {
-    // Change 'exec' to 'interact' in stack example
-    content = content.replace(
-      '<show exec (process',
-      '<show interact (process'
-    );
-  }
-
-  if (filename === 'hello.sg') {
-    // Add a welcome comment
-    content = `' Hello World\n${content}`;
+  if (content.includes('(use-macros "../milkyway/prelude.sg")')) {
+    content = content.replace('(use-macros "../milkyway/prelude.sg")', preludeMacros);
   }
 
   return content.trim();
@@ -70,6 +63,10 @@ function processExampleContent(content, filename) {
  */
 function buildExamples() {
   console.log('Building examples for Stellogen playground...\n');
+
+  // Load prelude once
+  const preludeMacros = loadPrelude();
+  console.log('✓ Loaded prelude macros\n');
 
   const examples = {};
   let successCount = 0;
@@ -87,7 +84,7 @@ function buildExamples() {
       }
 
       const content = fs.readFileSync(filepath, 'utf-8');
-      const processed = processExampleContent(content, filename);
+      const processed = processExampleContent(content, filename, preludeMacros);
       examples[key] = processed;
 
       console.log(`✓ Processed: ${filename} -> ${key}`);
