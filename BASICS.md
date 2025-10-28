@@ -77,14 +77,15 @@ a $ :b c
 
 **Unification** = finding substitutions that make two terms identical.
 
+You can check if two terms are matchable with the term `(~= t u)` where `t` and
+`u` are terms.
+
 For example:
 
 ```stellogen
-'''
-(f X)  ~  (f (h a))    =>  they match with {X := (h a)}
-(f X)  ~  X            =>  ❌ (circular)
-(f X)  ~  (g X)        =>  ❌ (they don't match because different head symbol)
-'''
+(~= (f X)  (f (h a)))  '  =>  they match with {X := (h a)}
+(~= (f X)  X)          '  =>  ❌ (circular)
+(~= (f X)  (g X))      '  =>  ❌ (they don't match because different head symbol)
 ```
 
 A **ray** is a term with polarity:
@@ -94,12 +95,13 @@ A **ray** is a term with polarity:
 * `(f X)`  → neutral (does not interact)
 
 Two rays and **compatible** and can interact if they have opposite polarities
-**and** their terms unify. You can check compatibility with the term
-`(~= t u)` with arguments `t` and `u` which are rays.
+**and** their terms unify.
 
 ```stellogen
-(~= (+f X) (-f (h a)))   ' =>  succeeds with {X := (h a)}
-' (~= (+f X) (+f a))     ' =>  ❌ (fails because same polarity)
+'''
+(+f X) and (-f (h a)))  are compatible with {X := (h a)}
+(+f X) and (+f a))      are incompatible because they have same head polarity
+'''
 ```
 
 ---
