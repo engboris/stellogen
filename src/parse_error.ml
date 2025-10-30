@@ -51,7 +51,7 @@ let recovery_strategy last_token delimiters_depth =
   | Some Parser.EOF ->
     (* At EOF, can't recover by skipping *)
     Abort
-  | Some (Parser.RPAR | Parser.RBRACK | Parser.RBRACE | Parser.RANGLE) ->
+  | Some (Parser.RPAR | Parser.RBRACK | Parser.RBRACE) ->
     (* Extra closing delimiter - skip it and try to continue *)
     Skip 1
   | Some Parser.LPAR ->
@@ -68,7 +68,7 @@ let recovery_strategy last_token delimiters_depth =
 (* Check if token is a delimiter *)
 let is_delimiter = function
   | Parser.LPAR | Parser.RPAR | Parser.LBRACK | Parser.RBRACK | Parser.LBRACE
-  | Parser.RBRACE | Parser.LANGLE | Parser.RANGLE ->
+  | Parser.RBRACE ->
     true
   | _ -> false
 
@@ -88,8 +88,6 @@ let string_of_token = function
   | Parser.RBRACK -> "]"
   | Parser.LBRACE -> "{"
   | Parser.RBRACE -> "}"
-  | Parser.LANGLE -> "<"
-  | Parser.RANGLE -> ">"
   | Parser.SHARP -> "#"
   | Parser.EOF -> "EOF"
 
@@ -101,14 +99,12 @@ let contextualize_error last_token delimiters_stack =
     ( Printf.sprintf "unclosed delimiter '%c'" delim_char
     , Some "add the missing closing delimiter" )
   | Some Parser.EOF -> ("unexpected end of file", Some "the input is incomplete")
-  | Some ((Parser.RPAR | Parser.RBRACK | Parser.RBRACE | Parser.RANGLE) as tok)
-    ->
+  | Some ((Parser.RPAR | Parser.RBRACK | Parser.RBRACE) as tok) ->
     let tok_str =
       match tok with
       | Parser.RPAR -> ")"
       | Parser.RBRACK -> "]"
       | Parser.RBRACE -> "}"
-      | Parser.RANGLE -> ">"
       | _ -> "?"
     in
     ( Printf.sprintf "no opening delimiter for '%s'" tok_str

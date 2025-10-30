@@ -75,9 +75,6 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
   | Focus e ->
     let map_e = map_ray env ~f e in
     Focus map_e
-  | Process (gs, loc) ->
-    let procs = List.map ~f:(map_ray env ~f) gs in
-    Process (procs, loc)
   | Eval e ->
     let map_e = map_ray env ~f e in
     Eval map_e
@@ -284,30 +281,6 @@ let rec eval_sgen_expr (env : env) :
   | Focus e ->
     let* env', eval_e = eval_sgen_expr env e in
     eval_e |> Marked.remove_all |> Marked.make_state_all |> fun c -> Ok (env', c)
-  | Process ([], _) -> Ok (env, [])
-  | Process (h :: t, proc_loc) ->
-    (* Propagate location to first element if it doesn't have one *)
-    let h_with_loc =
-      match h with
-      | Exec (b, e, None) -> Exec (b, e, proc_loc)
-      | Process (es, None) -> Process (es, proc_loc)
-      | other -> other
-    in
-    let* env', eval_e = eval_sgen_expr env h_with_loc in
-    let init = eval_e |> Marked.remove_all |> Marked.make_state_all in
-    let* env_final, res =
-      List.fold_left t
-        ~init:(Ok (env', init))
-        ~f:(fun acc x ->
-          let* env_acc, acc_const = acc in
-          let origin =
-            acc_const |> Marked.remove_all |> Marked.make_state_all
-          in
-          (* Propagate location to internally created Exec *)
-          eval_sgen_expr env_acc
-            (Focus (Exec (false, Group [ x; Raw origin ], proc_loc))) )
-    in
-    Ok (env_final, res)
   | Eval e -> (
     let* env', eval_e = eval_sgen_expr env e in
     match eval_e with
@@ -329,7 +302,6 @@ let rec eval_sgen_expr (env : env) :
     let expr_with_loc =
       match expr with
       | Exec (b, e, None) -> Exec (b, e, show_loc)
-      | Process (es, None) -> Process (es, show_loc)
       | other -> other
     in
     let* env', evaluated = eval_sgen_expr env expr_with_loc in
