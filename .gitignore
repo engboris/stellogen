@@ -6,3 +6,6 @@ _opam/
 # Web playground deployment directory
 web_deploy/
 web/examples.js
+
+# Deployment script
+deploy.sh
