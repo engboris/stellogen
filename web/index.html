@@ -145,99 +145,6 @@
             color: #666666;
             margin-left: auto;
         }
-
-        /* Trace output styling */
-        .trace-step {
-            margin-bottom: 1.5rem;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .step-header {
-            background: #0066cc;
-            color: white;
-            padding: 0.5rem 1rem;
-            font-weight: bold;
-        }
-
-        .step-header.final {
-            background: #2e7d32;
-        }
-
-        .step-content {
-            padding: 1rem;
-            background: #fafafa;
-        }
-
-        .section {
-            margin-bottom: 1rem;
-        }
-
-        .section:last-child {
-            margin-bottom: 0;
-        }
-
-        .label {
-            font-weight: bold;
-            color: #0066cc;
-            margin-bottom: 0.5rem;
-        }
-
-        .result-label {
-            font-weight: bold;
-            color: #2e7d32;
-            margin-bottom: 0.5rem;
-        }
-
-        .constellation {
-            margin-left: 1rem;
-        }
-
-        .star {
-            margin: 0.25rem 0;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
-        }
-
-        .action-star {
-            color: #6a1b9a;
-        }
-
-        .state-star {
-            color: #d84315;
-        }
-
-        .empty {
-            color: #999999;
-            font-style: italic;
-        }
-
-        .no-trace {
-            padding: 1rem;
-            background: #fff3e0;
-            border: 1px solid #ffb74d;
-            border-radius: 4px;
-            color: #e65100;
-        }
-
-        .location {
-            font-size: 0.85rem;
-            color: #666666;
-            margin-bottom: 0.25rem;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
-        }
-
-        .source-line {
-            font-size: 0.9rem;
-            color: #333333;
-            background: #f9f9f9;
-            padding: 0.5rem;
-            margin-bottom: 0.75rem;
-            border-left: 3px solid #0066cc;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
     </style>
 </head>
 <body>
@@ -265,7 +172,6 @@
 
     <div class="controls">
         <button id="runBtn">Run</button>
-        <button id="traceBtn">Trace</button>
         <select id="examples">
             <option value="">Load Example...</option>
             <option value="hello">Hello World</option>
@@ -287,7 +193,6 @@
         const editor = document.getElementById('editor');
         const output = document.getElementById('output');
         const runBtn = document.getElementById('runBtn');
-        const traceBtn = document.getElementById('traceBtn');
         const clearBtn = document.getElementById('clearBtn');
         const examplesSelect = document.getElementById('examples');
         const status = document.getElementById('status');
@@ -324,36 +229,6 @@
             }
         }
 
-        function traceCode() {
-            const code = editor.value;
-            status.textContent = 'Tracing...';
-            output.textContent = 'Executing with trace...';
-
-            try {
-                console.log('Tracing code:', code);
-
-                // Add timeout to prevent infinite loops
-                let result;
-                const timeout = setTimeout(() => {
-                    throw new Error('Execution timeout - possible infinite loop');
-                }, 5000);
-
-                result = Stellogen.trace(code);
-                clearTimeout(timeout);
-
-                console.log('Trace result:', result);
-                output.innerHTML = result || '(no output)';
-                output.className = 'success';
-                status.textContent = 'Trace Complete';
-                setTimeout(() => status.textContent = '', 2000);
-            } catch (e) {
-                console.error('Error:', e);
-                output.textContent = 'JavaScript error: ' + e.message + '\n\nCheck browser console (F12) for details.';
-                output.className = 'error';
-                status.textContent = 'Error';
-            }
-        }
-
         function clear() {
             editor.value = '';
             output.textContent = 'Click "Run" to execute your code...';
@@ -361,7 +236,6 @@
         }
 
         runBtn.addEventListener('click', runCode);
-        traceBtn.addEventListener('click', traceCode);
         clearBtn.addEventListener('click', clear);
 
         examplesSelect.addEventListener('change', (e) => {

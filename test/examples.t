@@ -19,8 +19,6 @@ Binary4 example:
 
 Circuits example:
   $ sgen run ../examples/circuits.sg
-  { [(-c3 0) (-1 0) (-c2 0) (-not 0 0) 0 0] [(-c3 0) (-c2 1) 0 0] }
-  { [(-0 1)] [(-not 0 0)] }
 
 Lambda calculus example:
   $ sgen run ../examples/lambda.sg

@@ -58,18 +58,22 @@ let get_trace_steps cfg = List.rev cfg.steps
 
 let get_source_line filename line_num =
   try
+    (* In web mode or when file access fails, gracefully return None *)
     let ic = Stdlib.open_in filename in
     let rec skip_lines n =
       if n <= 1 then ()
-      else (
-        ignore (Stdlib.input_line ic);
-        skip_lines (n - 1) )
+      else
+        let _ = Stdlib.input_line ic in
+        skip_lines (n - 1)
     in
     skip_lines line_num;
     let line = Stdlib.input_line ic in
     Stdlib.close_in ic;
     Some line
-  with _ -> None
+  with
+  | Sys_error _ -> None (* File system not available (e.g., web mode) *)
+  | End_of_file -> None
+  | _ -> None
 
 let format_trace_steps_html steps =
   let open Lsc_pretty in
@@ -363,7 +367,7 @@ let rec interaction ~queue ~trace ~state_idx ~ray_idx ~action_idx repl1 repl2
     | Some theta ->
       let action_ray_idx = List.length queue in
       ( match trace with
-      | Some cfg when cfg.enabled ->
+      | Some cfg when cfg.enabled && not cfg.web_mode ->
         if not cfg.fusion_detected then (
           cfg.fusion_detected <- true;
           print_trace_fusion_visual cfg.step_count cfg.current_location
@@ -438,7 +442,7 @@ let rec select_ray ~linear ~trace ~state_idx ~ray_idx ~queue actions
     (* interaction returns a result, keep it for the next round *)
     | new_stars, new_actions ->
       ( match trace with
-      | Some cfg when cfg.enabled -> print_trace_footer ()
+      | Some cfg when cfg.enabled && not cfg.web_mode -> print_trace_footer ()
       | _ -> () );
       (Some new_stars, new_actions) )
 
@@ -511,7 +515,7 @@ let exec ?(linear = false) ?(trace = None) mcs : constellation =
             (Some (green "Execution complete"));
           Stdlib.Printf.printf "\n";
           print_trace_constellation (cyan "Final result:") states;
-          print_trace_footer () )
+          if not cfg.web_mode then print_trace_footer () )
       | _ -> () );
       states (* no more possible interaction *)
     | Some res, new_actions -> loop (new_actions, res)
