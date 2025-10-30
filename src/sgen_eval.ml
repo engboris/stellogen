@@ -9,6 +9,9 @@ let ( let* ) x f = Result.bind x ~f
 
 let unifiable r r' = StellarRays.solution [ (r, r') ] |> Option.is_some
 
+(* Global trace config for CLI trace mode *)
+let cli_trace_config : Lsc_eval.trace_config option ref = ref None
+
 let constellations_matchable c1 c2 =
   (* Check if two constellations are matchable for Match (~=) *)
   (* Uses term unification (ignoring polarity, only checking function name equality) *)
@@ -46,26 +49,40 @@ and add_obj env key expr = List.Assoc.add ~equal:unifiable env.objs key expr
 
 and get_obj env identifier = find_with_solution env identifier
 
+and get_trace_config env =
+  match
+    List.Assoc.find ~equal:unifiable env.objs (Lsc_ast.const "__trace__")
+  with
+  | Some (Raw _) -> (
+    (* Create trace config once and reuse it *)
+    match !cli_trace_config with
+    | Some cfg -> Some cfg
+    | None ->
+      let cfg = Lsc_eval.make_trace_config true in
+      cli_trace_config := Some cfg;
+      Some cfg )
+  | _ -> None
+
 and map_ray env ~f : sgen_expr -> sgen_expr = function
   | Raw g -> Raw (List.map ~f:(Marked.map ~f) g)
   | Call x -> Call (f x)
-  | Exec (b, e) ->
+  | Exec (b, e, loc) ->
     let map_e = map_ray env ~f e in
-    Exec (b, map_e)
+    Exec (b, map_e, loc)
   | Group es ->
     let map_es = List.map ~f:(map_ray env ~f) es in
     Group map_es
   | Focus e ->
     let map_e = map_ray env ~f e in
     Focus map_e
-  | Process gs ->
+  | Process (gs, loc) ->
     let procs = List.map ~f:(map_ray env ~f) gs in
-    Process procs
+    Process (procs, loc)
   | Eval e ->
     let map_e = map_ray env ~f e in
     Eval map_e
   | Def (id, e) -> Def (f id, map_ray env ~f e)
-  | Show e -> Show (map_ray env ~f e)
+  | Show (e, loc) -> Show (map_ray env ~f e, loc)
   | Expect (e1, e2, msg, loc) ->
     Expect (map_ray env ~f e1, map_ray env ~f e2, f msg, loc)
   | Match (e1, e2, msg, loc) ->
@@ -249,15 +266,34 @@ let rec eval_sgen_expr (env : env) :
           Ok (env_new, result :: results) )
     in
     Ok (env', List.concat (List.rev eval_es))
-  | Exec (b, e) ->
+  | Exec (b, e, loc) ->
     let* env', eval_e = eval_sgen_expr env e in
-    Ok (env', exec ~linear:b eval_e |> Marked.make_action_all)
+    let trace_cfg = get_trace_config env' in
+    (* Set location in trace config if available *)
+    ( match (trace_cfg, loc) with
+    | Some cfg, Some location ->
+      let lsc_loc =
+        { Lsc_eval.filename = location.filename
+        ; line = location.line
+        ; column = location.column
+        }
+      in
+      Lsc_eval.set_trace_location cfg (Some lsc_loc)
+    | _ -> () );
+    Ok (env', exec ~linear:b ~trace:trace_cfg eval_e |> Marked.make_action_all)
   | Focus e ->
     let* env', eval_e = eval_sgen_expr env e in
     eval_e |> Marked.remove_all |> Marked.make_state_all |> fun c -> Ok (env', c)
-  | Process [] -> Ok (env, [])
-  | Process (h :: t) ->
-    let* env', eval_e = eval_sgen_expr env h in
+  | Process ([], _) -> Ok (env, [])
+  | Process (h :: t, proc_loc) ->
+    (* Propagate location to first element if it doesn't have one *)
+    let h_with_loc =
+      match h with
+      | Exec (b, e, None) -> Exec (b, e, proc_loc)
+      | Process (es, None) -> Process (es, proc_loc)
+      | other -> other
+    in
+    let* env', eval_e = eval_sgen_expr env h_with_loc in
     let init = eval_e |> Marked.remove_all |> Marked.make_state_all in
     let* env_final, res =
       List.fold_left t
@@ -267,7 +303,9 @@ let rec eval_sgen_expr (env : env) :
           let origin =
             acc_const |> Marked.remove_all |> Marked.make_state_all
           in
-          eval_sgen_expr env_acc (Focus (Exec (false, Group [ x; Raw origin ]))) )
+          (* Propagate location to internally created Exec *)
+          eval_sgen_expr env_acc
+            (Focus (Exec (false, Group [ x; Raw origin ], proc_loc))) )
     in
     Ok (env_final, res)
   | Eval e -> (
@@ -286,8 +324,15 @@ let rec eval_sgen_expr (env : env) :
         ^ string_of_constellation (Marked.remove_all e)
         ^ " is not a ray." ) )
   | Def (identifier, expr) -> Ok ({ objs = add_obj env identifier expr }, [])
-  | Show expr ->
-    let* env', evaluated = eval_sgen_expr env expr in
+  | Show (expr, show_loc) ->
+    (* Propagate location to inner expr if it doesn't have one *)
+    let expr_with_loc =
+      match expr with
+      | Exec (b, e, None) -> Exec (b, e, show_loc)
+      | Process (es, None) -> Process (es, show_loc)
+      | other -> other
+    in
+    let* env', evaluated = eval_sgen_expr env expr_with_loc in
     evaluated |> List.map ~f:Marked.remove |> string_of_constellation
     |> Stdlib.print_endline;
     Stdlib.flush Stdlib.stdout;

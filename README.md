@@ -129,7 +129,7 @@ sgen run examples/hello.sg
 
 ## Commands
 
-Stellogen provides three main commands:
+Stellogen provides four main commands:
 
 ### `run` - Execute a Program
 
@@ -154,6 +154,16 @@ sgen preprocess <filename>
 
 Useful for debugging macro expansions and understanding how syntactic sugar is desugared.
 
+### `trace` - Interactive Execution Trace
+
+Step through program execution and visualize how stars interact:
+
+```bash
+sgen trace <filename>
+```
+
+Shows each fusion step with visual arrows pointing to the exact rays being connected. Press Enter to advance through each step.
+
 ### `watch` - Development Mode (Linux)
 
 Automatically re-run your program when the file changes (great for development):
@@ -169,16 +179,6 @@ sgen.exe watch --timeout=5 <filename>  # Custom timeout in seconds
 sgen watch myprogram.sg
 
 # Edit myprogram.sg in your editor, it auto-reruns on save!
-```
-
-### Help
-
-For detailed command information:
-```bash
-sgen --help
-sgen run --help
-sgen preprocess --help
-sgen watch --help
 ```
 
 ---

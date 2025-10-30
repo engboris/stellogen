@@ -430,17 +430,17 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
     let* sgen_exprs =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in
-    Process sgen_exprs |> Result.return
+    Process (sgen_exprs, None) |> Result.return
   | List ({ content = Symbol "exec"; _ } :: args) ->
     let* sgen_exprs =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in
-    Exec (false, Group sgen_exprs) |> Result.return
+    Exec (false, Group sgen_exprs, None) |> Result.return
   | List ({ content = Symbol "fire"; _ } :: args) ->
     let* sgen_exprs =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in
-    Exec (true, Group sgen_exprs) |> Result.return
+    Exec (true, Group sgen_exprs, None) |> Result.return
   | List [ { content = Symbol "eval"; _ }; arg ] ->
     let* sgen_expr = sgen_expr_of_expr arg.content in
     Eval sgen_expr |> Result.return
@@ -473,7 +473,7 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
     Def (id_ray, value_expr) |> Result.return
   | List [ { content = Symbol "show"; _ }; arg ] ->
     let* sgen_expr = sgen_expr_of_expr arg.content in
-    Show sgen_expr |> Result.return
+    Show (sgen_expr, None) |> Result.return
   | List [ { content = Symbol "use"; _ }; path ] ->
     let* path_ray = ray_of_expr path.content in
     Use path_ray |> Result.return
@@ -491,6 +491,9 @@ let attach_location (sgen : sgen_expr) (loc : source_location option) :
   match sgen with
   | Expect (e1, e2, msg, _) -> Expect (e1, e2, msg, loc)
   | Match (e1, e2, msg, _) -> Match (e1, e2, msg, loc)
+  | Show (e, _) -> Show (e, loc)
+  | Exec (b, e, _) -> Exec (b, e, loc)
+  | Process (es, _) -> Process (es, loc)
   | other -> other
 
 let sgen_expr_of_expr_loc (expr : expr loc) :

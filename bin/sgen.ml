@@ -24,6 +24,33 @@ let run input_file =
     | Ok error_msg -> Stdlib.Printf.eprintf "%s" error_msg
     | Error _ -> () )
 
+let trace input_file =
+  let expr = parse input_file in
+  let preprocessed = Sgen_parsing.preprocess_with_imports input_file expr in
+  match Expr.program_of_expr preprocessed with
+  | Ok program ->
+    (* Enable trace mode by setting __trace__ in the environment *)
+    let trace_marker = Sgen_ast.Raw [] in
+    let initial_env =
+      { Sgen_ast.objs =
+          (Lsc_ast.const "__trace__", trace_marker) :: Sgen_ast.initial_env.objs
+      }
+    in
+    let (_ : (Sgen_ast.env, Sgen_ast.err) Result.t) =
+      match Sgen_eval.eval_program_internal initial_env program with
+      | Ok env -> Ok env
+      | Error e ->
+        let open Base.Result in
+        Sgen_eval.pp_err e >>= fun pp ->
+        Stdlib.output_string Stdlib.stderr pp;
+        Error e
+    in
+    ()
+  | Error (expr_error, loc) -> (
+    match Sgen_eval.pp_err (ExprError (expr_error, loc)) with
+    | Ok error_msg -> Stdlib.Printf.eprintf "%s" error_msg
+    | Error _ -> () )
+
 let run_with_timeout input_file timeout =
   let pid = Unix.fork () in
   if pid = 0 then (
@@ -120,6 +147,11 @@ let run_cmd =
   let term = Term.(const (wrap run) $ input_file_arg |> term_result) in
   Cmd.v (Cmd.info "run" ~doc) term
 
+let trace_cmd =
+  let doc = "Run the Stellogen program with interactive execution trace" in
+  let term = Term.(const (wrap trace) $ input_file_arg |> term_result) in
+  Cmd.v (Cmd.info "trace" ~doc) term
+
 let preprocess_cmd =
   let doc = "Show the preprocessed code" in
   let term =
@@ -142,6 +174,7 @@ let watch_cmd =
 
 let default_cmd =
   let doc = "Stellogen: code generator and evaluator" in
-  Cmd.group (Cmd.info "sgen" ~doc) [ run_cmd; preprocess_cmd; watch_cmd ]
+  Cmd.group (Cmd.info "sgen" ~doc)
+    [ run_cmd; trace_cmd; preprocess_cmd; watch_cmd ]
 
 let () = Stdlib.exit (Cmd.eval default_cmd)
