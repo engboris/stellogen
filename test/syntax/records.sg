@@ -1,3 +1,6 @@
+(macro (stack A B) (A B))
+(macro (stack A B C ...) (A (stack B C ...)))
+
 (:= g {
   [+test1 1]
   [+test2 {
@@ -5,14 +8,14 @@
     [+test22 {
       [+test3 3]}]}]})
 
-(:= x <eval exec { #g @[-test1] }>)
+(:= x (stack eval exec { #g @[-test1] }))
 (== #x 1)
 
-(:= x <eval exec { #g @[-test2] }>)
-(:= y <eval exec { #x @[-test21] }>)
+(:= x (stack eval exec { #g @[-test2] }))
+(:= y (stack eval exec { #x @[-test21] }))
 (== #y 2)
 
-(:= x <eval exec { #g @[-test2] }>)
-(:= y <eval exec { #x @[-test22] }>)
-(:= z <eval exec { #y @[-test3] }>)
+(:= x (stack eval exec { #g @[-test2] }))
+(:= y (stack eval exec { #x @[-test22] }))
+(:= z (stack eval exec { #y @[-test3] }))
 (== #z 3)

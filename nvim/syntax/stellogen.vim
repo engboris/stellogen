@@ -10,17 +10,19 @@ syn match sgComment "'[^'].*$"
 syn region sgString start=/\v"/ skip=/\v\\./ end=/\v"/
 
 " Keywords
-syn keyword sgKeyword macro macros eval slice show use exec fire process spec
+syn keyword sgKeyword macro macros eval slice show use use-macros exec fire process spec stack chain process-step
 syn keyword sgConstant ok
 
 " Operators and separators
 syn match sgOperator ":="
 syn match sgOperator "::"
 syn match sgOperator "=="
+syn match sgOperator "\~="
 syn match sgOperator "!="
 syn match sgOperator "||"
 syn match sgOperator "@"
-syn match sgSeparator "[\<\>\{\}\[\]|]"
+syn match sgOperator "\.\.\."
+syn match sgSeparator "[\{\}\[\]|]"
 
 " Polarity markers (+ or - before identifiers)
 syn match sgPolarity "[+-]\ze\w"

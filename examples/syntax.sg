@@ -1,3 +1,5 @@
+(use-macros "milkyway/prelude.sg")
+
 'define ray
 (:= a (-f X))
 
@@ -26,8 +28,8 @@
 (:= w (+w [0 1 0 1]))
 
 'stack
-' <s s 0> == (s (s 0))
-(:= n (+nat <s s 0>))
+' (stack s s 0) == (s (s 0))
+(:= n (+nat (stack s s 0)))
 
 'execution
 (:= x [(+f X) X])
@@ -50,7 +52,7 @@
   [(+f b)]
   @[(-f X) (-f Y) (r X Y) || (!= X Y)]})
 (show #ineq)
-<show exec #ineq>
+(stack show exec #ineq)
 
 'process
 (:= c (process
@@ -75,7 +77,7 @@
   [(+field test1) [
     [(+field test2) [(+f c) ok]]]]])
 (:= g2 (eval (exec #g1 @[(-field test1)])))
-<show eval (exec #g2 @[(-field test2)])>
+(stack show eval (exec #g2 @[(-field test2)]))
 
 'define type
 (macro (spec X Y) (:= X Y))
@@ -104,7 +106,7 @@
 ' (~= (+f a) (+f b))  'same polarity, cannot interact
 
 'type checking
-(:= 2 <+nat s s 0>)
+(:= 2 (stack +nat s s 0))
 (== @(exec @#2 #nat) ok)
 
 'import file

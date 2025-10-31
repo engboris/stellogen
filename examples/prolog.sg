@@ -1,3 +1,5 @@
+(use-macros "milkyway/prelude.sg")
+
 ''' ARITHMETIC '''
 
 ' unary addition
@@ -6,7 +8,7 @@
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
 ' 2 + 2 = R
-(:= query1 [(-add <s s 0> <s s 0> R) R])
+(:= query1 [(-add (stack s s 0) (stack s s 0) R) R])
 (show (exec #add @#query1))
 
 
@@ -45,6 +47,6 @@
   @[(-from 1)]
   [(-to 4) ok]})
 
-<show exec (process
+(stack show exec (process
   #query6
-  { #graph #composition })>
+  { #graph #composition }))

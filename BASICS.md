@@ -134,14 +134,6 @@ There are shorthands to build complex but useful terms.
 (show [])       ' means %nil, the empty list
 ```
 
-### Stacks
-
-You can accumulate application of function symbols.
-
-```stellogen
-(show <a b c>)  ' means (a (b c))
-```
-
 ### Groups
 
 ```stellogen
@@ -429,7 +421,7 @@ A constellation can have one or several types:
 
 ```stellogen
 ' passes the test
-(:= 2 (+nat <s s 0>))
+(:= 2 (+nat (s (s 0))))
 (:: 2 nat)
 
 ' does not pass the test

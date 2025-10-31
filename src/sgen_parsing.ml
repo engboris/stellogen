@@ -21,14 +21,10 @@ let string_of_token = function
   | RBRACK -> "]"
   | LBRACE -> "{"
   | RBRACE -> "}"
-  | LANGLE -> "<"
-  | RANGLE -> ">"
   | SHARP -> "#"
   | EOF -> "EOF"
 
-let is_end_delimiter = function
-  | RPAR | RANGLE | RBRACK | RBRACE -> true
-  | _ -> false
+let is_end_delimiter = function RPAR | RBRACK | RBRACE -> true | _ -> false
 
 let get_line filename line_num =
   let ic = Stdlib.open_in filename in

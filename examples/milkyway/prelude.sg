@@ -7,3 +7,28 @@
 ' Macro for type assertion
 (macro (:: Tested Test)
   (== @(exec @#Tested #Test) ok))
+
+' Generic folding macros
+
+(macro (stack A B)
+  (A B))
+
+(macro (stack A B C ...)
+  (A (stack B C ...)))
+
+(macro (chain Op A B)
+  (Op A B))
+
+(macro (chain Op A B C ...)
+  (chain Op (Op A B) C ...))
+
+' Process as sequential execution with state threading
+' Expressed as left-associative chaining of process-step
+(macro (process-step Acc Next)
+  @(exec Next @Acc))
+
+(macro (process A B)
+  (process-step A B))
+
+(macro (process A B C ...)
+  (chain process-step A B C ...))

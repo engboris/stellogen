@@ -1,8 +1,10 @@
 (macro (spec X Y) (:= X Y))
+(macro (stack A B) (A B))
+(macro (stack A B C ...) (A (stack B C ...)))
 
 (:= 1 (+nat (s 0)))
-(:= 2 (+nat <s s 0>))
-(:= 3 (+nat <s s s 0>))
+(:= 2 (+nat (stack s s 0)))
+(:= 3 (+nat (stack s s s 0)))
 
 (spec nat [(-nat (s X)) (+nat X)])
 
@@ -13,4 +15,4 @@
 (== #tested (+nat (s 0)))
 
 (:= tested @(fire @#3 #nat))
-(== #tested (+nat <s s 0>))
+(== #tested (+nat (stack s s 0)))

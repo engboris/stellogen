@@ -20,7 +20,6 @@ type sgen_expr =
   | Exec of bool * sgen_expr * source_location option
   | Group of sgen_expr list
   | Focus of sgen_expr
-  | Process of sgen_expr list * source_location option
   | Eval of sgen_expr
   | Def of ident * sgen_expr
   | Show of sgen_expr * source_location option
