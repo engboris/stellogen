@@ -21,13 +21,27 @@ let eval_program_with_buffer (p : program) =
   clear_output ();
 
   let eval_term env = function
-    | Sgen_ast.Show (expr, _loc) -> (
-      (* Evaluate and print to buffer *)
-      match Sgen_eval.eval_sgen_expr env expr with
-      | Ok (env', constellation) ->
-        show_to_buffer (List.map constellation ~f:Lsc_ast.Marked.remove);
-        Ok env'
-      | Error e -> Error e )
+    | Sgen_ast.Show (exprs, _loc) ->
+      (* Evaluate all expressions and collect results *)
+      let rec eval_all env_acc results = function
+        | [] ->
+          (* Convert all results to strings and concatenate with space *)
+          let output =
+            List.rev results
+            |> List.map ~f:(fun constellation ->
+              string_of_constellation
+                (List.map constellation ~f:Lsc_ast.Marked.remove) )
+            |> String.concat ~sep:" "
+          in
+          add_output output;
+          Ok env_acc
+        | expr :: rest -> (
+          match Sgen_eval.eval_sgen_expr env_acc expr with
+          | Ok (env', constellation) ->
+            eval_all env' (constellation :: results) rest
+          | Error e -> Error e )
+      in
+      eval_all env [] exprs
     | term -> (
       (* For all other terms, use standard eval but discard constellation result *)
       match Sgen_eval.eval_sgen_expr env term with

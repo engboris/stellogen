@@ -539,9 +539,11 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
     let* id_ray = ray_of_expr identifier.content in
     let* value_expr = sgen_expr_of_expr value.content in
     Def (id_ray, value_expr) |> Result.return
-  | List [ { content = Symbol "show"; _ }; arg ] ->
-    let* sgen_expr = sgen_expr_of_expr arg.content in
-    Show (sgen_expr, None) |> Result.return
+  | List ({ content = Symbol "show"; _ } :: args) when List.length args > 0 ->
+    let* sgen_exprs =
+      List.map args ~f:(fun arg -> sgen_expr_of_expr arg.content) |> Result.all
+    in
+    Show (sgen_exprs, None) |> Result.return
   | List [ { content = Symbol "use"; _ }; path ] ->
     let* path_ray = ray_of_expr path.content in
     Use path_ray |> Result.return

@@ -79,7 +79,7 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
     let map_e = map_ray env ~f e in
     Eval map_e
   | Def (id, e) -> Def (f id, map_ray env ~f e)
-  | Show (e, loc) -> Show (map_ray env ~f e, loc)
+  | Show (exprs, loc) -> Show (List.map ~f:(map_ray env ~f) exprs, loc)
   | Expect (e1, e2, msg, loc) ->
     Expect (map_ray env ~f e1, map_ray env ~f e2, f msg, loc)
   | Match (e1, e2, msg, loc) ->
@@ -297,18 +297,31 @@ let rec eval_sgen_expr (env : env) :
         ^ string_of_constellation (Marked.remove_all e)
         ^ " is not a ray." ) )
   | Def (identifier, expr) -> Ok ({ objs = add_obj env identifier expr }, [])
-  | Show (expr, show_loc) ->
-    (* Propagate location to inner expr if it doesn't have one *)
-    let expr_with_loc =
-      match expr with
-      | Exec (b, e, None) -> Exec (b, e, show_loc)
-      | other -> other
+  | Show (exprs, show_loc) ->
+    (* Evaluate all expressions and collect results *)
+    let rec eval_all env_acc results = function
+      | [] ->
+        (* Print all results separated by spaces *)
+        let output =
+          List.rev results
+          |> List.map ~f:(fun evaluated ->
+            evaluated |> List.map ~f:Marked.remove |> string_of_constellation )
+          |> String.concat ~sep:" "
+        in
+        Stdlib.print_endline output;
+        Stdlib.flush Stdlib.stdout;
+        Ok (env_acc, [])
+      | expr :: rest ->
+        (* Propagate location to inner expr if it doesn't have one *)
+        let expr_with_loc =
+          match expr with
+          | Exec (b, e, None) -> Exec (b, e, show_loc)
+          | other -> other
+        in
+        let* env', evaluated = eval_sgen_expr env_acc expr_with_loc in
+        eval_all env' (evaluated :: results) rest
     in
-    let* env', evaluated = eval_sgen_expr env expr_with_loc in
-    evaluated |> List.map ~f:Marked.remove |> string_of_constellation
-    |> Stdlib.print_endline;
-    Stdlib.flush Stdlib.stdout;
-    Ok (env', [])
+    eval_all env [] exprs
   | Expect (expr1, expr2, message, location) ->
     let* env1, eval1 = eval_sgen_expr env expr1 in
     let* env2, eval2 = eval_sgen_expr env1 expr2 in

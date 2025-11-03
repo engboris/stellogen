@@ -37,6 +37,16 @@
             margin-top: 0.25rem;
         }
 
+        .controls a {
+            color: #0066cc;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .controls a:hover {
+            text-decoration: underline;
+        }
+
         main {
             flex: 1;
             display: flex;
@@ -70,7 +80,19 @@
             outline: none;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
             overflow-y: auto;
+            white-space: pre;
+            overflow-wrap: normal;
         }
+
+        /* Syntax highlighting colors */
+        .sg-comment { color: #7f8c8d; font-style: italic; }
+        .sg-keyword { color: #9b59b6; font-weight: bold; }
+        .sg-string { color: #27ae60; }
+        .sg-number { color: #e67e22; }
+        .sg-polarity { color: #e74c3c; font-weight: bold; }
+        .sg-operator { color: #3498db; }
+        .sg-variable { color: #2980b9; }
+        .sg-function { color: #8e44ad; }
 
         #output {
             flex: 1;
@@ -156,10 +178,10 @@
     <main>
         <div class="panel">
             <div class="panel-header">Editor</div>
-            <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">' Welcome to the Stellogen Playground!
+            <div id="editor" contenteditable="true" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">' Welcome to the Stellogen Playground!
 ' Try the examples from the dropdown menu below.
 
-(show "Hello, world!")</textarea>
+(show "Hello, world!")</div>
         </div>
 
         <div class="divider"></div>
@@ -184,6 +206,10 @@
             <option value="stack">Stack Operations</option>
         </select>
         <button id="clearBtn">Clear</button>
+        <button id="importBtn">📁 Import</button>
+        <button id="exportBtn">💾 Export</button>
+        <input type="file" id="fileInput" accept=".sg,.stellogen,.txt" style="display: none;">
+        <a href="https://github.com/engboris/stellogen/wiki/Basics-of-Stellogen" target="_blank" rel="noopener noreferrer">📖 Tutorial</a>
         <span id="status"></span>
     </div>
 
@@ -194,13 +220,199 @@
         const output = document.getElementById('output');
         const runBtn = document.getElementById('runBtn');
         const clearBtn = document.getElementById('clearBtn');
+        const importBtn = document.getElementById('importBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const fileInput = document.getElementById('fileInput');
         const examplesSelect = document.getElementById('examples');
         const status = document.getElementById('status');
 
         // Examples are now loaded from examples.js (auto-generated from examples/*.sg)
 
+        // Syntax highlighting function
+        function highlightSyntax(code) {
+            // Escape HTML
+            const escapeHtml = (text) => {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+
+            // Use a token-based approach to avoid overlapping replacements
+            const tokens = [];
+            let pos = 0;
+
+            // Keywords and operators
+            const keywords = ['exec', 'fire', 'process', 'show', 'use', 'macro', 'spec', 'def'];
+
+            // Tokenize the code
+            while (pos < code.length) {
+                let matched = false;
+
+                // Comments (multi-line first)
+                if (code.substr(pos, 3) === "'''") {
+                    const end = code.indexOf("'''", pos + 3);
+                    if (end !== -1) {
+                        tokens.push({ type: 'comment', text: code.substring(pos, end + 3) });
+                        pos = end + 3;
+                        matched = true;
+                    }
+                }
+
+                // Single-line comments
+                if (!matched && code[pos] === "'" && (pos === 0 || code[pos-1] !== "'")) {
+                    const end = code.indexOf('\n', pos);
+                    const commentEnd = end === -1 ? code.length : end;
+                    tokens.push({ type: 'comment', text: code.substring(pos, commentEnd) });
+                    pos = commentEnd;
+                    matched = true;
+                }
+
+                // Strings
+                if (!matched && code[pos] === '"') {
+                    const end = code.indexOf('"', pos + 1);
+                    if (end !== -1) {
+                        tokens.push({ type: 'string', text: code.substring(pos, end + 1) });
+                        pos = end + 1;
+                        matched = true;
+                    }
+                }
+
+                // Polarity + function
+                if (!matched && (code[pos] === '+' || code[pos] === '-')) {
+                    const match = code.substring(pos).match(/^([+-])([a-z_][a-zA-Z0-9_]*)/);
+                    if (match) {
+                        tokens.push({ type: 'polarity', text: match[1] });
+                        tokens.push({ type: 'function', text: match[2] });
+                        pos += match[0].length;
+                        matched = true;
+                    }
+                }
+
+                // Operators
+                const ops = [':=', '==', '~=', '||', '@', '#'];
+                for (const op of ops) {
+                    if (!matched && code.substr(pos, op.length) === op) {
+                        tokens.push({ type: 'operator', text: op });
+                        pos += op.length;
+                        matched = true;
+                        break;
+                    }
+                }
+
+                // Keywords, variables, numbers, identifiers
+                if (!matched && /[a-zA-Z0-9_]/.test(code[pos])) {
+                    const match = code.substring(pos).match(/^[a-zA-Z0-9_]+/);
+                    if (match) {
+                        const word = match[0];
+                        let type = 'text';
+                        if (keywords.includes(word)) {
+                            type = 'keyword';
+                        } else if (/^[A-Z]/.test(word)) {
+                            type = 'variable';
+                        } else if (/^\d+$/.test(word)) {
+                            type = 'number';
+                        }
+                        tokens.push({ type, text: word });
+                        pos += word.length;
+                        matched = true;
+                    }
+                }
+
+                // Default: plain text
+                if (!matched) {
+                    tokens.push({ type: 'text', text: code[pos] });
+                    pos++;
+                }
+            }
+
+            // Generate HTML from tokens
+            let html = '';
+            for (const token of tokens) {
+                const escaped = escapeHtml(token.text);
+                switch (token.type) {
+                    case 'comment': html += `<span class="sg-comment">${escaped}</span>`; break;
+                    case 'keyword': html += `<span class="sg-keyword">${escaped}</span>`; break;
+                    case 'string': html += `<span class="sg-string">${escaped}</span>`; break;
+                    case 'number': html += `<span class="sg-number">${escaped}</span>`; break;
+                    case 'polarity': html += `<span class="sg-polarity">${escaped}</span>`; break;
+                    case 'operator': html += `<span class="sg-operator">${escaped}</span>`; break;
+                    case 'variable': html += `<span class="sg-variable">${escaped}</span>`; break;
+                    case 'function': html += `<span class="sg-function">${escaped}</span>`; break;
+                    default: html += escaped;
+                }
+            }
+
+            return html;
+        }
+
+        // Track cursor position
+        let isHighlighting = false;
+
+        function updateHighlighting() {
+            if (isHighlighting) return;
+            isHighlighting = true;
+
+            const selection = window.getSelection();
+            const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+
+            // Save cursor position
+            let cursorPos = 0;
+            if (range) {
+                const preRange = range.cloneRange();
+                preRange.selectNodeContents(editor);
+                preRange.setEnd(range.endContainer, range.endOffset);
+                cursorPos = preRange.toString().length;
+            }
+
+            // Get plain text and highlight
+            const text = editor.textContent || '';
+            editor.innerHTML = highlightSyntax(text);
+
+            // Restore cursor position
+            if (range && cursorPos > 0) {
+                const textNodes = [];
+                const getTextNodes = (node) => {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        textNodes.push(node);
+                    } else {
+                        for (let child of node.childNodes) {
+                            getTextNodes(child);
+                        }
+                    }
+                };
+                getTextNodes(editor);
+
+                let pos = 0;
+                for (let node of textNodes) {
+                    const nodeLength = node.textContent.length;
+                    if (pos + nodeLength >= cursorPos) {
+                        const offset = Math.min(cursorPos - pos, nodeLength);
+                        selection.removeAllRanges();
+                        const newRange = document.createRange();
+                        newRange.setStart(node, offset);
+                        newRange.collapse(true);
+                        selection.addRange(newRange);
+                        break;
+                    }
+                    pos += nodeLength;
+                }
+            }
+
+            isHighlighting = false;
+        }
+
+        // Debounced highlighting
+        let highlightTimer;
+        editor.addEventListener('input', () => {
+            clearTimeout(highlightTimer);
+            highlightTimer = setTimeout(updateHighlighting, 100);
+        });
+
+        // Initial highlight
+        updateHighlighting();
+
         function runCode() {
-            const code = editor.value;
+            const code = editor.textContent || editor.value;
             status.textContent = 'Running...';
             output.textContent = 'Executing...';
 
@@ -230,18 +442,71 @@
         }
 
         function clear() {
-            editor.value = '';
+            editor.textContent = '';
             output.textContent = 'Click "Run" to execute your code...';
             output.className = '';
+            updateHighlighting();
         }
+
+        // Export function - download current code as .sg file
+        function exportCode() {
+            const code = editor.textContent || '';
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Generate filename with timestamp
+            const now = new Date();
+            const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
+            a.download = `stellogen-${timestamp}.sg`;
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            status.textContent = 'Exported!';
+            setTimeout(() => status.textContent = '', 2000);
+        }
+
+        // Import function - trigger file picker
+        function importCode() {
+            fileInput.click();
+        }
+
+        // Handle file selection
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                editor.textContent = event.target.result;
+                updateHighlighting();
+                status.textContent = `Imported: ${file.name}`;
+                setTimeout(() => status.textContent = '', 2000);
+            };
+            reader.onerror = () => {
+                status.textContent = 'Import failed!';
+                setTimeout(() => status.textContent = '', 2000);
+            };
+            reader.readAsText(file);
+
+            // Reset input so same file can be selected again
+            e.target.value = '';
+        });
 
         runBtn.addEventListener('click', runCode);
         clearBtn.addEventListener('click', clear);
+        importBtn.addEventListener('click', importCode);
+        exportBtn.addEventListener('click', exportCode);
 
         examplesSelect.addEventListener('change', (e) => {
             const example = examples[e.target.value];
             if (example) {
-                editor.value = example;
+                editor.textContent = example;
+                updateHighlighting();
                 e.target.value = '';
             }
         });
