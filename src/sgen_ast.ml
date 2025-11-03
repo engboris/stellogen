@@ -23,7 +23,7 @@ type sgen_expr =
   | Process of sgen_expr list
   | Eval of sgen_expr
   | Def of ident * sgen_expr
-  | Show of sgen_expr
+  | Show of sgen_expr list
   | Expect of sgen_expr * sgen_expr * ident * source_location option
   | Match of sgen_expr * sgen_expr * ident * source_location option
   | Use of ident
