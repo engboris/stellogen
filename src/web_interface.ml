@@ -21,7 +21,7 @@ let eval_program_with_buffer (p : program) =
   clear_output ();
 
   let eval_term env = function
-    | Sgen_ast.Show exprs ->
+    | Sgen_ast.Show (exprs, _loc) ->
       (* Evaluate all expressions and collect results *)
       let rec eval_all env_acc results = function
         | [] ->
@@ -90,3 +90,9 @@ let run_from_string (code : string) : (string, string) Result.t =
   with
   | Failure msg -> Error ("Error: " ^ msg)
   | exn -> Error ("Exception: " ^ Exn.to_string exn)
+
+(* Trace is disabled for web mode - use CLI version instead *)
+let trace_from_string (_code : string) : (string, string) Result.t =
+  Error
+    "Trace mode is not available in the web playground. Please use the CLI \
+     version: dune exec sgen trace -- yourfile.sg"

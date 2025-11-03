@@ -1,6 +1,8 @@
+(use-macros "milkyway/prelude.sg")
+
 (:= (init C) (+stack 0 []))
 
-<show exec (process
+(stack show exec (process
   #(init 0)
   'push 1 then 0
   [(-stack 0 X) (+stack 1 [1|X])]
@@ -18,4 +20,4 @@
 
   'clean
   [(-stack 4 _)]
-)>
+))

@@ -18,11 +18,9 @@ let opposite_delimiter = function
   | '(' -> ')'
   | '[' -> ']'
   | '{' -> '}'
-  | '<' -> '>'
   | ')' -> '('
   | ']' -> '['
   | '}' -> '{'
-  | '>' -> '<'
   | c -> failwith (Printf.sprintf "Compiler error: '%c' is not a delimiter." c)
 
 let pop_delimiter sym (pos : Lexing.position) =
@@ -75,8 +73,8 @@ and read lexbuf =
   let get_pos () = fst (Sedlexing.lexing_positions lexbuf) in
   let tok =
     match%sedlex lexbuf with
-    | ( Compl (Chars "'\" \t\n\r()<>[]{}|@#")
-      , Star (Compl (Chars " \t\n\r()<>[]{}|")) ) -> (
+    | Compl (Chars "'\" \t\n\r()[]{}|@#"), Star (Compl (Chars " \t\n\r()[]{}|"))
+      -> (
       let lexeme = Utf8.lexeme lexbuf in
       match lexeme.[0] with '_' | 'A' .. 'Z' -> VAR lexeme | _ -> SYM lexeme )
     | '(' ->
@@ -97,12 +95,6 @@ and read lexbuf =
     | '}' ->
       pop_delimiter '{' (get_pos ());
       RBRACE
-    | '<' ->
-      push_delimiter '<' (get_pos ());
-      LANGLE
-    | '>' ->
-      pop_delimiter '<' (get_pos ());
-      RANGLE
     | '@' -> AT
     | '#' -> SHARP
     | '|' -> BAR

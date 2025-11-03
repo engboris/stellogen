@@ -1,27 +1,44 @@
-'''
-FIXME
-'''
-(:= semantics {
+' FIXME
+
+(:= bool_semantics {
   [(+1 1)]
   [(+0 0)]
   [(+s X X X)]
   [(+not 1 0)] [(+not 0 1)]
-  [(+and 1 X X)][(+and 0 X 0)]})
+  [(+and 0 0 0)] [(+and 0 1 0)] [(+and 1 0 0)] [(+and 1 1 1)]
+})
 
-<show exec (process
-  'inputs
-  [(-1 X) (+c0 X)]
-  'layer 1
-  [(-c0 X) (-s X Y Z) (+c1 Y) (+c2 Z)]
-  'layer 2
-  [(-c1 X) (-not X R) (+c3 R)]
-  'layer 3
-  [(-c2 X) (-c3 Y) (-and X Y R) (+c4 R)]
-  'output
-  [(-c4 R) R]
-  #semantics)>
+'''
+(:= c1 {
+  '      sharing
+  [      (-c0 X)
+        (-s X Y Z)
+  '    /         \
+   (+c1 Y)       (+c2 Z)      || (! X)]
+  '   |           |
+  '   |           |
+  '  not          |
+  [(-c1 X)    '   |
+   (-not X R) '   |
+    (+c3 R)                   || (! X)]
+  '   |           |
+  '   |           |
+  '  and          |
+  [(-c3 X)      (-c2 Y)
+  '    \          /
+       (-and X Y R)
+         (+c4 R)              || (! X) (! Y)]
+  '         |
+  '         |
+  '       output
+       [(-c4 R) R]
+})
 
-<show exec (process
+(show (exec @(+c0 1) #c1 #bool_semantics))
+'''
+
+'''
+(:= c2 {
   'inputs
   {
     [(-0 X) (+c0 X)]
@@ -35,4 +52,6 @@ FIXME
   'output
   [(-c4 R) R]
   'apply semantics
-    #semantics)>
+    #semantics
+})
+'''

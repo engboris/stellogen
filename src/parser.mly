@@ -10,7 +10,6 @@ open Expr.Raw
 %token LPAR RPAR
 %token LBRACK RBRACK
 %token LBRACE RBRACE
-%token LANGLE RANGLE
 %token SHARP
 %token EOF
 
@@ -29,7 +28,6 @@ let revlist(x) :=
 let pars(x) == ~=delimited(LPAR, x, RPAR); <>
 let bracks(x) == ~=delimited(LBRACK, x, RBRACK); <>
 let braces(x) == ~=delimited(LBRACE, x, RBRACE); <>
-let angles(x) == ~=delimited(LANGLE, x, RANGLE); <>
 
 let expr_file :=
   | EOF; { [] }
@@ -47,7 +45,6 @@ let params :=
 
 let expr :=
   | ~=pars(expr+); <List>
-  | ~=angles(revlist(expr)); <Stack>
   | ~=bracks(revlist(expr)); <Cons>
   | ~=braces(revlist(expr)); <Group>
   | LBRACK; ~=revlist(expr); ~=params; RBRACK; <ConsWithParams>

@@ -21,7 +21,6 @@ module Raw = struct
     | Focus of t
     | Call of t
     | List of t list
-    | Stack of t list
     | Group of t list
     | Cons of t list
     | ConsWithParams of t list * t list
@@ -120,10 +119,6 @@ let rec expand_macro : Raw.t -> expr loc = function
           ]
     ; loc = None
     }
-  | Raw.Stack [] -> { content = List []; loc = None }
-  | Raw.Stack (h :: t) ->
-    List.fold_left t ~init:(expand_macro h) ~f:(fun acc e ->
-      { content = List [ expand_macro e; acc ]; loc = None } )
   | Raw.Positioned (e, start_pos, _) ->
     let source_loc =
       { filename = start_pos.Lexing.pos_fname
@@ -156,33 +151,109 @@ let rec expand_macros_in_expr
     []
   (* Macro call - expand and recursively process *)
   | List ({ content = Symbol macro_name; _ } :: call_args) -> (
-    match List.Assoc.find macro_env macro_name ~equal:String.equal with
+    (* Find all patterns for this macro name *)
+    let all_patterns =
+      List.filter macro_env ~f:(fun (name, _) -> String.equal name macro_name)
+    in
+
+    (* Helper to check if a pattern matches the argument count *)
+    let pattern_matches (formal_params, _body) =
+      let is_variadic =
+        match List.rev formal_params with "..." :: _ :: _ -> true | _ -> false
+      in
+      let min_args =
+        if is_variadic then
+          match List.rev formal_params with
+          | "..." :: _var :: rest -> List.length rest
+          | _ -> List.length formal_params
+        else List.length formal_params
+      in
+      let arg_count = List.length call_args in
+      if is_variadic then arg_count >= min_args else arg_count = min_args
+    in
+
+    (* Find the best matching pattern: prefer exact matches (non-variadic) over variadic *)
+    let matching_pattern =
+      (* First try exact matches *)
+      match
+        List.find all_patterns ~f:(fun (_, pattern) ->
+          pattern_matches pattern
+          && not
+               ( match List.rev (fst pattern) with
+               | "..." :: _ :: _ -> true
+               | _ -> false ) )
+      with
+      | Some (_, pattern) -> Some pattern
+      | None ->
+        (* Then try variadic matches *)
+        List.find_map all_patterns ~f:(fun (_, pattern) ->
+          if pattern_matches pattern then Some pattern else None )
+    in
+
+    match matching_pattern with
     | Some (formal_params, body) ->
-      if List.length formal_params <> List.length call_args then
-        failwith
-          (Printf.sprintf "Error: macro '%s' expects %d args, got %d" macro_name
-             (List.length formal_params)
-             (List.length call_args) )
-      else
-        (* First, recursively expand macros in the arguments *)
-        let expanded_args =
-          List.map call_args ~f:(fun arg ->
-            match expand_macros_in_expr macro_env arg with
-            | [ single ] -> single
-            | multiple -> { content = List multiple; loc = arg.loc } )
-        in
-        (* Then substitute and expand the body *)
-        let apply_substitution e =
-          List.fold_left (List.zip_exn formal_params expanded_args) ~init:e
-            ~f:(fun acc (param, arg) -> replace_id param arg acc )
-        in
-        let substituted = List.map body ~f:apply_substitution in
-        (* Recursively expand macros in the substituted body *)
-        let expanded =
-          List.concat_map substituted ~f:(expand_macros_in_expr macro_env)
-        in
-        (* Attach the call site location to the expanded expressions *)
-        List.map expanded ~f:(fun e -> { e with loc = expr.loc })
+      (* Check if this is a variadic macro (ends with ...) *)
+      let is_variadic =
+        match List.rev formal_params with "..." :: _ :: _ -> true | _ -> false
+      in
+      let fixed_params, variadic_param =
+        if is_variadic then
+          match List.rev formal_params with
+          | "..." :: var :: rest -> (List.rev rest, Some var)
+          | _ -> (formal_params, None)
+        else (formal_params, None)
+      in
+      let min_args = List.length fixed_params in
+      (* First, recursively expand macros in the arguments *)
+      let expanded_args =
+        List.map call_args ~f:(fun arg ->
+          match expand_macros_in_expr macro_env arg with
+          | [ single ] -> single
+          | multiple -> { content = List multiple; loc = arg.loc } )
+      in
+      (* Split into fixed and variadic args *)
+      let fixed_args, rest_args = List.split_n expanded_args min_args in
+      (* Build substitution environment *)
+      let subst_pairs = List.zip_exn fixed_params fixed_args in
+      (* Helper to substitute with variadic support *)
+      let rec apply_substitution_var e =
+        match (e.content, variadic_param) with
+        | List subexprs, Some vp ->
+          (* Scan for Var ... pattern and splice *)
+          let rec splice_list exprs =
+            match exprs with
+            | { content = Var v; _ } :: { content = Symbol "..."; _ } :: rest
+              when String.equal v vp ->
+              (* Found the pattern - splice in rest_args at this position *)
+              rest_args @ splice_list rest
+            | e :: rest ->
+              (* Recursively substitute in this element, then continue *)
+              apply_substitution_var e :: splice_list rest
+            | [] -> []
+          in
+          { content = List (splice_list subexprs); loc = e.loc }
+        | List subexprs, None ->
+          (* No variadic param - just recurse *)
+          { content = List (List.map subexprs ~f:apply_substitution_var)
+          ; loc = e.loc
+          }
+        | Var v, Some vp when String.equal v vp ->
+          (* Variadic param used alone without ... - this is an error in most cases,
+             but we handle it by wrapping rest_args in a list *)
+          { content = List rest_args; loc = e.loc }
+        | Var v, _ -> (
+          match List.Assoc.find subst_pairs v ~equal:String.equal with
+          | Some replacement -> { replacement with loc = e.loc }
+          | None -> e )
+        | _, _ -> e
+      in
+      let substituted = List.map body ~f:apply_substitution_var in
+      (* Recursively expand macros in the substituted body *)
+      let expanded =
+        List.concat_map substituted ~f:(expand_macros_in_expr macro_env)
+      in
+      (* Attach the call site location to the expanded expressions *)
+      List.map expanded ~f:(fun e -> { e with loc = expr.loc })
     | None ->
       (* Not a macro - recursively expand in sub-expressions *)
       let expanded_subexprs =
@@ -224,6 +295,7 @@ let unfold_decl_def (macro_env : (string * (string list * expr loc list)) list)
           List.map args ~f:(fun arg ->
             match arg.content with
             | Var x -> x
+            | Symbol "..." -> "..." (* Allow ... as a symbol *)
             | _ -> failwith "error: syntax declaration must contain variables" )
         in
         (macro_name, (var_args, body)) :: acc
@@ -289,6 +361,7 @@ let extract_macros (raw_exprs : Raw.t list) : macro_env =
         List.map args ~f:(fun arg ->
           match arg.content with
           | Var x -> x
+          | Symbol "..." -> "..." (* Allow ... as a symbol *)
           | _ -> failwith "error: syntax declaration must contain variables" )
       in
       ((macro_name, (var_args, body)) :: env, acc)
@@ -426,21 +499,16 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in
     Group sgen_exprs |> Result.return
-  | List ({ content = Symbol "process"; _ } :: args) ->
-    let* sgen_exprs =
-      List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
-    in
-    Process sgen_exprs |> Result.return
   | List ({ content = Symbol "exec"; _ } :: args) ->
     let* sgen_exprs =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in
-    Exec (false, Group sgen_exprs) |> Result.return
+    Exec (false, Group sgen_exprs, None) |> Result.return
   | List ({ content = Symbol "fire"; _ } :: args) ->
     let* sgen_exprs =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in
-    Exec (true, Group sgen_exprs) |> Result.return
+    Exec (true, Group sgen_exprs, None) |> Result.return
   | List [ { content = Symbol "eval"; _ }; arg ] ->
     let* sgen_expr = sgen_expr_of_expr arg.content in
     Eval sgen_expr |> Result.return
@@ -475,7 +543,7 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
     let* sgen_exprs =
       List.map args ~f:(fun arg -> sgen_expr_of_expr arg.content) |> Result.all
     in
-    Show sgen_exprs |> Result.return
+    Show (sgen_exprs, None) |> Result.return
   | List [ { content = Symbol "use"; _ }; path ] ->
     let* path_ray = ray_of_expr path.content in
     Use path_ray |> Result.return
@@ -493,6 +561,8 @@ let attach_location (sgen : sgen_expr) (loc : source_location option) :
   match sgen with
   | Expect (e1, e2, msg, _) -> Expect (e1, e2, msg, loc)
   | Match (e1, e2, msg, _) -> Match (e1, e2, msg, loc)
+  | Show (e, _) -> Show (e, loc)
+  | Exec (b, e, _) -> Exec (b, e, loc)
   | other -> other
 
 let sgen_expr_of_expr_loc (expr : expr loc) :
