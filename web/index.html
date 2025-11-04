@@ -221,6 +221,40 @@
             color: #666666;
             margin-left: auto;
         }
+
+        /* Mobile layout: stack vertically with output on top */
+        @media (max-width: 768px) {
+            main {
+                flex-direction: column-reverse;
+            }
+
+            .divider {
+                height: 1px;
+                width: 100%;
+                background: #cccccc;
+            }
+
+            .panel {
+                min-height: 200px;
+            }
+
+            .controls {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            header {
+                padding: 0.75rem 1rem;
+            }
+
+            h1 {
+                font-size: 1.25rem;
+            }
+
+            .subtitle {
+                font-size: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
