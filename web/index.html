@@ -68,11 +68,45 @@
             border-bottom: 1px solid #cccccc;
         }
 
-        #editor {
+        .editor-container {
             flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+        }
+
+        #line-numbers {
+            position: relative;
+            padding: 1rem 0.5rem 1rem 1rem;
+            background: #f5f5f5;
+            color: #999999;
+            font-size: 14px;
+            line-height: 1.5;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            text-align: right;
+            user-select: none;
+            border-right: 1px solid #e0e0e0;
+            overflow: hidden;
+            white-space: pre;
+            min-width: 3em;
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #editor {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             padding: 1rem;
-            background: #ffffff;
-            color: #333333;
+            background: transparent;
+            color: transparent;
+            caret-color: #333333;
             font-size: 14px;
             line-height: 1.5;
             resize: none;
@@ -82,6 +116,26 @@
             overflow-y: auto;
             white-space: pre;
             overflow-wrap: normal;
+            z-index: 2;
+        }
+
+        #highlight-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 1rem;
+            background: #ffffff;
+            color: #333333;
+            font-size: 14px;
+            line-height: 1.5;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            overflow-y: auto;
+            white-space: pre;
+            overflow-wrap: normal;
+            pointer-events: none;
+            z-index: 1;
         }
 
         /* Syntax highlighting colors */
@@ -167,6 +221,40 @@
             color: #666666;
             margin-left: auto;
         }
+
+        /* Mobile layout: stack vertically with output on top */
+        @media (max-width: 768px) {
+            main {
+                flex-direction: column-reverse;
+            }
+
+            .divider {
+                height: 1px;
+                width: 100%;
+                background: #cccccc;
+            }
+
+            .panel {
+                min-height: 200px;
+            }
+
+            .controls {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            header {
+                padding: 0.75rem 1rem;
+            }
+
+            h1 {
+                font-size: 1.25rem;
+            }
+
+            .subtitle {
+                font-size: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -178,10 +266,16 @@
     <main>
         <div class="panel">
             <div class="panel-header">Editor</div>
-            <div id="editor" contenteditable="true" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">' Welcome to the Stellogen Playground!
+            <div class="editor-container">
+                <div id="line-numbers" aria-hidden="true"></div>
+                <div class="editor-wrapper">
+                    <div id="highlight-layer" aria-hidden="true"></div>
+                    <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">' Welcome to the Stellogen Playground!
 ' Try the examples from the dropdown menu below.
 
-(show "Hello, world!")</div>
+(show "Hello, world!")</textarea>
+                </div>
+            </div>
         </div>
 
         <div class="divider"></div>
@@ -213,10 +307,12 @@
         <span id="status"></span>
     </div>
 
-    <script src="playground.js"></script>
-    <script src="examples.js"></script>
+    <script src="playground.js?v=__VERSION__"></script>
+    <script src="examples.js?v=__VERSION__"></script>
     <script>
         const editor = document.getElementById('editor');
+        const highlightLayer = document.getElementById('highlight-layer');
+        const lineNumbers = document.getElementById('line-numbers');
         const output = document.getElementById('output');
         const runBtn = document.getElementById('runBtn');
         const clearBtn = document.getElementById('clearBtn');
@@ -345,74 +441,40 @@
             return html;
         }
 
-        // Track cursor position
-        let isHighlighting = false;
-
-        function updateHighlighting() {
-            if (isHighlighting) return;
-            isHighlighting = true;
-
-            const selection = window.getSelection();
-            const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-
-            // Save cursor position
-            let cursorPos = 0;
-            if (range) {
-                const preRange = range.cloneRange();
-                preRange.selectNodeContents(editor);
-                preRange.setEnd(range.endContainer, range.endOffset);
-                cursorPos = preRange.toString().length;
+        // Update line numbers
+        function updateLineNumbers() {
+            const text = editor.value;
+            const lineCount = text.split('\n').length;
+            let numbers = '';
+            for (let i = 1; i <= lineCount; i++) {
+                numbers += i + '\n';
             }
-
-            // Get plain text and highlight
-            const text = editor.textContent || '';
-            editor.innerHTML = highlightSyntax(text);
-
-            // Restore cursor position
-            if (range && cursorPos > 0) {
-                const textNodes = [];
-                const getTextNodes = (node) => {
-                    if (node.nodeType === Node.TEXT_NODE) {
-                        textNodes.push(node);
-                    } else {
-                        for (let child of node.childNodes) {
-                            getTextNodes(child);
-                        }
-                    }
-                };
-                getTextNodes(editor);
-
-                let pos = 0;
-                for (let node of textNodes) {
-                    const nodeLength = node.textContent.length;
-                    if (pos + nodeLength >= cursorPos) {
-                        const offset = Math.min(cursorPos - pos, nodeLength);
-                        selection.removeAllRanges();
-                        const newRange = document.createRange();
-                        newRange.setStart(node, offset);
-                        newRange.collapse(true);
-                        selection.addRange(newRange);
-                        break;
-                    }
-                    pos += nodeLength;
-                }
-            }
-
-            isHighlighting = false;
+            lineNumbers.textContent = numbers;
         }
 
-        // Debounced highlighting
-        let highlightTimer;
-        editor.addEventListener('input', () => {
-            clearTimeout(highlightTimer);
-            highlightTimer = setTimeout(updateHighlighting, 100);
-        });
+        // Update highlighting layer (no cursor manipulation needed!)
+        function updateHighlighting() {
+            const text = editor.value;
+            highlightLayer.innerHTML = highlightSyntax(text);
+            updateLineNumbers();
+        }
+
+        // Sync scroll between editor, highlight layer, and line numbers
+        function syncScroll() {
+            highlightLayer.scrollTop = editor.scrollTop;
+            highlightLayer.scrollLeft = editor.scrollLeft;
+            lineNumbers.scrollTop = editor.scrollTop;
+        }
+
+        // Update highlighting on input
+        editor.addEventListener('input', updateHighlighting);
+        editor.addEventListener('scroll', syncScroll);
 
         // Initial highlight
         updateHighlighting();
 
         function runCode() {
-            const code = editor.textContent || editor.value;
+            const code = editor.value;
             status.textContent = 'Running...';
             output.textContent = 'Executing...';
 
@@ -442,7 +504,7 @@
         }
 
         function clear() {
-            editor.textContent = '';
+            editor.value = '';
             output.textContent = 'Click "Run" to execute your code...';
             output.className = '';
             updateHighlighting();
@@ -450,7 +512,7 @@
 
         // Export function - download current code as .sg file
         function exportCode() {
-            const code = editor.textContent || '';
+            const code = editor.value;
             const blob = new Blob([code], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -482,7 +544,7 @@
 
             const reader = new FileReader();
             reader.onload = (event) => {
-                editor.textContent = event.target.result;
+                editor.value = event.target.result;
                 updateHighlighting();
                 status.textContent = `Imported: ${file.name}`;
                 setTimeout(() => status.textContent = '', 2000);
@@ -505,28 +567,29 @@
         examplesSelect.addEventListener('change', (e) => {
             const example = examples[e.target.value];
             if (example) {
-                editor.textContent = example;
+                editor.value = example;
                 updateHighlighting();
                 e.target.value = '';
             }
         });
 
-        // Keyboard shortcut: Ctrl+Enter or Cmd+Enter to run
+        // Keyboard shortcuts
         editor.addEventListener('keydown', (e) => {
+            // Ctrl+Enter or Cmd+Enter to run
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
                 runCode();
+                return;
             }
-        });
 
-        // Tab key inserts spaces instead of changing focus
-        editor.addEventListener('keydown', (e) => {
+            // Tab key inserts spaces instead of changing focus
             if (e.key === 'Tab') {
                 e.preventDefault();
                 const start = editor.selectionStart;
                 const end = editor.selectionEnd;
                 editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
                 editor.selectionStart = editor.selectionEnd = start + 2;
+                updateHighlighting();
             }
         });
     </script>
