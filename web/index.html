@@ -72,6 +72,29 @@
             flex: 1;
             position: relative;
             overflow: hidden;
+            display: flex;
+        }
+
+        #line-numbers {
+            position: relative;
+            padding: 1rem 0.5rem 1rem 1rem;
+            background: #f5f5f5;
+            color: #999999;
+            font-size: 14px;
+            line-height: 1.5;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            text-align: right;
+            user-select: none;
+            border-right: 1px solid #e0e0e0;
+            overflow: hidden;
+            white-space: pre;
+            min-width: 3em;
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
         }
 
         #editor {
@@ -210,11 +233,14 @@
         <div class="panel">
             <div class="panel-header">Editor</div>
             <div class="editor-container">
-                <div id="highlight-layer" aria-hidden="true"></div>
-                <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">' Welcome to the Stellogen Playground!
+                <div id="line-numbers" aria-hidden="true"></div>
+                <div class="editor-wrapper">
+                    <div id="highlight-layer" aria-hidden="true"></div>
+                    <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">' Welcome to the Stellogen Playground!
 ' Try the examples from the dropdown menu below.
 
 (show "Hello, world!")</textarea>
+                </div>
             </div>
         </div>
 
@@ -252,6 +278,7 @@
     <script>
         const editor = document.getElementById('editor');
         const highlightLayer = document.getElementById('highlight-layer');
+        const lineNumbers = document.getElementById('line-numbers');
         const output = document.getElementById('output');
         const runBtn = document.getElementById('runBtn');
         const clearBtn = document.getElementById('clearBtn');
@@ -380,16 +407,29 @@
             return html;
         }
 
+        // Update line numbers
+        function updateLineNumbers() {
+            const text = editor.value;
+            const lineCount = text.split('\n').length;
+            let numbers = '';
+            for (let i = 1; i <= lineCount; i++) {
+                numbers += i + '\n';
+            }
+            lineNumbers.textContent = numbers;
+        }
+
         // Update highlighting layer (no cursor manipulation needed!)
         function updateHighlighting() {
             const text = editor.value;
             highlightLayer.innerHTML = highlightSyntax(text);
+            updateLineNumbers();
         }
 
-        // Sync scroll between editor and highlight layer
+        // Sync scroll between editor, highlight layer, and line numbers
         function syncScroll() {
             highlightLayer.scrollTop = editor.scrollTop;
             highlightLayer.scrollLeft = editor.scrollLeft;
+            lineNumbers.scrollTop = editor.scrollTop;
         }
 
         // Update highlighting on input
