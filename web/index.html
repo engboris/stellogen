@@ -68,11 +68,22 @@
             border-bottom: 1px solid #cccccc;
         }
 
-        #editor {
+        .editor-container {
             flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #editor {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             padding: 1rem;
-            background: #ffffff;
-            color: #333333;
+            background: transparent;
+            color: transparent;
+            caret-color: #333333;
             font-size: 14px;
             line-height: 1.5;
             resize: none;
@@ -82,6 +93,26 @@
             overflow-y: auto;
             white-space: pre;
             overflow-wrap: normal;
+            z-index: 2;
+        }
+
+        #highlight-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 1rem;
+            background: #ffffff;
+            color: #333333;
+            font-size: 14px;
+            line-height: 1.5;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            overflow-y: auto;
+            white-space: pre;
+            overflow-wrap: normal;
+            pointer-events: none;
+            z-index: 1;
         }
 
         /* Syntax highlighting colors */
@@ -178,10 +209,13 @@
     <main>
         <div class="panel">
             <div class="panel-header">Editor</div>
-            <div id="editor" contenteditable="true" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">' Welcome to the Stellogen Playground!
+            <div class="editor-container">
+                <div id="highlight-layer" aria-hidden="true"></div>
+                <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">' Welcome to the Stellogen Playground!
 ' Try the examples from the dropdown menu below.
 
-(show "Hello, world!")</div>
+(show "Hello, world!")</textarea>
+            </div>
         </div>
 
         <div class="divider"></div>
@@ -217,6 +251,7 @@
     <script src="examples.js?v=__VERSION__"></script>
     <script>
         const editor = document.getElementById('editor');
+        const highlightLayer = document.getElementById('highlight-layer');
         const output = document.getElementById('output');
         const runBtn = document.getElementById('runBtn');
         const clearBtn = document.getElementById('clearBtn');
@@ -345,74 +380,27 @@
             return html;
         }
 
-        // Track cursor position
-        let isHighlighting = false;
-
+        // Update highlighting layer (no cursor manipulation needed!)
         function updateHighlighting() {
-            if (isHighlighting) return;
-            isHighlighting = true;
-
-            const selection = window.getSelection();
-            const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-
-            // Save cursor position
-            let cursorPos = 0;
-            if (range) {
-                const preRange = range.cloneRange();
-                preRange.selectNodeContents(editor);
-                preRange.setEnd(range.endContainer, range.endOffset);
-                cursorPos = preRange.toString().length;
-            }
-
-            // Get plain text and highlight
-            const text = editor.textContent || '';
-            editor.innerHTML = highlightSyntax(text);
-
-            // Restore cursor position
-            if (range && cursorPos > 0) {
-                const textNodes = [];
-                const getTextNodes = (node) => {
-                    if (node.nodeType === Node.TEXT_NODE) {
-                        textNodes.push(node);
-                    } else {
-                        for (let child of node.childNodes) {
-                            getTextNodes(child);
-                        }
-                    }
-                };
-                getTextNodes(editor);
-
-                let pos = 0;
-                for (let node of textNodes) {
-                    const nodeLength = node.textContent.length;
-                    if (pos + nodeLength >= cursorPos) {
-                        const offset = Math.min(cursorPos - pos, nodeLength);
-                        selection.removeAllRanges();
-                        const newRange = document.createRange();
-                        newRange.setStart(node, offset);
-                        newRange.collapse(true);
-                        selection.addRange(newRange);
-                        break;
-                    }
-                    pos += nodeLength;
-                }
-            }
-
-            isHighlighting = false;
+            const text = editor.value;
+            highlightLayer.innerHTML = highlightSyntax(text);
         }
 
-        // Debounced highlighting
-        let highlightTimer;
-        editor.addEventListener('input', () => {
-            clearTimeout(highlightTimer);
-            highlightTimer = setTimeout(updateHighlighting, 100);
-        });
+        // Sync scroll between editor and highlight layer
+        function syncScroll() {
+            highlightLayer.scrollTop = editor.scrollTop;
+            highlightLayer.scrollLeft = editor.scrollLeft;
+        }
+
+        // Update highlighting on input
+        editor.addEventListener('input', updateHighlighting);
+        editor.addEventListener('scroll', syncScroll);
 
         // Initial highlight
         updateHighlighting();
 
         function runCode() {
-            const code = editor.textContent || editor.value;
+            const code = editor.value;
             status.textContent = 'Running...';
             output.textContent = 'Executing...';
 
@@ -442,7 +430,7 @@
         }
 
         function clear() {
-            editor.textContent = '';
+            editor.value = '';
             output.textContent = 'Click "Run" to execute your code...';
             output.className = '';
             updateHighlighting();
@@ -450,7 +438,7 @@
 
         // Export function - download current code as .sg file
         function exportCode() {
-            const code = editor.textContent || '';
+            const code = editor.value;
             const blob = new Blob([code], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -482,7 +470,7 @@
 
             const reader = new FileReader();
             reader.onload = (event) => {
-                editor.textContent = event.target.result;
+                editor.value = event.target.result;
                 updateHighlighting();
                 status.textContent = `Imported: ${file.name}`;
                 setTimeout(() => status.textContent = '', 2000);
@@ -505,28 +493,29 @@
         examplesSelect.addEventListener('change', (e) => {
             const example = examples[e.target.value];
             if (example) {
-                editor.textContent = example;
+                editor.value = example;
                 updateHighlighting();
                 e.target.value = '';
             }
         });
 
-        // Keyboard shortcut: Ctrl+Enter or Cmd+Enter to run
+        // Keyboard shortcuts
         editor.addEventListener('keydown', (e) => {
+            // Ctrl+Enter or Cmd+Enter to run
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
                 runCode();
+                return;
             }
-        });
 
-        // Tab key inserts spaces instead of changing focus
-        editor.addEventListener('keydown', (e) => {
+            // Tab key inserts spaces instead of changing focus
             if (e.key === 'Tab') {
                 e.preventDefault();
                 const start = editor.selectionStart;
                 const end = editor.selectionEnd;
                 editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
                 editor.selectionStart = editor.selectionEnd = start + 2;
+                updateHighlighting();
             }
         });
     </script>
