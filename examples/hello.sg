@@ -1,1 +1,17 @@
-(show "Hello, world!")
+'''
+Terms
+'''
+X             ' variable (uppercase)
+a             ' constant (lowercase & symbols)
+$             ' another constant
+(f X a)       ' function (constant) with terms as arguments
+(+f X)        ' function with positive polarity
+(-f X)        ' function with negative polarity
+(-f (+f X) Y) ' nested functions
+' Every Stellogen expression have these shapes (directly or indirectly)
+
+'''
+Term with effect: display terms
+'''
+(show hello)
+(show hello world !)

@@ -1,0 +1,56 @@
+(use-macros "../milkyway/prelude.sg")
+'''
+Note: Stellogen is NOT clause-based so it does not work like
+Datalog or Prolog although it can reproduce some programs
+(for instance, programs with single recursive argument or
+multiple non-recursive arguments).
+
+Having mechanisms to simulate the behavior of Prolog are needed.
+'''
+
+'''
+ARITHMETIC FUNCTIONS
+'''
+
+(:= add {
+  [(+add 0 Y Y)]
+  [(-add X Y Z) (+add (s X) Y (s Z))]})
+(:= sub {
+  [(+sub Y 0 Y)]
+  [(-sub X Y Z) (+sub (s X) (s Y) Z)]})
+(:= knowledge { #add #sub })
+
+'''
+UNARY ADDITION
+'''
+
+(:= (add_query X Y R)
+  [(-add X Y R) (result of X + Y = R)])
+
+' Query: 0 + 0 = ?
+(show (exec #knowledge @#(add_query 0 0 R)))
+
+' Query: 0 + 4 = ?
+(show (exec #knowledge @#(add_query 0 (stack s s s s 0) R)))
+
+' Query: 2 + 2 = ?
+(show (exec #knowledge @#(add_query (stack s s 0) (stack s s 0) R)))
+
+' Query: 2 + ? = 4
+(show (exec #knowledge @#(add_query (stack s s 0) R (stack s s s s 0))))
+
+'''
+UNARY SUBSTRACTION
+'''
+
+(:= (sub_query X Y R)
+  [(-sub X Y R) (result of X - Y = R)])
+
+' Query: 0 - 0 = ?
+(show (exec #knowledge @#(sub_query 0 0 R)))
+
+' Query: 4 - 2 = ?
+(show (exec #knowledge @#(sub_query (stack s s s s 0) (stack s s 0) R)))
+
+' Query: ? - 2 = 2
+(show (exec #knowledge @#(sub_query R (stack s s 0) (stack s s 0))))

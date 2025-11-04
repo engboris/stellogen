@@ -1,0 +1,38 @@
+'''
+Note: Stellogen is NOT clause-based so it does not work like
+Datalog or Prolog although it can reproduce some programs
+(for instance, programs with single recursive argument or
+multiple non-recursive arguments).
+
+Having mechanisms to simulate the behavior of Prolog are needed.
+'''
+
+'''
+FAMILY RELATIONSHIPS
+'''
+
+(:= family {
+  [(+parent tom of bob)]
+  [(+parent tom of liz)]
+  [(+parent bob of ann)]
+  [(+parent bob of pat)]
+  [(+parent pat of jim)]})
+
+' grandparent relationship
+(:= grandparent {
+  [(+grandparent X of Z) (-parent X of Y) (+parent Y of Z)]})
+
+(:= knowledge { #family #grandparent })
+
+' who are ann's parents?
+(show (exec #family @[(-parent P of ann) P]))
+' Note: using #knowledge instead of #family would create a clash
+' with the +parent argument of #grandparent
+
+' who are bob's children?
+(show (exec #family @[(-parent bob of C) C]))
+
+' who is tom's grandchild?
+'   (show (exec #knowledge @[(-grandparent tom of Z) Z]))
+' Does not work because subgoal can mistakenly interact with
+' arguments of #grandparent
