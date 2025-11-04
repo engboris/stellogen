@@ -50,11 +50,20 @@ NPDA (non-deterministic pushdown automaton) example:
   accept
   {}
 
-Prolog-style examples:
-  $ sgen run ../examples/prolog.sg
-  (s (s (s (s 0))))
-  [(-grandparent tom Z) Z]
-  { [ok (-to 1)] [(-from 5)] [(-from 4)] [(-from 5)] }
+Prolog-style arithmetic examples:
+  $ sgen run ../examples/prolog/arithmetic.sg
+  (result of 0 + 0 = 0)
+  (result of 0 + (s (s (s (s 0)))) = (s (s (s (s 0)))))
+  (result of (s (s 0)) + (s (s 0)) = (s (s (s (s 0)))))
+  (result of (s (s 0)) + (s (s 0)) = (s (s (s (s 0)))))
+  (result of 0 - 0 = 0)
+  (result of (s (s (s (s 0)))) - (s (s 0)) = (s (s 0)))
+  (result of (s (s (s (s 0)))) - (s (s 0)) = (s (s 0)))
+
+Prolog-style family examples:
+  $ sgen run ../examples/prolog/family.sg
+  bob
+  { [pat] [ann] }
 
 Stack example:
   $ sgen run ../examples/stack.sg
