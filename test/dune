@@ -6,6 +6,7 @@
   (glob_files ./errors/*.sg)
   (glob_files ../examples/*.sg)
   (glob_files ../examples/proofnets/*.sg)
+  (glob_files ../examples/prolog/*.sg)
   (glob_files ../examples/milkyway/*.sg)
   (glob_files ../exercises/solutions/*.sg)
   (package stellogen)))
