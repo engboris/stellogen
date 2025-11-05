@@ -1,13 +1,6 @@
 Test examples directory
 ========================
 
-Automata example:
-  $ sgen run ../examples/automata.sg
-  {}
-  accept
-  {}
-  {}
-
 Binary4 example:
   $ sgen run ../examples/binary4.sg
   { [(+b b1 4 1)] [(+b b1 3 0)] [(+b b1 2 0)] [(+b b1 1 0)] }
@@ -21,12 +14,12 @@ Circuits example:
   $ sgen run ../examples/circuits.sg
 
 Lambda calculus example:
-  $ sgen run ../examples/lambda.sg
+  $ sgen run ../examples/lambda/lambda.sg
   [(out (%cons r X7)) (ida (exp (%cons l X7) d))]
   [(out X7) (x (exp X7 d))]
 
 Linear lambda example:
-  $ sgen run ../examples/linear_lambda.sg
+  $ sgen run ../examples/lambda/linear_lambda.sg
   {}
   {}
 
@@ -38,13 +31,13 @@ MLL (multiplicative linear logic) example:
   $ sgen run ../examples/proofnets/mll.sg
 
 Natural numbers example:
-  $ sgen run ../examples/nat.sg
+  $ sgen run ../examples/naive_nat.sg
   (+nat (s (s (s 0))))
   (res 1)
   (res 0)
 
 NPDA (non-deterministic pushdown automaton) example:
-  $ sgen run ../examples/npda.sg
+  $ sgen run ../examples/states/npda.sg
   { [accept] [accept] }
   accept
   accept
@@ -88,7 +81,7 @@ Syntax reference:
   (-field test2)
 
 Turing machine example:
-  $ sgen run ../examples/turing.sg
+  $ sgen run ../examples/states/turing.sg
   reject
   reject
   reject
@@ -97,3 +90,10 @@ Turing machine example:
   accept
   accept
   accept
+
+NFA (non-deterministic finite automaton) example:
+  $ sgen run ../examples/states/nfa.sg
+  {}
+  accept
+  {}
+  {}

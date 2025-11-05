@@ -9,17 +9,21 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration: map example keys to their source files
+// Order: hello, macros, prolog examples, states examples, proofnets examples
 const EXAMPLE_MAPPING = {
   hello: 'hello.sg',
-  prolog: 'prolog.sg',
   macros: 'macro_demo.sg',
-  nat: 'nat.sg',
-  automata: 'automata.sg',
-  stackmachine: 'npda.sg',
-  turing: 'turing.sg',
-  stack: 'stack.sg',
-  mll: 'proofnets/mll.sg',
-  fomll: 'proofnets/fomll.sg'
+  // Prolog examples
+  'prolog-arithmetic': 'prolog/arithmetic.sg',
+  'prolog-family': 'prolog/family.sg',
+  // States examples
+  'states-nfa': 'states/nfa.sg',
+  'states-npda': 'states/npda.sg',
+  'states-turing': 'states/turing.sg',
+  // Proofnets examples
+  'proofnets-mall': 'proofnets/mall.sg',
+  'proofnets-mll': 'proofnets/mll.sg',
+  'proofnets-fomll': 'proofnets/fomll.sg'
 };
 
 // Path configuration
