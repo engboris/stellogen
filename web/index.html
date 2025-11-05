@@ -270,10 +270,23 @@
                 <div id="line-numbers" aria-hidden="true"></div>
                 <div class="editor-wrapper">
                     <div id="highlight-layer" aria-hidden="true"></div>
-                    <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">' Welcome to the Stellogen Playground!
-' Try the examples from the dropdown menu below.
+                    <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">'''
+Terms
+'''
+X             ' variable (uppercase)
+a             ' constant (lowercase & symbols)
+$             ' another constant
+(f X a)       ' function (constant) with terms as arguments
+(+f X)        ' function with positive polarity
+(-f X)        ' function with negative polarity
+(-f (+f X) Y) ' nested functions
+' Every Stellogen expression have these shapes (directly or indirectly)
 
-(show "Hello, world!")</textarea>
+'''
+Term with effect: display terms
+'''
+(show hello)
+(show hello world !)</textarea>
                 </div>
             </div>
         </div>
@@ -290,14 +303,16 @@
         <button id="runBtn">Run</button>
         <select id="examples">
             <option value="">Load Example...</option>
-            <option value="hello">Hello World</option>
-            <option value="prolog">Prolog-style Logic</option>
-            <option value="macros">Macro System</option>
-            <option value="nat">Natural Numbers</option>
-            <option value="automata">Finite Automata</option>
-            <option value="stackmachine">Stack Machine (NPDA)</option>
-            <option value="turing">Turing Machine</option>
-            <option value="stack">Stack Operations</option>
+            <option value="hello">Hello</option>
+            <option value="macros">Macros</option>
+            <option value="prolog-arithmetic">Prolog - Arithmetic</option>
+            <option value="prolog-family">Prolog - Family</option>
+            <option value="states-nfa">NFA (Finite Automaton)</option>
+            <option value="states-npda">NPDA (Pushdown Automaton)</option>
+            <option value="states-turing">Turing Machine</option>
+            <option value="proofnets-mall">Proof Nets - MALL</option>
+            <option value="proofnets-mll">Proof Nets - MLL</option>
+            <option value="proofnets-fomll">Proof Nets - FOMLL</option>
         </select>
         <button id="clearBtn">Clear</button>
         <button id="importBtn">📁 Import</button>
