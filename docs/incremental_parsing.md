@@ -62,7 +62,7 @@ let exprs = Sgen_parsing.parse_with_error "examples/nat.sg" lexbuf in
 Stdlib.close_in ic
 
 (* Parse a string *)
-let lexbuf = Sedlexing.Utf8.from_string "(:= x 42)" in
+let lexbuf = Sedlexing.Utf8.from_string "(def x 42)" in
 let exprs = Sgen_parsing.parse_with_error "<string>" lexbuf
 ```
 
@@ -222,6 +222,6 @@ dune exec sgen run -- examples/nat.sg
 # Or in utop:
 #require "stellogen";;
 open Stellogen;;
-let lexbuf = Sedlexing.Utf8.from_string "(:= x 42)" in
+let lexbuf = Sedlexing.Utf8.from_string "(def x 42)" in
 Sgen_parsing.parse_with_error "<test>" lexbuf;;
 ```

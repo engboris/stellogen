@@ -29,7 +29,7 @@ The parser uses different recovery strategies based on context:
 ### 1. Extra Closing Delimiter
 
 ```stellogen
-(:= x 42))
+(def x 42))
         ^
 ```
 
@@ -40,7 +40,7 @@ The parser uses different recovery strategies based on context:
 ### 2. Unclosed Delimiter at EOF
 
 ```stellogen
-(:= x (add 1 2
+(def x (add 1 2
               ^
 ```
 
@@ -51,7 +51,7 @@ The parser uses different recovery strategies based on context:
 ### 3. Unexpected Token
 
 ```stellogen
-(:= x @@)
+(def x @@)
       ^
 ```
 
@@ -79,7 +79,7 @@ error: <message>
 error: no opening delimiter for ')'
   --> test.sg:2:12
 
-    2 | (:= bad1 x))
+    2 | (def bad1 x))
       |            ^
 
   hint: remove this delimiter or add a matching opening delimiter
@@ -92,7 +92,7 @@ error: no opening delimiter for ')'
 When the parser recovers from an error, it may generate additional "cascade" errors as it tries to make sense of the remaining input:
 
 ```stellogen
-(:= x ))
+(def x ))
 ' Primary error: extra )
 ' May also report: unexpected tokens afterward
 ```
@@ -104,7 +104,7 @@ This is a known challenge in error recovery. The parser reports all detected iss
 The parser cannot recover past end-of-file. If a delimiter is unclosed at EOF, recovery aborts:
 
 ```stellogen
-(:= x (incomplete
+(def x (incomplete
 ```
 
 **Result**: Single error about unclosed delimiter, parsing stops
@@ -168,9 +168,9 @@ let error_collector = Parse_error.create_collector ~max_errors:20 ()
 ```bash
 # Create a file with multiple errors
 cat > test_errors.sg << 'EOF'
-(:= good1 42)
-(:= bad1 x))
-(:= good2 100)
+(def good1 42)
+(def bad1 x))
+(def good2 100)
 EOF
 
 # See all errors at once

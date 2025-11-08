@@ -424,7 +424,7 @@ Add to program or command-line:
 
 ```stellogen
 ' Set termination bounds
-(:= termination-config {
+(def termination-config {
   (max-rounds 10000)
   (max-constellation-size 1000)
   (max-term-depth 100)
@@ -494,7 +494,7 @@ These complicate termination analysis:
 
 Stellogen allows definitions like:
 ```stellogen
-(:= loop [(-loop X) (+loop X)])
+(def loop [(-loop X) (+loop X)])
 ```
 
 This creates potential for infinite cycles. Detection requires:
@@ -617,7 +617,7 @@ Example:
 Allow programmers to specify termination measures:
 
 ```stellogen
-(:= add {
+(def add {
   @(decreases (size X))
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})

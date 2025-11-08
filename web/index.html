@@ -400,7 +400,7 @@ Term with effect: display terms
                 }
 
                 // Operators
-                const ops = [':=', '==', '~=', '||', '@', '#'];
+                const ops = ['==', '~=', '||', '@', '#'];
                 for (const op of ops) {
                     if (!matched && code.substr(pos, op.length) === op) {
                         tokens.push({ type: 'operator', text: op });

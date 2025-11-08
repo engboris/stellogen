@@ -10,11 +10,10 @@ syn match sgComment "'[^'].*$"
 syn region sgString start=/\v"/ skip=/\v\\./ end=/\v"/
 
 " Keywords
-syn keyword sgKeyword macro macros eval slice show use use-macros exec fire process spec stack chain process-step
+syn keyword sgKeyword def macro macros eval slice show use use-macros exec fire process spec stack chain process-step
 syn keyword sgConstant ok
 
 " Operators and separators
-syn match sgOperator ":="
 syn match sgOperator "::"
 syn match sgOperator "=="
 syn match sgOperator "\~="
@@ -30,10 +29,10 @@ syn match sgPolarity "[+-]\ze\w"
 " Variables (uppercase starting identifiers)
 syn match sgVariable "\<[A-Z_]\w*\>"
 
-" Defined identifiers in (:= X ...) - both simple and complex
-syn match sgDefinedId "\((:=\s\+\)\@<=[a-z_][a-z0-9_]*"
-syn match sgDefinedId "\((:=\s\+\)\@<=\d\+"
-syn match sgDefinedId "\((:=\s*(\)\@<=[^)]\+"
+" Defined identifiers in (def X ...) - both simple and complex
+syn match sgDefinedId "\((def\s\+\)\@<=[a-z_][a-z0-9_]*"
+syn match sgDefinedId "\((def\s\+\)\@<=\d\+"
+syn match sgDefinedId "\((def\s*(\)\@<=[^)]\+"
 
 " Identifier references (prefixed with #)
 syn match sgIdRef "#[a-z_][a-z0-9_]*"

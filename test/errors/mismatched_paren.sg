@@ -1,2 +1,2 @@
 ' Test mismatched parentheses
-(:= test (foo bar]
+(def test (foo bar]

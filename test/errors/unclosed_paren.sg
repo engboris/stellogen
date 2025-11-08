@@ -1,2 +1,2 @@
 ' Test unclosed parenthesis
-(:= test (foo bar)
+(def test (foo bar)

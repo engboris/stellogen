@@ -365,7 +365,7 @@ Stellogen examples demonstrate several encoding strategies:
 #### 1. Numeric Addressing (Simple)
 
 ```stellogen
-(:= agent {
+(def agent {
   [(-1 X) (+out X)]      ' Port 1 connects to output port
   [(-2 Y) (+out Y)]})    ' Port 2 connects to output port
 ```
@@ -375,7 +375,7 @@ Ports are numbered: `-1`, `+2`, `-3`, etc.
 #### 2. Direction Encoding with Cons Lists
 
 ```stellogen
-(:= id {
+(def id {
   [(-5 [l|X]) (+1 X)]    ' Left branch of port 5 → port 1
   [(-5 [r|X]) (+2 X)]    ' Right branch of port 5 → port 2
   [(+5 [l|X]) (+6 [l|X])]  ' Connect left branches
@@ -387,7 +387,7 @@ Uses `[l|X]` for left and `[r|X]` for right, encoding binary tree structure.
 #### 3. Complex Structured Addressing
 
 ```stellogen
-(:= var_x [(x (exp X Y)) (+arg (exp [l|X] Y))])
+(def var_x [(x (exp X Y)) (+arg (exp [l|X] Y))])
 ```
 
 Combines multiple levels: `exp` wrapper with depth tracking and directional lists.
@@ -408,7 +408,7 @@ This is a native feature of Stellogen, not requiring explicit encoding.
 A **constellation** in Stellogen defines the behavior of an agent and its interaction rules:
 
 ```stellogen
-(:= add {
+(def add {
   [(+add 0 Y Y)]                        ' Rule 1: 0 + Y = Y
   [(-add X Y Z) (+add (s X) Y (s Z))]}) ' Rule 2: S(X) + Y = S(Z) if X + Y = Z
 ```
@@ -652,14 +652,14 @@ To illustrate the design differences, here's how **GCD (greatest common divisor)
 
 ```stellogen
 ' GCD using declarative rules
-(:= gcd {
+(def gcd {
   [(+gcd X 0 X)]                         ' Base case: gcd(X, 0) = X
   [(+gcd 0 Y Y)]                         ' Base case: gcd(0, Y) = Y
   [(-gcd X Y R) (+gcd Y (mod X Y) R)     ' Recursive: gcd(X, Y) = gcd(Y, X mod Y)
    || (!= Y 0)]})                        ' Guard: Y ≠ 0
 
 ' Query
-(:= query @[(-gcd 14 21 R) (result R)])
+(def query @[(-gcd 14 21 R) (result R)])
 (show (exec #gcd #query))
 ```
 
@@ -754,7 +754,7 @@ This demonstrates that **interaction nets are the common semantic foundation**, 
 ### Example 1: Linear Logic Identity (from `mll.sg`)
 
 ```stellogen
-(:= id {
+(def id {
   [(-5 [l|X]) (+1 X)]
   [(-5 [r|X]) (+2 X)]
   [(-6 [l|X]) (+3 X)]
@@ -803,7 +803,7 @@ This encodes the identity agent in multiplicative linear logic (MLL):
 ### Example 2: Cut Elimination (from `mll.sg`)
 
 ```stellogen
-(:= ps1 {
+(def ps1 {
   [+vehicle [
     [(+7 [l|X]) (+7 [r|X])]
     @[(3 X) (+8 [l|X])]
@@ -811,8 +811,8 @@ This encodes the identity agent in multiplicative linear logic (MLL):
   [+cuts [
     [(-7 X) (-8 X)]]]})
 
-(:= vehicle (eval (exec #ps1 @[-vehicle])))
-(:= cuts    (eval (exec #ps1 @[-cuts])))
+(def vehicle (eval (exec #ps1 @[-vehicle])))
+(def cuts    (eval (exec #ps1 @[-cuts])))
 
 (show (exec #vehicle #cuts))
 ```
@@ -847,12 +847,12 @@ This is the classic **cut elimination** from linear logic proof theory:
 
 ```stellogen
 ' identity function (\x -> x)
-(:= id [(+id [l|X]) (+id [r|X])])
+(def id [(+id [l|X]) (+id [r|X])])
 
 ' id id
-(:= id_arg [(ida [l|X]) (+arg [l r|X])])
+(def id_arg [(ida [l|X]) (+arg [l r|X])])
 
-(:= linker [
+(def linker [
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]])
 
@@ -886,11 +886,11 @@ This implements lambda calculus using proof-nets:
 ### Example 4: Lambda Calculus with Exponentials (from `lambda.sg`)
 
 ```stellogen
-(:= id [(+id (exp [l|X] d)) (+id [r|X])])
+(def id [(+id (exp [l|X] d)) (+id [r|X])])
 
-(:= var_x [(x (exp X Y)) (+arg (exp [l|X] Y))])
+(def var_x [(x (exp X Y)) (+arg (exp [l|X] Y))])
 
-(:= lproj {
+(def lproj {
   [(+lproj [l|X])]           ' weakening
   [(lproj (exp [r l|X] d)) (+lproj [r r|X])]})
 ```
@@ -926,18 +926,18 @@ Stellogen could implement the three classic interaction combinators (ε, δ, γ)
 
 ```stellogen
 ' Eraser
-(:= epsilon {
+(def epsilon {
   [(+e)]})  ' Erases anything connected to it
 
 ' Duplicator
-(:= delta {
+(def delta {
   [(+d [1|X] [2|Y]) (-d [1|X] [2|Y])]  ' Annihilation with another delta
   [(+d [1|A] [2|B]) (-g [1|X] [2|Y])   ' Commutation with gamma
    (+g [1|C] [2|D]) (+d [1|C] [2|D])
    (connect A X) (connect B Y)]})
 
 ' Constructor
-(:= gamma {
+(def gamma {
   [(+g [1|X] [2|Y]) (-g [1|X] [2|Y])]  ' Annihilation with another gamma
   [(+g [1|A] [2|B]) (-d [1|X] [2|Y])   ' Commutation with delta
    (+d [1|C] [2|D]) (+g [1|C] [2|D])

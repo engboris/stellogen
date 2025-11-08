@@ -20,7 +20,7 @@ Stellogen now features **comprehensive error recovery** powered by Menhir's incr
 error: no opening delimiter for ')'
   --> test.sg:2:12
 
-    2 | (:= bad1 x))
+    2 | (def bad1 x))
       |            ^
 
   hint: remove this delimiter or add a matching opening delimiter
@@ -61,16 +61,16 @@ Uses `Parser.MenhirInterpreter.positions env` for accurate error locations inste
 ```bash
 # File with multiple errors
 $ cat test.sg
-(:= good1 42)
-(:= bad1 x))
-(:= good2 100)
+(def good1 42)
+(def bad1 x))
+(def good2 100)
 
 # See all errors at once
 $ sgen run test.sg
 error: no opening delimiter for ')'
   --> test.sg:2:12
 
-    2 | (:= bad1 x))
+    2 | (def bad1 x))
       |            ^
 
   hint: remove this delimiter or add a matching opening delimiter
@@ -78,7 +78,7 @@ error: no opening delimiter for ')'
 error: unexpected symbol ':='
   --> test.sg:3:2
 
-    3 | (:= good2 100)
+    3 | (def good2 100)
       |  ^
 
   hint: check if this symbol is in the right place
@@ -115,7 +115,7 @@ Recovery attempts may generate secondary errors. This is a known challenge in er
 
 **Example**:
 ```stellogen
-(:= x ))
+(def x ))
 ' Primary: extra )
 ' Cascade: parser sees := at top level after recovery
 ```

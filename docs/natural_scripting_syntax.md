@@ -36,12 +36,12 @@ In current Stellogen, when building domain-specific patterns using parametric va
 
 ```stellogen
 ' Define parametric variables
-(:= (initial Q) [(-i W) (+a W Q)])
-(:= (accept Q) [(-a [] Q) accept])
-(:= (if read C1 on Q1 then Q2) [(-a [C1|W] Q1) (+a W Q2)])
+(def (initial Q) [(-i W) (+a W Q)])
+(def (accept Q) [(-a [] Q) accept])
+(def (if read C1 on Q1 then Q2) [(-a [C1|W] Q1) (+a W Q2)])
 
 ' Use them with #(...) notation
-(:= a1 {
+(def a1 {
   #(initial q0)
   #(accept q2)
   #(if read 0 on q0 then q0)
@@ -102,7 +102,7 @@ Stellogen's philosophy of **user-driven semantics** and **logic-agnostic foundat
 **Step 1: Define parametric "macros" with `:=`**
 
 ```stellogen
-(:= (initial Q) [(-i W) (+a W Q)])
+(def (initial Q) [(-i W) (+a W Q)])
 ```
 
 This creates a parametric definition where `Q` is a parameter. When called as `(initial q0)`, it produces `[(-i W) (+a W q0)]`.
@@ -110,7 +110,7 @@ This creates a parametric definition where `Q` is a parameter. When called as `(
 **Step 2: Reference them with `#(...)` inside constellations**
 
 ```stellogen
-(:= a1 {
+(def a1 {
   #(initial q0)
   #(accept q2)
   #(if read 0 on q0 then q0)
@@ -158,7 +158,7 @@ For domain-specific code (like automata, state machines, business rules), the `#
 
 ```stellogen
 ' Current (with #)
-(:= traffic-light {
+(def traffic-light {
   #(state red on timer-expire goto green)
   #(state green on timer-expire goto yellow)
   #(state yellow on timer-expire goto red)
@@ -460,7 +460,7 @@ test with [0 1]  ; rejects
 
   ' Optional: runtime hooks
   :init (use "binary-spec.sg")
-  :prelude [(new-declaration (spec X Y) (:= X Y))
+  :prelude [(new-declaration (spec X Y) (def X Y))
             (new-declaration (:: Tested Test) ...)]
 )
 ```
@@ -476,7 +476,7 @@ if read 0 on q0 then q0
 
 ' Compiler transforms to:
 (use "stdlib/systems/automaton.sg")  ; Load system definition
-(:= automaton {
+(def automaton {
   #(initial q0)
   #(accept q2)
   #(if read 0 on q0 then q0)
@@ -489,7 +489,7 @@ For more flexibility, allow system scoping within a file:
 
 ```stellogen
 ' Regular Stellogen code
-(:= x 42)
+(def x 42)
 (show x)
 
 ' Activate automaton system for this block
@@ -534,7 +534,7 @@ accept q2
 
 ' Or escape to raw Stellogen
 (escape
-  (:= debug-flag true)
+  (def debug-flag true)
   (show "Compiling automaton")
 )
 
@@ -736,7 +736,7 @@ test [1 0 1 0] expect accept
 
 ```stellogen
 (use "stdlib/systems/automaton.sg")
-(:= even-zeros {
+(def even-zeros {
   #(initial q0)
   #(accept q0)
   #(if read 1 on q0 then q0)
@@ -745,7 +745,7 @@ test [1 0 1 0] expect accept
   #(if read 0 on q1 then q0)
 })
 
-(:= test-cases [
+(def test-cases [
   {:= t1 (test [1 1 1] #even-zeros)}
   (:: t1 accept)
   ' ... more tests
@@ -780,7 +780,7 @@ machine traffic-light
 **Transforms to:**
 
 ```stellogen
-(:= traffic-light {
+(def traffic-light {
   #(initial-state red)
 
   #(state red
@@ -827,7 +827,7 @@ query sibling(ann, Who)
 **Transforms to:**
 
 ```stellogen
-(:= family-kb {
+(def family-kb {
   #(fact (parent tom bob))
   #(fact (parent bob ann))
   #(fact (parent bob joe))
@@ -933,7 +933,7 @@ rule number =
 **Transforms to:**
 
 ```stellogen
-(:= json-parser {
+(def json-parser {
   #(parser value
     [(alt object) (alt array) (alt string) ...])
 
@@ -985,7 +985,7 @@ rule reject-loan
 **Transforms to:**
 
 ```stellogen
-(:= loan-rules {
+(def loan-rules {
   #(rule approve-loan
     [(condition (> credit-score 700))
      (condition (> income 50000))
@@ -1086,7 +1086,7 @@ rule reject-loan
 
 **Phase 1: Explicit references (current)**
 ```stellogen
-(:= a1 {
+(def a1 {
   #(initial q0)
   #(accept q2)
 })
@@ -1302,7 +1302,7 @@ rule grandparent(X, Z) :- parent(X, Y), parent(Y, Z)
 type nat = zero | succ of nat
 
 ' File 5: Core Stellogen (no system)
-(:= x 42)
+(def x 42)
 (show (exec @#a @#b))
 ```
 

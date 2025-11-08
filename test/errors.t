@@ -10,10 +10,10 @@ Lexer Errors
 Test unterminated string literal:
   $ sgen run errors/unterminated_string.sg
   error: Unterminated string literal
-    --> errors/unterminated_string.sg:2:23
+    --> errors/unterminated_string.sg:2:24
   
-      2 | (:= test "unterminated
-        |                       ^
+      2 | (def test "unterminated
+        |                        ^
   
   
   found 1 error(s)
@@ -22,10 +22,10 @@ Test unterminated string literal:
 Test unknown escape sequence:
   $ sgen run errors/unknown_escape.sg
   error: Unknown escape sequence '\'
-    --> errors/unknown_escape.sg:2:18
+    --> errors/unknown_escape.sg:2:19
   
-      2 | (:= test "hello\xworld")
-        |                  ^
+      2 | (def test "hello\xworld")
+        |                   ^
   
   
   found 1 error(s)
@@ -34,10 +34,10 @@ Test unknown escape sequence:
 Test invalid escape sequence:
   $ sgen run errors/invalid_string_char.sg
   error: Unknown escape sequence '\'
-    --> errors/invalid_string_char.sg:2:18
+    --> errors/invalid_string_char.sg:2:19
   
-      2 | (:= test "valid\qinvalid")
-        |                  ^
+      2 | (def test "valid\qinvalid")
+        |                   ^
   
   
   found 1 error(s)
@@ -49,10 +49,10 @@ Delimiter Matching Errors
 Test mismatched parenthesis and bracket:
   $ sgen run errors/mismatched_paren.sg
   error: No opening delimiter for ']'.
-    --> errors/mismatched_paren.sg:2:19
+    --> errors/mismatched_paren.sg:2:20
   
-      2 | (:= test (foo bar]
-        |                   ^
+      2 | (def test (foo bar]
+        |                    ^
   
   
   found 1 error(s)
@@ -61,10 +61,10 @@ Test mismatched parenthesis and bracket:
 Test mismatched bracket and brace:
   $ sgen run errors/mismatched_bracket.sg
   error: No opening delimiter for '}'.
-    --> errors/mismatched_bracket.sg:2:19
+    --> errors/mismatched_bracket.sg:2:20
   
-      2 | (:= test [foo bar})
-        |                   ^
+      2 | (def test [foo bar})
+        |                    ^
   
   
   found 1 error(s)
@@ -73,10 +73,10 @@ Test mismatched bracket and brace:
 Test unclosed parenthesis:
   $ sgen run errors/unclosed_paren.sg
   error: unclosed delimiter '('
-    --> errors/unclosed_paren.sg:2:19
+    --> errors/unclosed_paren.sg:2:20
   
-      2 | (:= test (foo bar)
-        |                   ^
+      2 | (def test (foo bar)
+        |                    ^
   
   
     hint: add the missing closing delimiter

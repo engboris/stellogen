@@ -81,7 +81,7 @@
 
 '    becomes
 
-(:= x {
+(def x {
   [(+(⅋ 1 2) [l|X]) (+(⅋ 1 2) [r|X])]
   [(+3 X) (+(⊗ 4 5) [l|X])]
   [(+(⊗ 4 5) [r|X]) (+6 X)]
@@ -117,8 +117,8 @@
 '
 ' This corresponds to the following execution in stellogen
 ' in which [] is a way to initiate a starting point in computation
-(:= comp (exec #x @[(-3 X) (+3 X)]))
-(:= res { [(+3 X) (+6 X)] })
+(def comp (exec #x @[(-3 X) (+3 X)]))
+(def res { [(+3 X) (+6 X)] })
 (~= #comp #res)
 
 ' as for the proof of identity (A ⊗ B) -o (A ⊗ B):
@@ -133,7 +133,7 @@
 '     cut
 '
 '   it becomes
-(:= proof? {
+(def proof? {
   [(+(⅋ 1 2) [l|X]) (+(⊗ 3 4) [l|X])]
   [(+(⅋ 1 2) [r|X]) (+(⊗ 3 4) [r|X])]
 })
@@ -179,13 +179,13 @@
     @[-concl ok]]]})
 
 ' Check if proof? satisfies the test-based specification
-(:= adapters {
+(def adapters {
   [(-(⅋ 1 2) [l|X]) +(var 1)]
   [(-(⅋ 1 2) [r|X]) +(var 2)]
   [(-(⊗ 3 4) [l|X]) +(var 3)]
   [(-(⊗ 3 4) [r|X]) +(var 4)]
 })
-(:= proof?+adapters (exec @#proof? #adapters))
+(def proof?+adapters (exec @#proof? #adapters))
 '(:: proof? (-o (⊗ 1 2) (⊗ 3 4))
 
 ' Check if duality is coherent
@@ -204,9 +204,9 @@
 ' we use a linear type assertion
 (macro (::lin Tested Test) (== @(fire #Tested #Test) ok))
 
-(:= proof? [(+1 X) (+2 X)])
-(:= adapters { [(-1 X) +(var 1)] [(-2 X) +(var 2)] })
-(:= proof?+adapters (exec @#proof? #adapters))
+(def proof? [(+1 X) (+2 X)])
+(def adapters { [(-1 X) +(var 1)] [(-2 X) +(var 2)] })
+(def proof?+adapters (exec @#proof? #adapters))
 '(::lin proof?+adapters (⊗ 1 2)) ' does not typecheck
 
 ''' ======================================================== '''

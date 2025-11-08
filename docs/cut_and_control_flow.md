@@ -334,7 +334,7 @@ Clauses are **ordered**. The cut says "don't try clause 2 if we've reached this 
 **Stellogen:**
 
 ```stellogen
-(:= max {
+(def max {
   [(-max X Y X) || (>= X Y)]
   [(-max X Y Y)]})
 ```
@@ -357,11 +357,11 @@ Prolog maintains a **choice point** at each clause. Backtracking explores altern
 **Stellogen:**
 
 ```stellogen
-(:= member {
+(def member {
   [(+member X [X|_])]
   [(-member X [_|T]) (+member X T)]})
 
-(:= query [(-member X [1 2 3]) X])
+(def query [(-member X [1 2 3]) X])
 (show (exec #member @#query))
 ' Result: [1, 2, 3]  (all at once, or depends on implementation)
 ```
@@ -383,7 +383,7 @@ Clauses are tried **sequentially** until one succeeds.
 **Stellogen:**
 
 ```stellogen
-(:= process {
+(def process {
   [(-process X) (+small X) fast_process]
   [(-process X) (+medium X) medium_process]
   [(-process X) slow_process]})
@@ -422,11 +422,11 @@ R = 5.         % Deterministic
 **Attempted Stellogen translation:**
 
 ```stellogen
-(:= max {
+(def max {
   [(-max X Y X) || (>= X Y)]
   [(-max X Y Y)]})
 
-(:= query [(-max 5 3 R) R])
+(def query [(-max 5 3 R) R])
 (show (exec #max @#query))
 ```
 
@@ -459,7 +459,7 @@ While Stellogen can't reproduce Prolog's cut, it has **different mechanisms** fo
 **Control when terms are evaluated:**
 
 ```stellogen
-(:= x (+f a))
+(def x (+f a))
 #x         ' Just the identifier (unevaluated)
 @#x        ' Evaluated before use
 ```
@@ -473,11 +473,11 @@ While Stellogen can't reproduce Prolog's cut, it has **different mechanisms** fo
 **`interact`:** Non-linear, all stars can be reused
 
 ```stellogen
-(:= facts {
+(def facts {
   [(+f 1)]
   [(+f 2)]})
 
-(:= query [(-f X) (-f Y) (result X Y)])
+(def query [(-f X) (-f Y) (result X Y)])
 
 (exec #facts @#query)
 ' All combinations: (result 1 1), (result 1 2), (result 2 1), (result 2 2)
@@ -512,7 +512,7 @@ While Stellogen can't reproduce Prolog's cut, it has **different mechanisms** fo
 **Prevent certain unifications:**
 
 ```stellogen
-(:= example {
+(def example {
   [(+f a)]
   [(+f b)]
   @[(-f X) (-f Y) (result X Y) || (!= X Y)]})
@@ -529,7 +529,7 @@ The constraint `|| (!= X Y)` ensures `X` and `Y` are different.
 **Use constraints as guards:**
 
 ```stellogen
-(:= classify {
+(def classify {
   [(-classify X negative) || (< X 0)]
   [(-classify X zero) || (== X 0)]
   [(-classify X positive) || (> X 0)]})
@@ -577,7 +577,7 @@ Given that Stellogen cannot (and should not) adopt Prolog's cut directly, what *
 **Syntax:**
 
 ```stellogen
-(:= classify {
+(def classify {
   @priority(1) [(-classify X negative) || (< X 0)]
   @priority(2) [(-classify X zero) || (== X 0)]
   @priority(3) [(-classify X positive) || (> X 0)]})
@@ -586,7 +586,7 @@ Given that Stellogen cannot (and should not) adopt Prolog's cut directly, what *
 Or with explicit ordering:
 
 ```stellogen
-(:= max {
+(def max {
   @first [(-max X Y X) || (>= X Y)]
   @second [(-max X Y Y)]})
 ```
@@ -631,7 +631,7 @@ Or with explicit ordering:
 **Example:**
 
 ```stellogen
-(:= max {
+(def max {
   [(-max X Y X) || (>= X Y)]
   [(-max X Y Y)]})
 
@@ -663,7 +663,7 @@ Or with explicit ordering:
 **Syntax:**
 
 ```stellogen
-(:= classify
+(def classify
   (try [(-classify X negative) || (< X 0)]
    or  [(-classify X zero) || (== X 0)]
    or  [(-classify X positive) || (> X 0)]))
@@ -672,7 +672,7 @@ Or with explicit ordering:
 Or with syntactic sugar:
 
 ```stellogen
-(:= classify {
+(def classify {
   [(-classify X negative) || (< X 0)]
   | [(-classify X zero) || (== X 0)]
   | [(-classify X positive) || (> X 0)]})
@@ -712,11 +712,11 @@ Or with syntactic sugar:
 (macro (not Test)
   (exec @#Test #failure-check))
 
-(:= failure-check {
+(def failure-check {
   [(+anything) fail]})
 
 ' Or more directly:
-(:= not-member {
+(def not-member {
   [(-not-member X L) (+member X L) fail]
   [(-not-member X L) ok]})
 ```
@@ -725,7 +725,7 @@ Or with syntactic sugar:
 
 ```stellogen
 ' Check that X is not in list
-(:= check-not-in {
+(def check-not-in {
   [(-check X []) ok]
   [(-check X [X|_]) fail]
   [(-check X [Y|T]) (+check X T) || (!= X Y)]})
@@ -754,7 +754,7 @@ Or with syntactic sugar:
 **Syntax:**
 
 ```stellogen
-(:= max {
+(def max {
   @deterministic
   [(-max X Y X) || (>= X Y)]
   [(-max X Y Y)]})
@@ -769,7 +769,7 @@ Or with syntactic sugar:
 **Example:**
 
 ```stellogen
-(:= classify {
+(def classify {
   @deterministic
   [(-classify X negative) || (< X 0)]
   [(-classify X zero) || (== X 0)]
@@ -803,7 +803,7 @@ Or with syntactic sugar:
 
 ```stellogen
 (macro (first-match Name Cases)
-  (:= Name {
+  (def Name {
     (expand-cases-with-flags Cases)}))
 
 ' Usage:
@@ -813,7 +813,7 @@ Or with syntactic sugar:
   (case (> X 0) positive))
 
 ' Expands to:
-(:= classify {
+(def classify {
   [(-classify X negative) || (< X 0) (+mark-used classify)]
   [(-classify X zero) (-unused classify) || (== X 0) (+mark-used classify)]
   [(-classify X positive) (-unused classify) || (> X 0)]
@@ -866,13 +866,13 @@ Rather than adding a single "cut" primitive, provide **multiple mechanisms** at 
 
 ```stellogen
 ' Determinism via mutually exclusive guards
-(:= classify {
+(def classify {
   [(-classify X negative) || (< X 0)]
   [(-classify X zero) || (== X 0)]
   [(-classify X positive) || (> X 0)]})
 
 ' First-match via flags (user-defined pattern)
-(:= classify-first {
+(def classify-first {
   [(+available)]
   [(-classify X negative) (-available) || (< X 0)]
   [(-classify X zero) (-available) || (== X 0)]
@@ -894,13 +894,13 @@ Rather than adding a single "cut" primitive, provide **multiple mechanisms** at 
 **Add one new construct for ordered alternatives:**
 
 ```stellogen
-(:= classify (cond
+(def classify (cond
   [(< X 0) negative]
   [(== X 0) zero]
   [(> X 0) positive]))
 
 ' Desugars to:
-(:= classify {
+(def classify {
   [(-classify X negative) || (< X 0)]
   [(-classify X zero) (-classify-tried negative) || (== X 0)]
   [(-classify X positive) (-classify-tried negative) (-classify-tried zero) || (> X 0)]
@@ -911,7 +911,7 @@ Rather than adding a single "cut" primitive, provide **multiple mechanisms** at 
 Or more directly, introduce `|` separator for alternatives:
 
 ```stellogen
-(:= classify {
+(def classify {
   [(-classify X negative) || (< X 0)]
   | [(-classify X zero) || (== X 0)]
   | [(-classify X positive) || (> X 0)]})
@@ -944,7 +944,7 @@ Or more directly, introduce `|` separator for alternatives:
 
 ''' First match from multiple options '''
 (macro (first-of Options)
-  (:= temp {
+  (def temp {
     [(+available)]
     @(expand-with-guards #Options)
   }))
@@ -1081,7 +1081,7 @@ Different Prolog implementations have variations on cut:
 **Example 1: Max without cut-like behavior:**
 
 ```stellogen
-(:= max {
+(def max {
   [(-max X Y X) || (>= X Y)]
   [(-max X Y Y) || (< X Y)]})
 
@@ -1091,7 +1091,7 @@ Different Prolog implementations have variations on cut:
 **Example 2: First-match pattern:**
 
 ```stellogen
-(:= first-match {
+(def first-match {
   [(+available)]
   [(-try option1) (-available) (+result option1)]
   [(-try option2) (-available) (+result option2)]
@@ -1103,7 +1103,7 @@ Different Prolog implementations have variations on cut:
 **Example 3: Conditional execution:**
 
 ```stellogen
-(:= conditional {
+(def conditional {
   [(-if-then-else) (-test) (+test-succeeded) (+then)]
   [(-if-then-else) (-test) (+test-failed) (+else)]
   [(+test-failed) (-test-succeeded)]})

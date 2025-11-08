@@ -91,16 +91,16 @@ In this workshop, you can build **anything**:
 
 ```stellogen
 ' Build a natural number system
-(:= nat { [(-nat 0) ok] [(-nat (s N)) (+nat N)] })
+(def nat { [(-nat 0) ok] [(-nat (s N)) (+nat N)] })
 
 ' Build a type system
 (macro (:: Tested Test) ...)
 
 ' Build a logic
-(:= prolog-rules { ... })
+(def prolog-rules { ... })
 
 ' Build an object system
-(:= object { ... })
+(def object { ... })
 ```
 
 **Advantage:** Total freedom, maximum expressiveness.
@@ -113,8 +113,8 @@ Now imagine **crystallizing** some of these practices:
 
 ```stellogen
 ' Instead of this free-form code:
-(:= my-type { ... })
-(:= my-value ...)
+(def my-type { ... })
+(def my-value ...)
 (:: my-value my-type)
 
 ' Crystallize into a "typed system":
@@ -136,7 +136,7 @@ Now imagine **crystallizing** some of these practices:
 
 ```stellogen
 (unlock typed-lang)  ; Return to freedom
-(:= untyped-hack ...)
+(def untyped-hack ...)
 (lock typed-lang)    ; Re-enter system
 ```
 
@@ -153,20 +153,20 @@ Without systems, common patterns must be repeated:
 (spec person-type { ... })
 
 ' Define constructor
-(:= make-person ...)
+(def make-person ...)
 
 ' Define accessors
-(:= get-name ...)
-(:= get-age ...)
+(def get-name ...)
+(def get-age ...)
 
 ' Define type check
 (:: person-instance person-type)
 
 ' Define serialization
-(:= serialize-person ...)
+(def serialize-person ...)
 
 ' Define equality
-(:= person-eq ...)
+(def person-eq ...)
 ```
 
 **Every new data type** requires all this boilerplate.
@@ -194,16 +194,16 @@ Free-form Stellogen provides no guarantees:
 
 ```stellogen
 ' Might work
-(:= add { [(+add 0 Y Y)] ... })
+(def add { [(+add 0 Y Y)] ... })
 
 ' Might not work
-(:= add { [(+add X Y)] })  ; Missing third argument
+(def add { [(+add X Y)] })  ; Missing third argument
 
 ' Might loop forever
-(:= loop { [(-loop X) (+loop X)] })
+(def loop { [(-loop X) (+loop X)] })
 
 ' Might violate invariants
-(:= nat-value (+nat []))  ; [] is not a nat
+(def nat-value (+nat []))  ; [] is not a nat
 ```
 
 **With a system:**
@@ -274,7 +274,7 @@ Free-form code is **hard to communicate**:
 
 ```stellogen
 ' What does this do?
-(:= mysterious {
+(def mysterious {
   [(+f X) (-g X) (+h X)]
   [(-f Y) (+i Y) (-j Y)]})
 ```
@@ -355,9 +355,9 @@ Girard uses the metaphor of **ID cards/passports**:
 
 ```stellogen
 ' Every definition is unique
-(:= thing1 { [(+weird X) ...] })
-(:= thing2 { [(-strange) ...] })
-(:= thing3 (+mystery))
+(def thing1 { [(+weird X) ...] })
+(def thing2 { [(-strange) ...] })
+(def thing3 (+mystery))
 
 ' Hard to reason about uniformly
 ' No general operations possible
@@ -369,9 +369,9 @@ Girard uses the metaphor of **ID cards/passports**:
 (system typed
   ; Regular structure: All values have type annotations
 
-  (:= zero : nat (+nat 0))
-  (:= one : nat (+nat (s 0)))
-  (:= true : bool (+bool #t))
+  (def zero : nat (+nat 0))
+  (def one : nat (+nat (s 0)))
+  (def true : bool (+bool #t))
 
   ; Now we can reason uniformly:
   ;   - All values have known types
@@ -397,14 +397,14 @@ In Stellogen terms:
 (system nat-system
   :mould [0 | (s N)]
 
-  (:= zero : nat 0)
-  (:= one : nat (s 0))
+  (def zero : nat 0)
+  (def one : nat (s 0))
 
   ; Can do induction because terms fit the mould
 )
 
 ; Without mould: Can't do induction
-(:= weird-nat (+nat "five"))  ; Doesn't fit mould
+(def weird-nat (+nat "five"))  ; Doesn't fit mould
 ```
 
 **Epidictic** = "Here's my ID card (mould), proving I belong to this system"
@@ -685,7 +685,7 @@ Inspired by Girard's metaphor, every entity in a system has an **ID card**:
 (system typed
   ; ID card for this system: Type annotation
 
-  (:= zero
+  (def zero
     @id-card (type-annotation nat)  ; The ID card
     (+nat 0))
 
@@ -709,7 +709,7 @@ A **plugin constellation** acts as the **ID card validator**:
 (system my-system
   :plugin-constellation system-checker
 
-  (:= system-checker {
+  (def system-checker {
     ; Check that all values have required properties
     [(-check-id-card Value)
      (-has-type Value Type)
@@ -753,7 +753,7 @@ The plugin constellation:
   :mould [(type T ...) (defval x : T ...)]
   :plugin type-checker
 
-  (:= type-checker {
+  (def type-checker {
     [(-check-typed (defval X : T V))
      (+has-type X T)
      (+type-valid T)]
@@ -803,7 +803,7 @@ When in a system, only **allowed macros** can be used:
 
   (defun add ...)  ; OK: defun is allowed
 
-  (:= raw ...)  ; ERROR: := not in vocabulary
+  (def raw ...)  ; ERROR: := not in vocabulary
 )
 ```
 
@@ -853,7 +853,7 @@ The **plugin constellation** validates conformance:
 (defsystem my-system
   :plugin my-validator
 
-  (:= my-validator {
+  (def my-validator {
     ; Validate that value V conforms to system
     [(-validate V)
      (-extract-id-card V Card)
@@ -881,7 +881,7 @@ Even within a system, you can **escape temporarily**:
 
   (escape
     ; Temporarily unlock
-    (:= y "untyped-string")  ; Low-level, no type
+    (def y "untyped-string")  ; Low-level, no type
   )
 
   (defval z : nat (s 0))
@@ -936,7 +936,7 @@ Systems can **extend** other systems:
   :laws [(all-typed) (types-valid)]
   :plugin type-validator
 
-  (:= type-validator {
+  (def type-validator {
     [(-validate (defval X : T V))
      (+check-type V T)
      (+valid (defval X : T V))]
@@ -972,7 +972,7 @@ Systems can **extend** other systems:
   :laws [(no-side-effects) (terminating)]
   :plugin purity-checker
 
-  (:= purity-checker {
+  (def purity-checker {
     ; Check function for purity
     [(-validate (defun Name Args Body))
      (-check-pure Body)
@@ -1023,7 +1023,7 @@ Systems can **extend** other systems:
   ]
   :plugin fsm-validator
 
-  (:= fsm-validator {
+  (def fsm-validator {
     [(-validate (state S Transitions))
      (-check-transitions Transitions)
      (+valid (state S Transitions))]
@@ -1070,7 +1070,7 @@ Systems can **extend** other systems:
   :laws [(clauses-well-formed)]
   :plugin logic-validator
 
-  (:= logic-validator {
+  (def logic-validator {
     [(-validate (fact F))
      (-check-ground F)
      (+valid (fact F))]
@@ -1106,7 +1106,7 @@ Systems can **extend** other systems:
   :laws [(single-inheritance) (methods-defined)]
   :plugin oop-validator
 
-  (:= oop-validator {
+  (def oop-validator {
     [(-validate (class C Parent Fields Methods))
      (-parent-exists Parent)
      (-methods-well-formed Methods)
@@ -1174,7 +1174,7 @@ Systems can **extend** other systems:
 
   ; Need low-level hack
   (escape
-    (:= debug-print
+    (def debug-print
       {[(+debug X) (show X)]})
     ; Not type-checked, low-level
   )
@@ -1380,8 +1380,8 @@ Systems can be adopted gradually:
 
 ```stellogen
 ; Start free
-(:= x 0)
-(:= y 1)
+(def x 0)
+(def y 1)
 
 ; Add system incrementally
 (begin-system typed
@@ -1389,7 +1389,7 @@ Systems can be adopted gradually:
 (end-system typed)
 
 ; Mix free and systematic code
-(:= free-value 3)
+(def free-value 3)
 
 (begin-system typed
   (defval typed-value : nat 4)

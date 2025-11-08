@@ -193,7 +193,7 @@ Stellogen introduces **polarized terms** with fusion semantics:
 (-add X Y Z)
 
 ' Constellation (set of rays)
-(:= add {
+(def add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 ```
@@ -209,7 +209,7 @@ In Stellogen, computation happens through **interaction** (from examples):
 
 ```stellogen
 ' Query: compute 2 + 2
-(:= query [(-add <s s 0> <s s 0> R) R])
+(def query [(-add <s s 0> <s s 0> R) R])
 
 ' Interaction performs fusion
 (show (exec #add @#query))
@@ -236,7 +236,7 @@ Can Stellogen simulate l → r rewriting?
 ' Traditional rewrite rule: add(s(X), Y) → s(add(X, Y))
 '
 ' Stellogen encoding:
-(:= add_rule {
+(def add_rule {
   [(-add (s X) Y Z) (+add X Y Z') (+s Z' Z)]})
 ```
 
@@ -269,7 +269,7 @@ Example:
 
 From `examples/prolog.sg`, we see Stellogen already encodes logic programs naturally:
 ```stellogen
-(:= add {
+(def add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 ```

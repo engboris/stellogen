@@ -23,7 +23,7 @@ We explore the tension between Stellogen's philosophy of purely local term inter
 In `examples/circuits.sg`, boolean semantics are encoded as constellations:
 
 ```stellogen
-(:= semantics {
+(def semantics {
   [(+1 1)]
   [(+0 0)]
   [(+s X X X)]                    ' splitter: duplicates input
@@ -108,7 +108,7 @@ Each step consumes the output of the previous step. Variables get bound progress
 #### **Recursive Unfolding** (`examples/nat.sg`, `examples/prolog.sg`)
 
 ```stellogen
-(:= add {
+(def add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 ```
@@ -118,7 +118,7 @@ Addition recursively unfolds the first argument until reaching base case. At eac
 #### **Database Queries** (`examples/prolog.sg`)
 
 ```stellogen
-(:= grandparent {
+(def grandparent {
   [(-grandparent X Z) (-parent X Y) (+parent Y Z)]})
 ```
 
@@ -237,7 +237,7 @@ Rewritten (staged):
 **Example:**
 
 ```stellogen
-(:= semantics {
+(def semantics {
   [(+and (ready 1) (ready X) (ready X))]
   [(+and (ready 0) (ready X) (ready 0))]
 })
@@ -281,7 +281,7 @@ But this reduces to Solution 4.3 (strictness annotations).
 **Example:**
 
 ```stellogen
-(:= semantics {
+(def semantics {
   [(+and !1 !X X)]    ' ! means "must not contain any variables"
   [(+and !0 !X 0)]
 })
@@ -344,7 +344,7 @@ let raymatcher r r' : substitution option =
   (inputs [0 1])    ' positions 0 and 1 are inputs (must be ground)
   (outputs [2]))    ' position 2 is output
 
-(:= semantics {
+(def semantics {
   [(+and 1 X X)]    ' evaluator automatically checks positions 0, 1 are ground
   [(+and 0 X 0)]
 })
@@ -596,7 +596,7 @@ How should errors be reported when strictness fails?
 ### 8.1 Original Circuit (Broken)
 
 ```stellogen
-(:= semantics {
+(def semantics {
   [(+1 1)]
   [(+0 0)]
   [(+not 1 0)] [(+not 0 1)]
@@ -641,7 +641,7 @@ How should errors be reported when strictness fails?
 ### 8.3 Strictness Annotation (Solution 3) ⭐
 
 ```stellogen
-(:= semantics {
+(def semantics {
   [(+1 1)]
   [(+0 0)]
   [(+not !1 0)] [(+not !0 1)]     ' NOT requires ground input
@@ -664,7 +664,7 @@ How should errors be reported when strictness fails?
 
 ```stellogen
 ' Introduce new polarity ~+ for "strict positive"
-(:= semantics {
+(def semantics {
   [(~+and 1 X X)]    ' ~+ means "positive + must be ground"
   [(~+and 0 X 0)]
 })
