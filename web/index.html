@@ -254,6 +254,29 @@
             .subtitle {
                 font-size: 0.75rem;
             }
+
+            /* Fix cursor visibility on mobile */
+            #editor {
+                /* Use a solid caret color with high contrast */
+                caret-color: #0066cc;
+                /* Prevent iOS zoom on focus */
+                font-size: 16px;
+                /* Improve touch target */
+                -webkit-tap-highlight-color: transparent;
+                /* Force hardware acceleration for smoother cursor rendering */
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+            }
+
+            #highlight-layer {
+                /* Match mobile editor font size */
+                font-size: 16px;
+            }
+
+            #line-numbers {
+                /* Match mobile editor font size */
+                font-size: 16px;
+            }
         }
     </style>
 </head>
