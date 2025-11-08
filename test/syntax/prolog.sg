@@ -1,27 +1,27 @@
 (macro (stack A B) (A B))
 (macro (stack A B C ...) (A (stack B C ...)))
 
-(:= add {
+(def add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
-(:= tested (exec { #add @[(-add 0 0 R) R] }))
+(def tested (exec { #add @[(-add 0 0 R) R] }))
 (== #tested 0)
 
-(:= tested (exec { #add @[(-add (s 0) 0 R) R] }))
+(def tested (exec { #add @[(-add (s 0) 0 R) R] }))
 (== #tested (s 0))
 
-(:= tested (exec { #add @[(-add 0 (s 0) R) R] }))
+(def tested (exec { #add @[(-add 0 (s 0) R) R] }))
 (== #tested (s 0))
 
-(:= tested (exec { #add @[(-add (stack s s 0) (stack s s 0) R) R] }))
+(def tested (exec { #add @[(-add (stack s s 0) (stack s s 0) R) R] }))
 (== #tested (stack s s s s 0))
 
-(:= tested (exec { #add @[(-add (stack s s 0) R (stack s s 0)) R] }))
+(def tested (exec { #add @[(-add (stack s s 0) R (stack s s 0)) R] }))
 (== #tested 0)
 
-(:= tested (exec { #add @[(-add (stack s s 0) R (stack s s s 0)) R] }))
+(def tested (exec { #add @[(-add (stack s s 0) R (stack s s s 0)) R] }))
 (== #tested (stack s 0))
 
-(:= tested (exec { #add @[(-add (stack s s 0) R (stack s s s s 0)) R] }))
+(def tested (exec { #add @[(-add (stack s s 0) R (stack s s s s 0)) R] }))
 (== #tested (stack s s 0))

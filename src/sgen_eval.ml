@@ -225,7 +225,7 @@ let pp_err error : (string, err) Result.t =
         , "Check the syntax of your star expression." )
       | InvalidDeclaration expr ->
         ( Printf.sprintf "expression '%s' is not a valid declaration" expr
-        , "Declarations must use :=, show, ==, or use." )
+        , "Declarations must use def, show, ==, or use." )
     in
     let header = bold (red "error") ^ ": " ^ bold error_msg in
     let loc_str =

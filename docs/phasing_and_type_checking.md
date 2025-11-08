@@ -34,7 +34,7 @@ In Stellogen, many operations that users expect to run at **compile-time** curre
 (macro (:: Tested Test)
   (== @(exec @#Tested #Test) ok))
 
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)  ' Checked at runtime
 ```
 
@@ -51,7 +51,7 @@ In Stellogen, many operations that users expect to run at **compile-time** curre
 **Example 3: Compile-time constants:**
 
 ```stellogen
-(:= table-size (exec #compute-optimal-size ...))
+(def table-size (exec #compute-optimal-size ...))
 (show (generate-table #table-size))  ' Computed at runtime
 ```
 
@@ -150,14 +150,14 @@ Final Environment + Results
 **Usage:**
 
 ```stellogen
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)
 ```
 
 **Expansion** (during preprocessing):
 
 ```stellogen
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (== @(exec @#zero #nat) ok)
 ```
 
@@ -190,10 +190,10 @@ Final Environment + Results
 **Expectation** (from most typed languages):
 
 ```stellogen
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)              ' Check at compile-time
 
-(:= add-numbers ...)
+(def add-numbers ...)
 (show (exec #add-numbers ...))  ' Run at execution-time
 ```
 
@@ -207,14 +207,14 @@ Final Environment + Results
 **Simple case** (can check statically):
 
 ```stellogen
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)              ' Can check without running anything
 ```
 
 **Complex case** (needs runtime values):
 
 ```stellogen
-(:= compute-number (exec #some-computation ...))
+(def compute-number (exec #some-computation ...))
 (:: compute-number nat)    ' Depends on result of computation!
 ```
 
@@ -225,13 +225,13 @@ How can we check the type of `compute-number` before running `some-computation`?
 **Example:**
 
 ```stellogen
-(:= base (+nat 0))
+(def base (+nat 0))
 (:: base nat)                           ' Check 1
 
-(:= incremented (exec #add1 @#base))
+(def incremented (exec #add1 @#base))
 (:: incremented nat)                    ' Check 2 (depends on Check 1)
 
-(:= doubled (exec #double @#incremented))
+(def doubled (exec #double @#incremented))
 (:: doubled nat)                        ' Check 3 (depends on Check 2)
 ```
 
@@ -242,11 +242,11 @@ Checks form a **dependency graph**. What order should they execute in?
 **Example:**
 
 ```stellogen
-(:= even {
+(def even {
   [(-even 0) ok]
   [(-even (s N)) (+odd N)]})
 
-(:= odd {
+(def odd {
   [(-odd (s N)) (+even N)]})
 
 (:: even-checker even)     ' Depends on odd
@@ -261,13 +261,13 @@ Users might want **multiple phases** beyond just "type check" and "execute":
 
 ```stellogen
 @compile-time
-(:= type-level-computation ...)
+(def type-level-computation ...)
 
 @type-check-time
 (:: value type)
 
 @link-time
-(:= connect-modules ...)
+(def connect-modules ...)
 
 @run-time
 (show (exec ...))
@@ -477,7 +477,7 @@ Execution Phase:
 **Example:**
 
 ```stellogen
-(:= computed (exec #complex-computation ...))
+(def computed (exec #complex-computation ...))
 (:: computed nat)
 ```
 
@@ -495,7 +495,7 @@ Execution Phase:
 
 3. **Require explicit annotation**
    ```stellogen
-   (:= computed @type:(nat) (exec #complex-computation ...))
+   (def computed @type:(nat) (exec #complex-computation ...))
    ```
    - Type is promised, checked at runtime if needed
 
@@ -509,9 +509,9 @@ Execution Phase:
 **Example:**
 
 ```stellogen
-(:= a (+nat 0))
-(:= b (exec #add1 @#a))
-(:= c (exec #double @#b))
+(def a (+nat 0))
+(def b (exec #add1 @#a))
+(def c (exec #double @#b))
 
 (:: a nat)
 (:: b nat)
@@ -540,11 +540,11 @@ a
 **Example:**
 
 ```stellogen
-(:= even {
+(def even {
   [(-even 0) ok]
   [(-even (s N)) (+odd N)]})
 
-(:= odd {
+(def odd {
   [(-odd (s N)) (+even N)]})
 
 (:: even-checker even)
@@ -570,7 +570,7 @@ even ←→ odd
 **Example:**
 
 ```stellogen
-(:= infinite-loop {
+(def infinite-loop {
   [(-loop X) (+loop X)]})
 
 (:: infinite-loop ???)
@@ -621,11 +621,11 @@ Final Results
 
 ```stellogen
 ' Definitions (phase 0)
-(:= nat { ... })
+(def nat { ... })
 
 ' Compile-time computations (phase 1)
 @compile-time
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)
 
 ' Static analysis
@@ -667,10 +667,10 @@ Final Results
 **Example:**
 
 ```stellogen
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)              ' Depends on zero
 
-(:= one (exec #add1 @#zero))
+(def one (exec #add1 @#zero))
 (:: one nat)               ' Depends on one, add1, zero
 
 (show (exec #one ...))  ' Depends on one
@@ -722,10 +722,10 @@ Topological order:
 
 ```stellogen
 @phase(0)  ' Definitions phase
-(:= nat { ... })
+(def nat { ... })
 
 @phase(1)  ' Compile-time phase
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)
 (check-linearity my-function)
 
@@ -737,10 +737,10 @@ Or with named phases:
 
 ```stellogen
 @define
-(:= nat { ... })
+(def nat { ... })
 
 @compile-time
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)
 (analyze-coverage my-cases)
 
@@ -752,7 +752,7 @@ Or user-defined phases:
 
 ```stellogen
 @phase:definitions
-(:= nat { ... })
+(def nat { ... })
 
 @phase:type-check
 (:: zero nat)
@@ -805,7 +805,7 @@ etc.
 
 ```stellogen
 ' Normal definition
-(:= zero (+nat 0))
+(def zero (+nat 0))
 
 ' Type check in separate environment
 (typecheck
@@ -850,10 +850,10 @@ etc.
 **Syntax:**
 
 ```stellogen
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat @lazy)        ' Checked when zero is first used
 
-(:= one (exec #add1 @#zero))  ' Triggers check of zero
+(def one (exec #add1 @#zero))  ' Triggers check of zero
 (:: one nat @lazy)
 
 (show @#one)               ' Triggers check of one (and transitively zero)
@@ -896,8 +896,8 @@ etc.
 (declare-phase execution)
 
 ' Definitions (always run first)
-(:= nat { ... })
-(:= zero (+nat 0))
+(def nat { ... })
+(def zero (+nat 0))
 
 ' Type checking phase
 (in-phase type-checking
@@ -936,17 +936,17 @@ Pass 3: Execute (in-phase execution ...) blocks
 
 ```stellogen
 ' Stage 0: Definitions (always run first)
-(:= nat { ... })
+(def nat { ... })
 
 ' Stage 1: Type checking
-@stage(1) (:= zero (+nat 0))
+@stage(1) (def zero (+nat 0))
 @stage(1) (:: zero nat)
 
 ' Stage 2: Main execution
 @stage(2) (show (exec #zero ...))
 
 ' Or more explicit:
-(:= zero @stage(1) (+nat 0))
+(def zero @stage(1) (+nat 0))
 (:: zero nat @stage(1))
 ```
 
@@ -991,8 +991,8 @@ Pass 3: Execute (in-phase execution ...) blocks
 
 ' Use custom phases
 @phase:definitions
-(:= nat { ... })
-(:= factorial { ... })
+(def nat { ... })
+(def factorial { ... })
 
 @phase:analyze
 (check-termination #factorial)
@@ -1017,11 +1017,11 @@ Pass 3: Execute (in-phase execution ...) blocks
 ```stellogen
 ' Definitions available to all phases
 @phase:definitions
-(:= nat { ... })
+(def nat { ... })
 
 ' Analysis results available to optimization
 @phase:analyze
-(:= termination-proof (prove-termination #factorial))
+(def termination-proof (prove-termination #factorial))
 
 ' Optimization can use analysis results
 @phase:optimize
@@ -1096,11 +1096,11 @@ While the primary motivation is type checking, the phasing system should support
 ```stellogen
 ' Compute constants at compile-time
 @compile-time
-(:= table-size (exec #compute-optimal-size #input-parameters))
+(def table-size (exec #compute-optimal-size #input-parameters))
 
 ' Use computed constant at runtime
 @runtime
-(:= lookup-table (generate-table #table-size))
+(def lookup-table (generate-table #table-size))
 ```
 
 **Code specialization:**
@@ -1108,7 +1108,7 @@ While the primary motivation is type checking, the phasing system should support
 ```stellogen
 ' Specialize generic function with known arguments
 @compile-time
-(:= power-of-3 (specialize #power 3))
+(def power-of-3 (specialize #power 3))
 
 ' Use specialized version at runtime
 @runtime
@@ -1120,14 +1120,14 @@ While the primary motivation is type checking, the phasing system should support
 ```stellogen
 ' Generate lookup table at compile-time
 @compile-time
-(:= sin-table (generate-lookup-table
+(def sin-table (generate-lookup-table
   #sin
   :range [0 (/ pi 2)]
   :precision 0.001))
 
 ' Use table at runtime
 @runtime
-(:= fast-sin [(-sin X) (+lookup-table-get #sin-table X)])
+(def fast-sin [(-sin X) (+lookup-table-get #sin-table X)])
 ```
 
 ### Use Case 3: Metaprogramming
@@ -1137,7 +1137,7 @@ While the primary motivation is type checking, the phasing system should support
 ```stellogen
 ' Inspect structure of constellations at compile-time
 @compile-time
-(:= nat-structure (reflect-on #nat))
+(def nat-structure (reflect-on #nat))
 (show "Nat has" (count-stars #nat-structure) "stars")
 ```
 
@@ -1146,14 +1146,14 @@ While the primary motivation is type checking, the phasing system should support
 ```stellogen
 ' Generate boilerplate from specification
 @compile-time
-(:= person-record (generate-record
+(def person-record (generate-record
   [name string]
   [age nat]
   [email string]))
 
 ' Use generated code at runtime
 @runtime
-(:= john (make-person "John" 30 "john@example.com"))
+(def john (make-person "John" 30 "john@example.com"))
 ```
 
 **Derive functionality:**
@@ -1311,13 +1311,13 @@ All these use cases follow a pattern:
 ```stellogen
 ' Compile-time: Verify termination
 @compile-time
-(:= fib-terminates (prove-termination #fibonacci))
+(def fib-terminates (prove-termination #fibonacci))
 
 ' Compile-time: Optimize based on proof
 @compile-time
 (if #fib-terminates
-  (:= fib-optimized (aggressive-optimize #fibonacci))
-  (:= fib-optimized #fibonacci))
+  (def fib-optimized (aggressive-optimize #fibonacci))
+  (def fib-optimized #fibonacci))
 
 ' Runtime: Use optimized version
 @runtime
@@ -1334,7 +1334,7 @@ The phasing system should allow users to define **their own compile-time analyse
 ' Define a new analysis
 (macro (my-analysis Subject)
   @compile-time
-  (:= result (run-my-analysis-logic #Subject))
+  (def result (run-my-analysis-logic #Subject))
   (report-results #result))
 
 ' Use the analysis
@@ -1445,7 +1445,7 @@ Combine the best aspects of several solutions:
 
 ```
 Phase 0: Definitions (implicit)
-- All top-level (:= ...) declarations
+- All top-level (def ...) declarations
 - All (spec ...) type definitions
 - All macro definitions
 - No annotations needed
@@ -1487,18 +1487,18 @@ Phase 2: Runtime (explicit or implicit)
 
 ```stellogen
 ' Phase 0 (implicit): Definitions
-(:= nat {
+(def nat {
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 
-(:= add1 [(-nat X) (+nat (s X))])
+(def add1 [(-nat X) (+nat (s X))])
 
 ' Phase 1: Compile-time
 @compile-time {
-  (:= zero (+nat 0))
+  (def zero (+nat 0))
   (:: zero nat)
 
-  (:= one (+nat (s 0)))
+  (def one (+nat (s 0)))
   (:: one nat)
 
   (check-terminates factorial)
@@ -1514,8 +1514,8 @@ Phase 2: Runtime (explicit or implicit)
 
 ```stellogen
 ' Phase 0: Definitions
-(:= nat { ... })
-(:= factorial { ... })
+(def nat { ... })
+(def factorial { ... })
 
 ' Phase 1a: Type checking
 @phase:type-check {
@@ -1545,10 +1545,10 @@ Phase 2: Runtime (explicit or implicit)
 
 ```stellogen
 ' Definitions
-(:= nat { ... })
+(def nat { ... })
 
 ' Compile-time declarations
-(:= zero @compile-time (+nat 0))
+(def zero @compile-time (+nat 0))
 (:: zero nat @compile-time)
 
 ' Runtime
@@ -1615,7 +1615,7 @@ Available to each phase:
 
 Example:
 Phase 0:
-  (:= nat { ... })
+  (def nat { ... })
   → definition_env = {nat: ...}
 
 Phase 1:
@@ -1639,14 +1639,14 @@ Phase 2:
 
 ```stellogen
 ' Phase 0
-(:= nat { ... })
+(def nat { ... })
 
 ' Phase 1: Compile-time
 @compile-time {
-  (:= zero (+nat 0))
+  (def zero (+nat 0))
   (:: zero nat)              ' Depends on nat (Phase 0) and zero (Phase 1)
 
-  (:= one (+nat (s 0)))
+  (def one (+nat (s 0)))
   (:: one nat @depends-on(zero))  ' Explicit dependency on zero's type check
 }
 ```
@@ -1655,15 +1655,15 @@ Phase 2:
 
 ```
 Within Phase 1:
-- (:= zero ...) → depends on nothing (nat is Phase 0)
-- (:: zero nat) → depends on (:= zero ...) and nat
-- (:= one ...) → depends on nothing
-- (:: one nat @depends-on(zero)) → depends on (:= one ...), nat, (:: zero nat)
+- (def zero ...) → depends on nothing (nat is Phase 0)
+- (:: zero nat) → depends on (def zero ...) and nat
+- (def one ...) → depends on nothing
+- (:: one nat @depends-on(zero)) → depends on (def one ...), nat, (:: zero nat)
 
 Execution order:
-1. (:= zero ...)
+1. (def zero ...)
 2. (:: zero nat)
-3. (:= one ...)
+3. (def one ...)
 4. (:: one nat)
 ```
 
@@ -1671,8 +1671,8 @@ Execution order:
 
 ```stellogen
 ' Phase 0
-(:= factorial { ... })
-(:= power { ... })
+(def factorial { ... })
+(def power { ... })
 
 ' Phase 1: Compile-time
 @compile-time {
@@ -1683,11 +1683,11 @@ Execution order:
   (check-terminates factorial)
 
   ' Optimization (depends on analysis)
-  (:= factorial-optimized
+  (def factorial-optimized
     (optimize-with-proof #factorial #factorial_terminates))
 
   ' Code generation (depends on optimization)
-  (:= power-of-3 (specialize #power 3))
+  (def power-of-3 (specialize #power 3))
 }
 
 ' Phase 2: Runtime
@@ -1703,8 +1703,8 @@ Execution order:
 Phase 1:
   (:: factorial ...) → depends on factorial
   (check-terminates factorial) → depends on (:: factorial ...)
-  (:= factorial-optimized ...) → depends on (check-terminates factorial)
-  (:= power-of-3 ...) → depends on power
+  (def factorial-optimized ...) → depends on (check-terminates factorial)
+  (def power-of-3 ...) → depends on power
 
 Order: type-check → analysis → optimization → code-gen
 ```
@@ -1715,8 +1715,8 @@ Order: type-check → analysis → optimization → code-gen
 
 ```stellogen
 @typecheck {
-  (:= even { [(-even 0) ok] [(-even (s N)) (+odd N)] })
-  (:= odd { [(-odd (s N)) (+even N)] })
+  (def even { [(-even 0) ok] [(-even (s N)) (+odd N)] })
+  (def odd { [(-odd (s N)) (+even N)] })
 
   (:: even-checker even)
   (:: odd-checker odd)
@@ -1731,8 +1731,8 @@ Order: type-check → analysis → optimization → code-gen
 @typecheck {
   ' Mutual group
   @mutual {
-    (:= even { [(-even 0) ok] [(-even (s N)) (+odd N)] })
-    (:= odd { [(-odd (s N)) (+even N)] })
+    (def even { [(-even 0) ok] [(-even (s N)) (+odd N)] })
+    (def odd { [(-odd (s N)) (+even N)] })
   }
 
   ' Then check both
@@ -2003,14 +2003,14 @@ These questions will be answered through experimentation and user feedback.
 
 ```stellogen
 ' Phase 0: Definitions
-(:= nat { [(-nat 0) ok] [(-nat (s N)) (+nat N)] })
+(def nat { [(-nat 0) ok] [(-nat (s N)) (+nat N)] })
 
 ' Phase 1: Compile-time (type checking)
 @compile-time {
-  (:= zero (+nat 0))
+  (def zero (+nat 0))
   (:: zero nat)
 
-  (:= one (+nat (s 0)))
+  (def one (+nat (s 0)))
   (:: one nat)
 }
 
@@ -2022,8 +2022,8 @@ These questions will be answered through experimentation and user feedback.
 
 ```stellogen
 ' Definitions
-(:= factorial { ... })
-(:= compute-optimal-size { ... })
+(def factorial { ... })
+(def compute-optimal-size { ... })
 
 ' Compile-time: multiple analyses
 @compile-time {
@@ -2036,11 +2036,11 @@ These questions will be answered through experimentation and user feedback.
 
   ' Optimization
   (inline small-functions)
-  (:= factorial-opt (specialize #factorial))
+  (def factorial-opt (specialize #factorial))
 
   ' Pre-computation
-  (:= table-size (exec #compute-optimal-size ...))
-  (:= lookup-table (generate-table #table-size))
+  (def table-size (exec #compute-optimal-size ...))
+  (def lookup-table (generate-table #table-size))
 }
 
 ' Runtime: use pre-computed and optimized code
@@ -2075,7 +2075,7 @@ These questions will be answered through experimentation and user feedback.
 ```stellogen
 @compile-time {
   ' Generate record type
-  (:= person-record (generate-record
+  (def person-record (generate-record
     [name string]
     [age nat]
     [email string]))
@@ -2085,7 +2085,7 @@ These questions will be answered through experimentation and user feedback.
 }
 
 @runtime {
-  (:= john (make-person "John" 30 "john@example.com"))
+  (def john (make-person "John" 30 "john@example.com"))
   (show #john)  ' Uses derived show
 }
 ```
@@ -2095,20 +2095,20 @@ These questions will be answered through experimentation and user feedback.
 ```stellogen
 @compile-time {
   ' 1. Type checking
-  (:= factorial { ... })
+  (def factorial { ... })
   (:: factorial (fn nat nat))
 
   ' 2. Termination analysis (depends on type check)
-  (:= termination-proof (prove-termination #factorial))
+  (def termination-proof (prove-termination #factorial))
 
   ' 3. Optimization (depends on proof)
-  (:= factorial-opt
+  (def factorial-opt
     (if #termination-proof
       (aggressive-optimize #factorial)
       (conservative-optimize #factorial)))
 
   ' 4. Code generation (depends on optimized version)
-  (:= factorial-specialized (specialize #factorial-opt 10))
+  (def factorial-specialized (specialize #factorial-opt 10))
 }
 
 ' Execution order automatically determined:
@@ -2119,7 +2119,7 @@ These questions will be answered through experimentation and user feedback.
 
 ```stellogen
 ' Phase 0: Definitions
-(:= my-function { ... })
+(def my-function { ... })
 
 ' Phase 1a: Type checking
 @phase:type-check {
@@ -2134,7 +2134,7 @@ These questions will be answered through experimentation and user feedback.
 
 ' Phase 1c: Optimization
 @phase:optimize {
-  (:= my-function-opt (optimize #my-function))
+  (def my-function-opt (optimize #my-function))
 }
 
 ' Phase 2: Runtime
@@ -2148,8 +2148,8 @@ These questions will be answered through experimentation and user feedback.
 ```stellogen
 @compile-time {
   @mutual {
-    (:= even { [(-even 0) ok] [(-even (s N)) (+odd N)] })
-    (:= odd { [(-odd (s N)) (+even N)] })
+    (def even { [(-even 0) ok] [(-even (s N)) (+odd N)] })
+    (def odd { [(-odd (s N)) (+even N)] })
   }
 
   (:: test-even even)
@@ -2174,7 +2174,7 @@ These questions will be answered through experimentation and user feedback.
 **Idea 1: Inline phase annotations:**
 
 ```stellogen
-(:= zero @phase:typecheck (+nat 0))
+(def zero @phase:typecheck (+nat 0))
 (:: zero nat @phase:typecheck)
 ```
 
@@ -2182,7 +2182,7 @@ These questions will be answered through experimentation and user feedback.
 
 ```stellogen
 ' Any (:: ...) automatically goes to type checking phase
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)  ' Implicitly in type checking phase
 ```
 
@@ -2190,10 +2190,10 @@ These questions will be answered through experimentation and user feedback.
 
 ```stellogen
 (phase definitions
-  (:= nat { ... }))
+  (def nat { ... }))
 
 (phase type-checking
-  (:= zero (+nat 0))
+  (def zero (+nat 0))
   (:: zero nat))
 
 (phase execution
@@ -2216,7 +2216,7 @@ Users can build libraries of compile-time analyses and tools.
 
 ' Type declaration (alias for spec)
 (macro (type Name Spec)
-  (:= Name Spec))
+  (def Name Spec))
 
 ' Function type
 (macro (fn ArgType RetType)
@@ -2334,7 +2334,7 @@ Users can build libraries of compile-time analyses and tools.
   [(-list []) ok]
   [(-list [_|T]) (+list T)]})
 
-(:= factorial {
+(def factorial {
   [(+factorial 0 1)]
   [(-factorial (s N) R)
    (-factorial N R1)
@@ -2352,7 +2352,7 @@ Users can build libraries of compile-time analyses and tools.
 
   ' Optimization
   (inline helper-functions)
-  (:= factorial-opt (specialize factorial))
+  (def factorial-opt (specialize factorial))
 
   ' Code generation
   (generate-record person [name age email])
@@ -2362,7 +2362,7 @@ Users can build libraries of compile-time analyses and tools.
 ' Runtime
 @runtime {
   (show (factorial 10))
-  (:= john (make-person "John" 30 "john@example.com"))
+  (def john (make-person "John" 30 "john@example.com"))
   (show #john)
 }
 ```

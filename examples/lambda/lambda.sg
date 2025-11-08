@@ -1,28 +1,28 @@
 ' id id
-(:= id [(+id (exp [l|X] d)) (+id [r|X])])
+(def id [(+id (exp [l|X] d)) (+id [r|X])])
 
-(:= id_arg [(ida (exp [l|X] Y)) (+arg (exp [l r|X] Y))])
+(def id_arg [(ida (exp [l|X] Y)) (+arg (exp [l r|X] Y))])
 
-(:= linker {
+(def linker {
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]})
 
 (show (exec #id #id_arg #linker))
 
 ' id x
-(:= var_x [(x (exp X Y)) (+arg (exp [l|X] Y))])
+(def var_x [(x (exp X Y)) (+arg (exp [l|X] Y))])
 
-(:= linker {
+(def linker {
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]})
 
 (show (exec #id #var_x #linker))
 
 ' lproj x
-(:= lproj {
+(def lproj {
   [(+lproj [l|X])] 'weakening
   [(lproj (exp [r l|X] d)) (+lproj [r r|X])]})
 
-(:= linker {
+(def linker {
   [(-lproj X) (-arg X)]
   @[(+arg [r|X]) (out X)]})

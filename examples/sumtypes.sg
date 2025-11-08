@@ -6,14 +6,14 @@
   [-west ok]
   [-east ok]})
 
-(:= n +north) (:: n direction)
+(def n +north) (:: n direction)
 
 (spec result { [(-ok X) ok] [(-error X) ok]})
 
-(:= x (+ok a)) (:: x result)
+(def x (+ok a)) (:: x result)
 
 'pattern matching
-(:= get_ok {
+(def get_ok {
   [(-ok X) X]
   [(-error X) (+error X)]})
 

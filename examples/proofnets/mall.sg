@@ -1,15 +1,15 @@
 (use-macros "../milkyway/prelude.sg")
 
-(:= left  [(+5 [l l|X]) (+5 [l r|X]) || (slice c a)])
-(:= right [(+5 [r l|X]) (+5 [r r|X]) || (slice c b)])
+(def left  [(+5 [l l|X]) (+5 [l r|X]) || (slice c a)])
+(def right [(+5 [r l|X]) (+5 [r r|X]) || (slice c b)])
 
-(:= with { #left #right })
+(def with { #left #right })
 
-(:= plus {
+(def plus {
   [(+3 [l l|X]) (c X)]
   [(+3 [l r|X]) (d X)]})
 
-(:= cut [(-5 X) (-3 X)])
+(def cut [(-5 X) (-3 X)])
 
 (stack show exec (process
   #with

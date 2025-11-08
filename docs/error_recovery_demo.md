@@ -8,7 +8,7 @@ This document demonstrates Stellogen's error recovery capabilities.
 
 **Input** (`single_error.sg`):
 ```stellogen
-(:= x 42))
+(def x 42))
 ```
 
 **Output**:
@@ -16,7 +16,7 @@ This document demonstrates Stellogen's error recovery capabilities.
 error: no opening delimiter for ')'
   --> single_error.sg:1:9
 
-    1 | (:= x 42))
+    1 | (def x 42))
       |          ^
 
   hint: remove this delimiter or add a matching opening delimiter
@@ -28,7 +28,7 @@ found 1 error(s)
 
 **Input** (`unclosed.sg`):
 ```stellogen
-(:= x (add 1 2
+(def x (add 1 2
 ```
 
 **Output**:
@@ -45,9 +45,9 @@ found 1 error(s)
 
 **Input** (`multiple_errors.sg`):
 ```stellogen
-(:= good1 42)
-(:= bad1 x))
-(:= good2 100)
+(def good1 42)
+(def bad1 x))
+(def good2 100)
 ```
 
 **Output**:
@@ -55,7 +55,7 @@ found 1 error(s)
 error: no opening delimiter for ')'
   --> multiple_errors.sg:2:12
 
-    2 | (:= bad1 x))
+    2 | (def bad1 x))
       |            ^
 
   hint: remove this delimiter or add a matching opening delimiter
@@ -63,7 +63,7 @@ error: no opening delimiter for ')'
 error: unexpected symbol ':='
   --> multiple_errors.sg:3:2
 
-    3 | (:= good2 100)
+    3 | (def good2 100)
       |  ^
 
   hint: check if this symbol is in the right place
@@ -77,11 +77,11 @@ found 2 error(s)
 
 **Input** (`valid.sg`):
 ```stellogen
-(:= add {
+(def add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
-(:= query [(-add <s s 0> <s s 0> R) R])
+(def query [(-add <s s 0> <s s 0> R) R])
 ```
 
 **Output**:

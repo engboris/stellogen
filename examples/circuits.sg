@@ -1,6 +1,6 @@
 ' FIXME
 
-(:= bool_semantics {
+(def bool_semantics {
   [(+1 1)]
   [(+0 0)]
   [(+s X X X)]
@@ -9,7 +9,7 @@
 })
 
 '''
-(:= c1 {
+(def c1 {
   '      sharing
   [      (-c0 X)
         (-s X Y Z)
@@ -38,7 +38,7 @@
 '''
 
 '''
-(:= c2 {
+(def c2 {
   'inputs
   {
     [(-0 X) (+c0 X)]

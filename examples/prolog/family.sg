@@ -11,7 +11,7 @@ Having mechanisms to simulate the behavior of Prolog are needed.
 FAMILY RELATIONSHIPS
 '''
 
-(:= family {
+(def family {
   [(+parent tom of bob)]
   [(+parent tom of liz)]
   [(+parent bob of ann)]
@@ -19,10 +19,10 @@ FAMILY RELATIONSHIPS
   [(+parent pat of jim)]})
 
 ' grandparent relationship
-(:= grandparent {
+(def grandparent {
   [(+grandparent X of Z) (-parent X of Y) (+parent Y of Z)]})
 
-(:= knowledge { #family #grandparent })
+(def knowledge { #family #grandparent })
 
 ' who are ann's parents?
 (show (exec #family @[(-parent P of ann) P]))

@@ -73,8 +73,8 @@ Y = a.
 **Stellogen:**
 ```stellogen
 ' Unification happens during interaction
-(:= query [(-f X a)])
-(:= fact  [(+f b Y)])
+(def query [(-f X a)])
+(def fact  [(+f b Y)])
 ' When they interact, X unifies with b, Y with a
 ```
 
@@ -95,15 +95,15 @@ Z = ann.
 
 **Stellogen - Same example (`examples/prolog.sg:13-29`):**
 ```stellogen
-(:= family {
+(def family {
   [(+parent tom bob)]
   [(+parent bob ann)]
   [(+parent pat jim)]})
 
-(:= grandparent {
+(def grandparent {
   [(-grandparent X Z) (-parent X Y) (+parent Y Z)]})
 
-(:= query [(-grandparent tom Z) Z])
+(def query [(-grandparent tom Z) Z])
 (show (exec #grandparent @(process #query #family)))
 ' Result: [ann, jim]
 ```
@@ -123,11 +123,11 @@ R = s(s(s(s(0)))).
 
 **Stellogen - Same (`examples/prolog.sg:3-10`):**
 ```stellogen
-(:= add {
+(def add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
-(:= query1 [(-add <s s 0> <s s 0> R) R])
+(def query1 [(-add <s s 0> <s s 0> R) R])
 (show (exec #add @#query1))
 ' Result: (s (s (s (s 0))))
 ```
@@ -176,7 +176,7 @@ X = 3.     % backtrack
 **Stellogen:** Constellations are **unordered sets** of stars. All applicable interactions happen (unless using linear `fire`).
 
 ```stellogen
-(:= example {
+(def example {
   [(+f a) result1]
   [(+f b) result2]
   [(+f c) result3]})
@@ -195,7 +195,7 @@ X = 3.     % backtrack
 - `process`: Chain interactions
 
 ```stellogen
-(:= x (+f a))
+(def x (+f a))
 #x          ' Just the identifier
 @#x         ' Focused/evaluated
 (exec @#x #y)  ' Explicit interaction
@@ -212,7 +212,7 @@ X = 3.     % backtrack
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)  ' Type check via interaction
 ```
 
@@ -256,7 +256,7 @@ Both use S-expressions as the primary syntactic form.
 
 **Stellogen:**
 ```stellogen
-(:= add { ... })
+(def add { ... })
 (show (exec #add @#query))
 ```
 
@@ -279,7 +279,7 @@ Both support powerful macro systems for syntactic extension.
 
 **Stellogen:**
 ```stellogen
-(macro (spec X Y) (:= X Y))
+(macro (spec X Y) (def X Y))
 (macro (:: Tested Test)
   (== @(exec @#Tested #Test) ok))
 
@@ -301,7 +301,7 @@ Both have an `eval` function for runtime code evaluation.
 
 **Stellogen (`src/sgen_eval.ml:208-223`):**
 ```stellogen
-(:= x (+f a))
+(def x (+f a))
 (eval #x)  ' Reifies and evaluates the term
 ```
 
@@ -336,7 +336,7 @@ Both support multiple paradigms.
 **Stellogen:** Based on **term unification** and **polarity interaction**.
 
 ```stellogen
-(:= square {
+(def square {
   [(-square X R) (+mult X X R)]})
 ```
 
@@ -354,7 +354,7 @@ No inherent notion of "function application"—everything is interaction.
 **Stellogen:** **Explicit evaluation control** via focus `@` and interaction.
 
 ```stellogen
-(:= x (error))
+(def x (error))
 #x         ' Fine—just the identifier
 @#x        ' Error! Evaluation forced
 ```
@@ -436,8 +436,8 @@ Both use unification to relate terms.
 
 **Stellogen:**
 ```stellogen
-(:= fact [(+hello q)])
-(:= query [(-hello X) X])
+(def fact [(+hello q)])
+(def query [(-hello X) X])
 (show (exec #fact @#query))
 ```
 
@@ -468,16 +468,16 @@ Both can express relations that work in multiple directions.
 
 **Stellogen - Similar pattern:**
 ```stellogen
-(:= appendo {
+(def appendo {
   [(+append [] S S)]
   [(-append [A|D] S [A|Res]) (+append D S Res)]})
 
 ' Forward
-(:= q1 [(-append [1 2] [3 4] R) R])
+(def q1 [(-append [1 2] [3 4] R) R])
 (show (exec #appendo @#q1))
 
 ' Backward (if properly defined)
-(:= q2 [(-append X [3 4] [1 2 3 4]) X])
+(def q2 [(-append X [3 4] [1 2 3 4]) X])
 (show (exec #appendo @#q2))
 ```
 
@@ -532,7 +532,7 @@ Both support logic variables that get bound through unification.
 **Stellogen:** Supports inequality constraints `!=` but not full CLP.
 
 ```stellogen
-(:= example {
+(def example {
   [(+f a)]
   [(+f b)]
   @[(-f X) (-f Y) (r X Y) || (!= X Y)]})
@@ -615,7 +615,7 @@ This is analogous—requests (negative rays) are like messages, and provisions (
 **Stellogen:** `eval` provides a form of reflection—treating terms as code.
 
 ```stellogen
-(:= x (+f a))
+(def x (+f a))
 (eval #x)  ' Meta-level evaluation
 ```
 
@@ -626,9 +626,9 @@ This is analogous—requests (negative rays) are like messages, and provisions (
 **Stellogen:** Constellations, types, macros—all are expressions that can be manipulated.
 
 ```stellogen
-(:= type1 { ... })
-(:= type2 { ... })
-(:= combined { #type1 #type2 })
+(def type1 { ... })
+(def type2 { ... })
+(def combined { #type1 #type2 })
 ```
 
 ### Differences from Stellogen
@@ -652,7 +652,7 @@ counter := counter + 1.
 
 ```stellogen
 ' No assignment—only definitions and interactions
-(:= value 0)
+(def value 0)
 ' Cannot mutate value
 ```
 
@@ -667,7 +667,7 @@ Array subclass: #SortedArray ...
 **Stellogen:** No inheritance. Composition via constellations.
 
 ```stellogen
-(:= extended { #base #extra })
+(def extended { #base #extra })
 ```
 
 #### 4. Control Structures
@@ -682,7 +682,7 @@ x > 0 ifTrue: [ 'positive' ] ifFalse: [ 'non-positive' ]
 
 ```stellogen
 ' No if/then/else—use constellations that match
-(:= check {
+(def check {
   [(+is-positive X) (result positive)]
   [(+is-negative X) (result negative)]})
 ```
@@ -727,7 +727,7 @@ x > 0 ifTrue: [ 'positive' ] ifFalse: [ 'non-positive' ]
 **Stellogen:** Types are user-defined interactive tests—completely optional.
 
 ```stellogen
-(:= factorial { ... })
+(def factorial { ... })
 ' No type required
 
 (spec nat { ... })
@@ -749,8 +749,8 @@ x > 0 ifTrue: [ 'positive' ] ifFalse: [ 'non-positive' ]
 **Stellogen:** Supports Prolog-style logic programming natively via constellations.
 
 ```stellogen
-(:= family { [(+parent tom bob)] ... })
-(:= grandparent { [(-grandparent X Z) (-parent X Y) (+parent Y Z)] })
+(def family { [(+parent tom bob)] ... })
+(def grandparent { [(-grandparent X Z) (-parent X Y) (+parent Y Z)] })
 ```
 
 #### 3. Philosophy
@@ -794,7 +794,7 @@ Both put the user in control rather than imposing a system.
 **Stellogen:** Pattern matching happens via **unification during interaction**.
 
 ```stellogen
-(:= member {
+(def member {
   [(+member X [X|_]) true]
   [(-member X [_|Tail]) (+member X Tail)]})
 ```
@@ -849,7 +849,7 @@ append([X | Xs], Ys, [X | Zs]) :- append(Xs, Ys, Zs).
 
 **Stellogen:**
 ```stellogen
-(:= append {
+(def append {
   [(+append [] Ys Ys)]
   [(-append [X|Xs] Ys [X|Zs]) (+append Xs Ys Zs)]})
 ```
@@ -948,7 +948,7 @@ main = append xs [3,4] =:= [1,2,3,4]
 
 **Stellogen:**
 ```stellogen
-(:= append {
+(def append {
   [(+append [] Ys Ys)]
   [(-append [X|Xs] Ys [X|Zs]) (+append Xs Ys Zs)]})
 ```
@@ -969,7 +969,7 @@ main = double coin  -- Could be 0, 1, 2
 **Stellogen:** Constellations can have multiple matching stars.
 
 ```stellogen
-(:= coin {
+(def coin {
   [(+coin 0)]
   [(+coin 1)]})
 ```
@@ -1046,7 +1046,7 @@ map F [X|Xs] [Y|Ys] :- Y = (F X), map F Xs Ys.
 **Stellogen:** Can encode lambda calculus (`examples/lambda.sg`).
 
 ```stellogen
-(:= id [(+id (exp [l|X] d)) (+id [r|X])])
+(def id [(+id (exp [l|X] d)) (+id [r|X])])
 ```
 
 ### Differences from Stellogen
@@ -1392,7 +1392,7 @@ square == dup *
 **Stellogen:** Variables are explicit (uppercase).
 
 ```stellogen
-(:= square [(-square X R) (+mult X X R)])
+(def square [(-square X R) (+mult X X R)])
 ```
 
 ### Summary: Concatenative vs Stellogen
@@ -1422,7 +1422,7 @@ Having compared Stellogen to related languages, we can now identify what makes i
 **User defines meaning:**
 ```stellogen
 ' You define what "add" means
-(:= add { ... })
+(def add { ... })
 
 ' You define what "nat" type means
 (spec nat { ... })
@@ -1466,7 +1466,7 @@ Most languages evaluate automatically. Stellogen gives **fine-grained control**:
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)
 ' Type check ≡ (== @(exec @#zero #nat) ok)
 ```
@@ -1478,7 +1478,7 @@ This is a radically different approach from all other languages.
 **Constellations** are the computational units—unordered sets of stars (rays with potential focus).
 
 ```stellogen
-(:= example {
+(def example {
   [(+f a) result1]
   [(+f b) result2]
   [(-g X) (+f X)]})
@@ -1507,7 +1507,7 @@ Stellogen supports **all paradigms** without committing to any:
 Macros are not an add-on—they're **fundamental** to how Stellogen is extended.
 
 ```stellogen
-(macro (spec X Y) (:= X Y))
+(macro (spec X Y) (def X Y))
 (macro (:: Tested Test) ...)
 ```
 

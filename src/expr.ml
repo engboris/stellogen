@@ -53,7 +53,7 @@ let focus_op = "@"
 
 let string_op = primitive "string"
 
-let def_op = ":="
+let def_op = "def"
 
 let expect_op = "=="
 

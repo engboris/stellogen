@@ -12,19 +12,19 @@ Having mechanisms to simulate the behavior of Prolog are needed.
 ARITHMETIC FUNCTIONS
 '''
 
-(:= add {
+(def add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
-(:= sub {
+(def sub {
   [(+sub Y 0 Y)]
   [(-sub X Y Z) (+sub (s X) (s Y) Z)]})
-(:= knowledge { #add #sub })
+(def knowledge { #add #sub })
 
 '''
 UNARY ADDITION
 '''
 
-(:= (add_query X Y R)
+(def (add_query X Y R)
   [(-add X Y R) (result of X + Y = R)])
 
 ' Query: 0 + 0 = ?
@@ -43,7 +43,7 @@ UNARY ADDITION
 UNARY SUBSTRACTION
 '''
 
-(:= (sub_query X Y R)
+(def (sub_query X Y R)
   [(-sub X Y R) (result of X - Y = R)])
 
 ' Query: 0 - 0 = ?

@@ -1,22 +1,22 @@
-(:= (initial Q) {
+(def (initial Q) {
   [(-i [C|W]) (+m Q [e e] C W)]
   [(-i [])    (+m Q e e e)]
 })
 
-(:= (accept Q) [(-m qa L e R) accept])
-(:= (reject Q) [(-m qr L C R) reject])
+(def (accept Q) [(-m qa L e R) accept])
+(def (reject Q) [(-m qr L C R) reject])
 
-(:= (if Q1 then Q2) [(-m Q1 L e R) (+m Q2 L e R)])
-(:= (skip right on Q , D) [(-m Q L D [C|R]) (+m Q [D|L] C R)])
+(def (if Q1 then Q2) [(-m Q1 L e R) (+m Q2 L e R)])
+(def (skip right on Q , D) [(-m Q L D [C|R]) (+m Q [D|L] C R)])
 
-(:= (if C1 on Q1 then Q2 , write C2 , right)
+(def (if C1 on Q1 then Q2 , write C2 , right)
   [(-m Q1 L C1 [C|R]) (+m Q2 [C2|L] C R)])
 
-(:= (if C1 on Q1 then Q2 , write C2 , left)
+(def (if C1 on Q1 then Q2 , write C2 , left)
   [(-m Q1 [C|L] C1 R) (+m Q2 L C [C2|R])])
 
 ' Turing machine accepting words with as many 'a' as 'b'
-(:= mt {
+(def mt {
   #(initial q0)
   ' accept
   #(accept qa)
@@ -45,7 +45,7 @@
   #(if e on q1 then q0 , write e , right)
 })
 
-(:= (word W) (+i W))
+(def (word W) (+i W))
 
 (show (exec @#(word [a e]) #mt))
 (show (exec @#(word [b e]) #mt))

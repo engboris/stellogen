@@ -372,7 +372,7 @@ Stellogen Expression
 
 **Input:**
 ```stellogen
-(:= add {
+(def add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
@@ -808,7 +808,7 @@ BIM is still a good idea for **general compilation** (performance, optimization,
 
 **Stellogen:**
 ```stellogen
-(:= add {
+(def add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 

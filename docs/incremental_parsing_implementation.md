@@ -19,7 +19,7 @@ The parser is used automatically by all Stellogen code:
 
 ```ocaml
 (* Standard usage - automatically uses incremental parser *)
-let lexbuf = Sedlexing.Utf8.from_string "(:= x 42)" in
+let lexbuf = Sedlexing.Utf8.from_string "(def x 42)" in
 let exprs = Sgen_parsing.parse_with_error "<input>" lexbuf
 ```
 

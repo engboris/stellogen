@@ -294,24 +294,24 @@ Assembly becomes fusion of positive (free tiles) and negative (attachment sites)
 **Approach 1: Explicit edges**
 ```stellogen
 ' Tile type: (tile ID North East South West)
-(:= tile1 (+tile t1 red green yellow blue))
-(:= tile2 (+tile t2 green red blue yellow))
+(def tile1 (+tile t1 red green yellow blue))
+(def tile2 (+tile t2 green red blue yellow))
 ```
 
 **Approach 2: With position**
 ```stellogen
 ' Placed tile: (placed-tile Position North East South West)
-(:= placed1 (+placed (pos 0 0) red green yellow blue))
-(:= placed2 (+placed (pos 1 0) green red blue yellow))
+(def placed1 (+placed (pos 0 0) red green yellow blue))
+(def placed2 (+placed (pos 1 0) green red blue yellow))
 ```
 
 **Approach 3: Separate type and placement**
 ```stellogen
 ' Tile type definition
-(:= (tile-type t1) (edges red green yellow blue))
+(def (tile-type t1) (edges red green yellow blue))
 
 ' Tile placement
-(:= (place T X Y) (+placed (pos X Y) T))
+(def (place T X Y) (+placed (pos X Y) T))
 ```
 
 ### 5.2 Adjacency Checker
@@ -320,7 +320,7 @@ The core constellation that validates edge matching:
 
 ```stellogen
 ' Adjacency checker for Wang tiles
-(:= wang-checker {
+(def wang-checker {
   ' East-West adjacency: tile at (x,y) and (x+1,y)
   ' East edge of left tile must match West edge of right tile
   [(-placed (pos X Y) N1 E S1 W1)
@@ -360,7 +360,7 @@ To validate a complete assembly:
 
 ```stellogen
 ' Validate entire assembly
-(:= (validate-tiling Assembly)
+(def (validate-tiling Assembly)
   (process
     ' Check all pairs of adjacent positions
     (fold-positions Assembly)
@@ -375,24 +375,24 @@ Let's create a simple tile set and validate a 2x2 tiling:
 
 ```stellogen
 ' Define four tile types
-(:= t1 (edges red red red red))      ' All red
-(:= t2 (edges blue blue blue blue))   ' All blue
-(:= t3 (edges red blue red blue))     ' Alternating red/blue
-(:= t4 (edges blue red blue red))     ' Alternating blue/red
+(def t1 (edges red red red red))      ' All red
+(def t2 (edges blue blue blue blue))   ' All blue
+(def t3 (edges red blue red blue))     ' Alternating red/blue
+(def t4 (edges blue red blue red))     ' Alternating blue/red
 
 ' Place tiles in a 2x2 grid
 ' Layout:
 '   [t1] [t3]
 '   [t4] [t2]
 
-(:= assembly1 {
+(def assembly1 {
   [(+placed (pos 0 0) red red red red)]      ' t1 at (0,0)
   [(+placed (pos 1 0) red blue red blue)]    ' t3 at (1,0)
   [(+placed (pos 0 1) blue red blue red)]    ' t4 at (0,1)
   [(+placed (pos 1 1) blue blue blue blue)]  ' t2 at (1,1)]})
 
 ' Check adjacency
-(:= check1 {
+(def check1 {
   #assembly1
   #wang-checker})
 
@@ -411,7 +411,7 @@ Encoding the famous **Penrose tiling** or **Robinson tiles** requires:
 ' Robinson tile set (simplified)
 ' Each tile has structured edge labels that enforce aperiodicity
 
-(:= robinson-tiles {
+(def robinson-tiles {
   ' Tile type 1: corner tile
   [(+type r1 (edges (cross h1 v1) (cross h1 v2)
                      (cross h2 v2) (cross h2 v1)))]
@@ -433,7 +433,7 @@ To simulate a Turing machine with Wang tiles:
 ' Turing machine state encoding:
 ' Edges encode: (State, Symbol, Head_position, Time_step)
 
-(:= tm-tile-set {
+(def tm-tile-set {
   ' Tape cell not under head: symbol propagates vertically
   [(+tm-tile (state Q) (symbol S) (head-pos left) (time T)
              (north (edge Q S left T))
@@ -469,14 +469,14 @@ aTAM tiles include glue labels and strengths:
 ' Tile type: (tile ID North_glue East_glue South_glue West_glue)
 ' Each glue: (glue Label Strength)
 
-(:= tile-a
+(def tile-a
   (+tile-type a
     (north (glue A 1))
     (east (glue B 2))
     (south (glue C 1))
     (west (glue D 1))))
 
-(:= tile-b
+(def tile-b
   (+tile-type b
     (north (glue B 2))
     (east (glue A 1))
@@ -490,7 +490,7 @@ The checker must sum glue strengths:
 
 ```stellogen
 ' aTAM attachment checker with temperature τ
-(:= (atam-checker Tau) {
+(def (atam-checker Tau) {
   ' Check if tile T can attach at position (X, Y)
   ' given existing assembly
   [(-can-attach T X Y)
@@ -526,7 +526,7 @@ Model the dynamic assembly process:
 
 ```stellogen
 ' Assembly state: (assembly TileSoFar AvailableTypes Temperature)
-(:= (grow-assembly Seed TileTypes Tau) {
+(def (grow-assembly Seed TileTypes Tau) {
   ' Initialize with seed
   [(-start-growth) (+assembly Seed TileTypes Tau)]
 
@@ -544,14 +544,14 @@ Model the dynamic assembly process:
 })
 
 ' Non-deterministically choose attachment site
-(:= find-attachment-site {
+(def find-attachment-site {
   [(-find-site Assembly)
    (+assembly-boundary Assembly Positions)
    (+choose-position Positions P)
    P]})
 
 ' Non-deterministically choose tile type
-(:= choose-tile {
+(def choose-tile {
   [(-choose TileTypes) (+member TileTypes T) T]})
 ```
 
@@ -563,7 +563,7 @@ A classic aTAM system computes binary counter:
 ' Binary counter tile set (τ = 2)
 ' Assembles rows representing binary numbers: 0, 1, 10, 11, 100, ...
 
-(:= binary-counter-tiles {
+(def binary-counter-tiles {
   ' Seed tile: represents 0
   [(+tile seed
     (north (glue init 0))
@@ -615,7 +615,7 @@ A classic aTAM system computes binary counter:
 ' ...
 ' Representing: 0, 1, 10, 11, ...
 
-(:= counter-assembly
+(def counter-assembly
   (grow-assembly
     [(+placed (pos 0 0) seed)]  ' Seed at origin
     #binary-counter-tiles
@@ -633,7 +633,7 @@ Self-assembly of fractal pattern:
 ' Two tile types: "on" and "off"
 ' Rule: tile is "on" if XOR of two tiles below is 1
 
-(:= sierpinski-tiles {
+(def sierpinski-tiles {
   ' Seed: single "on" tile
   [(+tile seed-on
     (north (glue on 1))
@@ -686,7 +686,7 @@ Encoding a universal aTAM simulator:
 ' Seed encodes: target tile set, target assembly
 ' Universal tiles simulate target system at scale factor k
 
-(:= universal-atam-tiles {
+(def universal-atam-tiles {
   ' Seed contains encoded tile set
   [(+tile u-seed (encoded-tileset Target-tiles))]
 
@@ -722,7 +722,7 @@ aTAM assembly is inherently non-deterministic:
 
 ```stellogen
 ' Non-deterministic attachment
-(:= atam-nd {
+(def atam-nd {
   ' Multiple rays can match same attachment site
   [(-attach-at X Y) (+placed (pos X Y) tile-type-1) ...]
   [(-attach-at X Y) (+placed (pos X Y) tile-type-2) ...]
@@ -730,7 +730,7 @@ aTAM assembly is inherently non-deterministic:
 })
 
 ' Explore all possibilities
-(:= (explore-all Start)
+(def (explore-all Start)
   (exec @#Start #atam-nd))
 ```
 
@@ -740,7 +740,7 @@ For **backtracking** (e.g., finding valid tilings), use:
 
 ```stellogen
 ' Try to build assembly, backtrack on failure
-(:= search-tiling {
+(def search-tiling {
   [(-search Assembly Goal)
    (+assembly-complete Assembly Goal)
    (success Assembly)]
@@ -767,11 +767,11 @@ For **backtracking** (e.g., finding valid tilings), use:
 
 ```stellogen
 ' Stage 1: Assemble small blocks
-(:= stage1-assembly
+(def stage1-assembly
   (grow-assembly seed1 tileset1 2))
 
 ' Stage 2: Use stage1 blocks as "supertiles"
-(:= stage2-assembly
+(def stage2-assembly
   (grow-assembly
     #stage1-assembly  ' Use stage1 output as seed
     tileset2          ' Different tile set
@@ -791,7 +791,7 @@ Real molecular self-assembly has errors:
 
 ```stellogen
 ' Probabilistic error model
-(:= (atam-with-errors Tau ErrorRate) {
+(def (atam-with-errors Tau ErrorRate) {
   ' Correct attachment (probability 1 - ErrorRate)
   [(-try-attach T X Y)
    (+strength-sufficient T X Y Tau)
@@ -815,7 +815,7 @@ Extend to 3D:
 
 ```stellogen
 ' 3D tile: six faces
-(:= tile-3d
+(def tile-3d
   (+tile-type cube1
     (top (glue A 1))
     (bottom (glue B 1))
@@ -825,11 +825,11 @@ Extend to 3D:
     (west (glue F 1))))
 
 ' Position in 3D
-(:= placed-3d
+(def placed-3d
   (+placed (pos3d 0 0 0) cube1))
 
 ' Checker handles 6 adjacency directions
-(:= checker-3d {
+(def checker-3d {
   ' Check all 6 neighbors: ±x, ±y, ±z
   [(-check-3d X Y Z)
    (+check-neighbor-3d (+ X 1) Y Z east west)   ' +x
@@ -850,18 +850,18 @@ Tiles on arbitrary graphs (not just grids):
 
 ```stellogen
 ' Graph structure
-(:= graph {
+(def graph {
   [(+edge v1 v2)]
   [(+edge v2 v3)]
   [(+edge v3 v1)]
   [(+edge v2 v4)]})
 
 ' Tile placement on graph
-(:= (place-on-graph Vertex TileType)
+(def (place-on-graph Vertex TileType)
   (+placed-at Vertex TileType))
 
 ' Adjacency checker for graph
-(:= graph-checker {
+(def graph-checker {
   [(-placed-at V1 T1)
    (-placed-at V2 T2)
    (+edge V1 V2)
@@ -878,7 +878,7 @@ Tiles that change rules based on assembly state:
 
 ```stellogen
 ' Context-dependent tile behavior
-(:= adaptive-tiles {
+(def adaptive-tiles {
   ' Tile behavior depends on current assembly
   [(-attach T X Y Assembly)
    (+assembly-property Assembly Prop)
@@ -1072,7 +1072,7 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
 
 ```stellogen
 ' Type checking helpers
-(macro (spec X Y) (:= X Y))
+(macro (spec X Y) (def X Y))
 (macro (:: Tested Test)
   (== @(exec @#Tested #Test) ok))
 
@@ -1081,22 +1081,22 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
   [(-pos X Y) || (integer X) || (integer Y) ok]})
 
 ' Define four tile types with edge colors
-(:= t1 [red blue green yellow])    ' N E S W
-(:= t2 [blue red yellow green])
-(:= t3 [green yellow red blue])
-(:= t4 [yellow green blue red])
+(def t1 [red blue green yellow])    ' N E S W
+(def t2 [blue red yellow green])
+(def t3 [green yellow red blue])
+(def t4 [yellow green blue red])
 
 ' Tile placement: (placed Pos Tile)
-(:= p1 (+placed (pos 0 0) #t1))
-(:= p2 (+placed (pos 1 0) #t2))
-(:= p3 (+placed (pos 0 1) #t3))
-(:= p4 (+placed (pos 1 1) #t4))
+(def p1 (+placed (pos 0 0) #t1))
+(def p2 (+placed (pos 1 0) #t2))
+(def p3 (+placed (pos 0 1) #t3))
+(def p4 (+placed (pos 1 1) #t4))
 
 ' Assembly: collection of placed tiles
-(:= assembly {#p1 #p2 #p3 #p4})
+(def assembly {#p1 #p2 #p3 #p4})
 
 ' Wang checker: validate edge matching
-(:= wang-check {
+(def wang-check {
   ' Horizontal adjacency: (x,y) — (x+1,y)
   ' East edge of left tile = West edge of right tile
   [(-placed (pos X Y) [N1 E S1 W1])
@@ -1117,7 +1117,7 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
 })
 
 ' Validate the assembly
-(:= validation {
+(def validation {
   #assembly
   #wang-check})
 
@@ -1130,14 +1130,14 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
 
 ```stellogen
 ' Glue definition: (glue Label Strength)
-(:= (glue L S) (g L S))
+(def (glue L S) (g L S))
 
 ' Tile type: ID and four glues
-(:= (make-tile ID N E S W)
+(def (make-tile ID N E S W)
   (+tile ID (north N) (east E) (south S) (west W)))
 
 ' Binary counter tiles (temperature 2)
-(:= tiles {
+(def tiles {
   ' Seed
   [(make-tile seed
     (glue init 2)
@@ -1182,7 +1182,7 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
 })
 
 ' Helper: check if glues match
-(:= glue-match {
+(def glue-match {
   [(-match (glue L1 S1) (glue L2 S2) Strength)
    || (== L1 L2)
    Strength S1]  ' Return strength if labels match
@@ -1192,7 +1192,7 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
    Strength 0]})  ' No match
 
 ' Temperature 2 attachment checker
-(:= (attach-check Temp) {
+(def (attach-check Temp) {
   ' Can tile T attach at (X,Y) in assembly A?
   [(-can-attach T X Y A)
    (+tile T (north N) (east E) (south S) (west W))
@@ -1221,11 +1221,11 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
 })
 
 ' Seed assembly
-(:= seed-assembly {
+(def seed-assembly {
   [(+placed (pos 0 0) seed)]})
 
 ' Grow assembly (simplified)
-(:= grow {
+(def grow {
   #seed-assembly
   #tiles
   #(attach-check 2)})
@@ -1239,10 +1239,10 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
 ' Simplified Robinson tiles (aperiodic)
 ' Uses hierarchical edge labels to force non-periodicity
 
-(:= (cross H V) (c H V))  ' Edge label: cross product of H and V
+(def (cross H V) (c H V))  ' Edge label: cross product of H and V
 
 ' Robinson tile set (simplified to 4 tiles)
-(:= robinson {
+(def robinson {
   ' Corner tile
   [(+tile r1
     (north (cross h0 v0))
@@ -1273,7 +1273,7 @@ Stellogen tile systems exhibit **logical self-organization**: computation emerge
 })
 
 ' Cross product matching: (h1,v1) matches (h1,v2) for any v1,v2
-(:= cross-match {
+(def cross-match {
   [(-match (cross H1 V1) (cross H2 V2))
    || (== H1 H2)
    ok]})

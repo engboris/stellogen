@@ -1,41 +1,41 @@
 (use-macros "milkyway/prelude.sg")
 
 'define ray
-(:= a (-f X))
+(def a (-f X))
 
 'define star
-(:= b [(-f X)])
+(def b [(-f X)])
 
 'define constellation
-(:= c {
+(def c {
   @[+a] 'focus
   [-a b]})
 
 'full focus
-(:= f @{ [a] [b] [c] })
+(def f @{ [a] [b] [c] })
 
 'identifier
-(:= x #a)
+(def x #a)
 
 'group
-(:= x { #a #b })
+(def x { #a #b })
 
 'string literals
-(:= s "hello world")
+(def s "hello world")
 
 'cons
 ' [0 1] == %cons(0 (%cons 1 %nil))
-(:= w (+w [0 1 0 1]))
+(def w (+w [0 1 0 1]))
 
 'stack
 ' (stack s s 0) == (s (s 0))
-(:= n (+nat (stack s s 0)))
+(def n (+nat (stack s s 0)))
 
 'execution
-(:= x [(+f X) X])
-(:= y (-f a))
-(:= ex (fire @#x #y)) 'linear
-(:= ex (exec @#x #y))    'non-linear
+(def x [(+f X) X])
+(def y (-f a))
+(def ex (fire @#x #y)) 'linear
+(def ex (exec @#x #y))    'non-linear
 
 'show constellation
 (show #ex)
@@ -43,11 +43,11 @@
 (show #s)
 
 'complex identifiers
-(:= (f a b) [(function a b)])
+(def (f a b) [(function a b)])
 (show #(f a b))
 
 'inequality constraints
-(:= ineq {
+(def ineq {
   [(+f a)]
   [(+f b)]
   @[(-f X) (-f Y) (r X Y) || (!= X Y)]})
@@ -55,50 +55,50 @@
 (stack show exec #ineq)
 
 'process
-(:= c (process
+(def c (process
   (+n0 0)                 'base constellation
   [(-n0 X) (+n1 (s X))]   'interacts with previous
   [(-n1 X) (+n2 (s X))])) 'interacts with previous
 (show #c)
 
 'constellation with fields
-(:= g {
+(def g {
   [(+field test1) [(+f a) ok]]
   [(+field test2) [(+f b) ok]]})
 (show #g)
 
 'field access and evaluation
-(:= (get G X) (eval (exec #G @[(-field X)])))
+(def (get G X) (eval (exec #G @[(-field X)])))
 (show #(get g test1))
 (show #(get g test2))
 
 'nested fields
-(:= g1 [
+(def g1 [
   [(+field test1) [
     [(+field test2) [(+f c) ok]]]]])
-(:= g2 (eval (exec #g1 @[(-field test1)])))
+(def g2 (eval (exec #g1 @[(-field test1)])))
 (stack show eval (exec #g2 @[(-field test2)]))
 
 'define type
-(macro (spec X Y) (:= X Y))
+(macro (spec X Y) (def X Y))
 (spec nat {
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 
 'expect (equality check)
-(:= x 0)
+(def x 0)
 (== #x 0)
 '(== #x 1) ' it fails (uncomment to see error)
 
 'match (unifiability check)
 ' Checks if two constellations can unify (requires opposite polarities)
-(:= term1 (+f a))
-(:= term2 (-f X))
+(def term1 (+f a))
+(def term2 (-f X))
 (~= #term1 #term2)  'succeeds: they unify with X=a
 
 ' Check if two patterns are compatible
-(:= pattern1 [(+add (s X) Y Z)])
-(:= pattern2 [(-add N M R)])
+(def pattern1 [(+add (s X) Y Z)])
+(def pattern2 [(-add N M R)])
 (~= #pattern1 #pattern2)  'succeeds: they unify
 
 ' This would fail (uncomment to see error):
@@ -106,7 +106,7 @@
 ' (~= (+f a) (+f b))  'same polarity, cannot interact
 
 'type checking
-(:= 2 (stack +nat s s 0))
+(def 2 (stack +nat s s 0))
 (== @(exec @#2 #nat) ok)
 
 'import file

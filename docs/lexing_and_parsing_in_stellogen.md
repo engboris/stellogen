@@ -61,12 +61,12 @@ Stellogen represents automata with remarkable elegance through **constellations*
 #### Example: Finite State Automaton (from `examples/automata.sg`)
 
 ```stellogen
-(:= (initial Q) [(-i W) (+a W Q)])
-(:= (accept Q) [(-a [] Q) accept])
-(:= (if read C1 on Q1 then Q2) [(-a [C1|W] Q1) (+a W Q2)])
+(def (initial Q) [(-i W) (+a W Q)])
+(def (accept Q) [(-a [] Q) accept])
+(def (if read C1 on Q1 then Q2) [(-a [C1|W] Q1) (+a W Q2)])
 
 ' Automaton accepting words ending with 00
-(:= a1 {
+(def a1 {
   #(initial q0)
   #(accept q2)
   #(if read 0 on q0 then q0)
@@ -84,15 +84,15 @@ Stellogen represents automata with remarkable elegance through **constellations*
 #### Example: Pushdown Automaton (from `examples/npda.sg`)
 
 ```stellogen
-(:= (initial Q) [(-i W) (+a W [] Q)])
-(:= (accept Q) [(-a [] [] Q) accept])
-(:= (if read C1 on Q1 then Q2 and push C2)
+(def (initial Q) [(-i W) (+a W [] Q)])
+(def (accept Q) [(-a [] [] Q) accept])
+(def (if read C1 on Q1 then Q2 and push C2)
     [(-a [C1|W] S Q1) (+a W [C2|S] Q2)])
-(:= (if read C1 with C2 on Q1 then Q2)
+(def (if read C1 with C2 on Q1 then Q2)
     [(-a [C1|W] [C2|S] Q1) (+a W S Q2)])
 
 ' Palindrome recognizer
-(:= a1 {
+(def a1 {
   #(initial q0)
   #(accept q0)
   #(if read 0 on q0 then q0 and push 0)
@@ -129,7 +129,7 @@ A Stellogen lexer would be a **constellation of FSMs**, one per token type:
 
 ```stellogen
 ' Token type: identifier (letter followed by alphanumerics)
-(:= lex-identifier {
+(def lex-identifier {
   [(-lex [letter|Cs] []) (+lex Cs [(token identifier [letter])])]
   [(-lex [letter|Cs] [(token identifier Acc)])
    (+lex Cs [(token identifier [letter|Acc])])]
@@ -139,7 +139,7 @@ A Stellogen lexer would be a **constellation of FSMs**, one per token type:
    (emit (token identifier (reverse Acc))) (+lex Cs [])]})
 
 ' Token type: number
-(:= lex-number {
+(def lex-number {
   [(-lex [digit|Cs] []) (+lex Cs [(token number [digit])])]
   [(-lex [digit|Cs] [(token number Acc)])
    (+lex Cs [(token number [digit|Acc])])]
@@ -147,7 +147,7 @@ A Stellogen lexer would be a **constellation of FSMs**, one per token type:
    (emit (token number (reverse Acc))) (+lex Cs [])]})
 
 ' Main lexer: combines all token recognizers
-(:= lexer {
+(def lexer {
   #lex-identifier
   #lex-number
   #lex-whitespace
@@ -228,7 +228,7 @@ Stellogen equivalent needs:
 ' Output: token list
 
 ' Helper: skip whitespace
-(:= skip-ws {
+(def skip-ws {
   [(-lex [] Toks) (emit (reverse Toks))]
   [(-lex [space|Cs] Toks) (+lex Cs Toks)]
   [(-lex [tab|Cs] Toks) (+lex Cs Toks)]
@@ -236,7 +236,7 @@ Stellogen equivalent needs:
   [(-lex Cs Toks) (+try-token Cs Toks)]})
 
 ' Try to match a token
-(:= try-token {
+(def try-token {
   ' Match opening paren
   [(-try-token [(|Cs] Toks) (+lex Cs [LPAR|Toks])]
 
@@ -258,7 +258,7 @@ Stellogen equivalent needs:
    (error (unexpected-char C))]})
 
 ' Continue matching variable
-(:= lex-var {
+(def lex-var {
   [(-lex-var [C|Cs] Acc Toks)
    (+alnum C)
    (+lex-var Cs [C|Acc] Toks)]
@@ -266,7 +266,7 @@ Stellogen equivalent needs:
    (+lex Cs [(VAR (reverse Acc))|Toks])]})
 
 ' Main entry point
-(:= tokenize (+lex Input []))
+(def tokenize (+lex Input []))
 ```
 
 ## 4. Parsing in Stellogen
@@ -282,7 +282,7 @@ A Stellogen parser would be a **PDA encoded as a constellation**:
 '   F -> ( E ) | num
 
 ' Parsing constellation
-(:= parser {
+(def parser {
   ' Shift rules
   [(-parse [num|Ts] S) (+parse Ts [(num N)|S])]
   [(-parse [LPAR|Ts] S) (+parse Ts [LPAR|S])]
@@ -364,10 +364,10 @@ Stellogen naturally expresses shift-reduce parsing:
 ' Simple expression parser with operator precedence
 
 ' Helper: precedence comparison
-(:= (prec Op1 > Op2) ...)
+(def (prec Op1 > Op2) ...)
 
 ' Main parsing constellation
-(:= parse {
+(def parse {
   ' Initialize
   [(-parse Tokens) (+shift Tokens [])]
 

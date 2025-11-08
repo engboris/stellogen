@@ -1,21 +1,21 @@
 (use-macros "../milkyway/prelude.sg")
 
 ' identity function (\x -> x)
-(:= id [(+id [l|X]) (+id [r|X])])
+(def id [(+id [l|X]) (+id [r|X])])
 
 ' id id
-(:= id_arg [(ida [l|X]) (+arg [l r|X])])
+(def id_arg [(ida [l|X]) (+arg [l r|X])])
 
-(:= linker [
+(def linker [
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]])
 
 (show (exec #id #id_arg #linker))
 
 ' id x
-(:= x_arg [(x X) (+arg [l X])])
+(def x_arg [(x X) (+arg [l X])])
 
-(:= linker [
+(def linker [
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]])
 
@@ -32,9 +32,9 @@
     [(-y X) (+parxy X)]
     @[(-parxy X) ok]]]})
 
-(:= adapter {
+(def adapter {
   [(-id [l|X]) (+x X)]
   [(-id [r|X]) (+y X)]})
 
-(:= vehicle { #id #adapter })
+(def vehicle { #id #adapter })
 'TODO (:: vehicle (larrow a a))

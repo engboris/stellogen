@@ -70,7 +70,7 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
 **Example:**
 
 ```stellogen
-(:= x (+f a))
+(def x (+f a))
 (show (eval #x))  ' Evaluates to [(+f a)]
 ```
 
@@ -92,7 +92,7 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
 **Encoding:**
 
 ```stellogen
-(:= record {
+(def record {
   [+fieldname1 value1]
   [+fieldname2 value2]})
 ```
@@ -100,7 +100,7 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
 **Access:**
 
 ```stellogen
-(:= field1 (eval (exec #record @[-fieldname1])))
+(def field1 (eval (exec #record @[-fieldname1])))
 ```
 
 **Mechanism:**
@@ -113,7 +113,7 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
 **Example from `mll.sg:38-47`:**
 
 ```stellogen
-(:= ps1 {
+(def ps1 {
   [+vehicle [
     [(+7 [l|X]) (+7 [r|X])]
     @[(3 X) (+8 [l|X])]
@@ -121,8 +121,8 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
   [+cuts [
     [(-7 X) (-8 X)]]]})
 
-(:= vehicle (eval (exec #ps1 @[-vehicle])))
-(:= cuts    (eval (exec #ps1 @[-cuts])))
+(def vehicle (eval (exec #ps1 @[-vehicle])))
+(def cuts    (eval (exec #ps1 @[-cuts])))
 ```
 
 **Pros:**
@@ -144,7 +144,7 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
 **Encoding:**
 
 ```stellogen
-(:= record {
+(def record {
   [(+field name1) value1]
   [(+field name2) value2]})
 ```
@@ -152,8 +152,8 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
 **Access:**
 
 ```stellogen
-(:= (get Record FieldName) (eval (exec #Record @[(-field FieldName)])))
-(:= result (get record name1))
+(def (get Record FieldName) (eval (exec #Record @[(-field FieldName)])))
+(def result (get record name1))
 ```
 
 **Mechanism:**
@@ -166,11 +166,11 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
 **Example from `syntax.sg:62-71`:**
 
 ```stellogen
-(:= g {
+(def g {
   [(+field test1) [(+f a) ok]]
   [(+field test2) [(+f b) ok]]})
 
-(:= (get G X) (eval (exec #G @[(-field X)])))
+(def (get G X) (eval (exec #G @[(-field X)])))
 (show #(get g test1))  ' Returns: [(+f a) ok]
 (show #(get g test2))  ' Returns: [(+f b) ok]
 ```
@@ -178,11 +178,11 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
 **Nested fields:**
 
 ```stellogen
-(:= g1 [
+(def g1 [
   [(+field test1) [
     [(+field test2) [(+f c) ok]]]]])
 
-(:= g2 (eval (exec #g1 @[(-field test1)])))
+(def g2 (eval (exec #g1 @[(-field test1)])))
 (show (eval (exec #g2 @[(-field test2)])))  ' Returns: [(+f c) ok]
 ```
 
@@ -328,7 +328,7 @@ The spec is a **single constellation** containing multiple test cases. Testing a
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 
-(:= zero (+nat 0))
+(def zero (+nat 0))
 (:: zero nat)  ' Expands to: (== @(exec @#zero #nat) ok)
 ```
 
@@ -440,7 +440,7 @@ A type-checking mechanism that:
 **From `examples/mll.sg:35`:**
 
 ```stellogen
-(:= id {
+(def id {
   [(-5 [l|X]) (+1 X)]
   [(-5 [r|X]) (+2 X)]
   [(-6 [l|X]) (+3 X)]
@@ -463,9 +463,9 @@ The TODO exists because:
 3. **No mechanism exists** to iterate over all fields in a record and test each one
 4. **Manual testing is tedious**:
    ```stellogen
-   (:= testrl (eval (exec #(larrow a a) @[-testrl])))
+   (def testrl (eval (exec #(larrow a a) @[-testrl])))
    (== @(exec @#id #testrl) ok)
-   (:= testrr (eval (exec #(larrow a a) @[-testrr])))
+   (def testrr (eval (exec #(larrow a a) @[-testrr])))
    (== @(exec @#id #testrr) ok)
    ' ... repeat for testll and testlr
    ```
@@ -494,10 +494,10 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 
 ```stellogen
 ' Extract all tests from (larrow a a)
-(:= testrl (eval (exec #(larrow a a) @[-testrl])))
-(:= testrr (eval (exec #(larrow a a) @[-testrr])))
-(:= testll (eval (exec #(larrow a a) @[-testll])))
-(:= testlr (eval (exec #(larrow a a) @[-testlr])))
+(def testrl (eval (exec #(larrow a a) @[-testrl])))
+(def testrr (eval (exec #(larrow a a) @[-testrr])))
+(def testll (eval (exec #(larrow a a) @[-testll])))
+(def testlr (eval (exec #(larrow a a) @[-testlr])))
 
 ' Test id against each
 (== @(exec @#id #testrl) ok)
@@ -643,7 +643,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 
 ```stellogen
 ' Hypothetical syntax
-(:= fieldlist (fields #(larrow a a)))
+(def fieldlist (fields #(larrow a a)))
 ' fieldlist = [testrl testrr testll testlr]
 
 ' Then use that to generate tests
@@ -707,7 +707,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 
 ```stellogen
 ' Type as a group of tests
-(:= (larrow-a-a-type) {
+(def (larrow-a-a-type) {
   #testrl
   #testrr
   #testll
@@ -744,7 +744,7 @@ Macros in Stellogen operate at the **expression level**—they expand syntax. Th
 (macro (::with-tests Tested Test TestList)
   (::check-all @#Tested #Test #TestList))
 
-(:= (::check-all Val Type Tests)
+(def (::check-all Val Type Tests)
   (process
     ok
     { [(-cons TestName Rest) ...extract test, run it, recurse... ] }
@@ -811,7 +811,7 @@ Rethink how multi-test types are defined. Instead of records, define types as **
   [(-id-lr X) ... test logic ... @[(-result-lr X) ok]]})
 
 ' Values tagged for each test
-(:= id {
+(def id {
   [(+id-rl X) ...]
   [(+id-rr X) ...]
   [(+id-ll X) ...]
@@ -853,7 +853,7 @@ This would enable truly general record-based type checking.
   [+testll [...]]
   [+testlr [...]]})
 
-(:= id {...})
+(def id {...})
 
 'TODO (:: id (larrow a a))  ' Doesn't work
 ```

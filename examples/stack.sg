@@ -1,6 +1,6 @@
 (use-macros "milkyway/prelude.sg")
 
-(:= (init C) (+stack 0 []))
+(def (init C) (+stack 0 []))
 
 (stack show exec (process
   #(init 0)

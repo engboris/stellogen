@@ -103,8 +103,8 @@ This is **Robinson's resolution** from formal logic!
 **Execution** = stars interacting through fusion until no more interactions possible
 
 ```stellogen
-(:= x [(+f X) X])
-(:= y [(-f a)])
+(def x [(+f X) X])
+(def y [(-f a)])
 
 (exec @#x #y)   ' Non-linear: actions can be reused
 (fire @#x #y)   ' Linear: actions used exactly once
@@ -125,7 +125,7 @@ This is **Robinson's resolution** from formal logic!
 - Execute `c1`, then merge result with `c2`, useful for building pipelines
 
 ### 10. Key Operators
-- **Definition**: `(:= name value)` - bind name to value
+- **Definition**: `(def name value)` - bind name to value
 - **Call**: `#name` - retrieve definition
 - **Focus**: `@expr` - mark as state/evaluate
 - **Show**: `(show expr)` - display result
@@ -146,7 +146,7 @@ This is **Robinson's resolution** from formal logic!
 - **Process chaining**: `(process X {Y Z})` chains constellations
 
 ### Declarations
-- **Definition**: `(:= name value)`
+- **Definition**: `(def name value)`
 - **Macro**: `(macro (pattern) (expansion))`
 - **Show**: `(show expr)` - display result
 - **Expect**: `(== expr1 expr2)` - assertion/testing (checks equality)
@@ -170,7 +170,7 @@ This is **Robinson's resolution** from formal logic!
 Types are defined as **sets of interactive tests**:
 ```stellogen
 ' Define nat type as a test constellation
-(:= nat {
+(def nat {
   [(-nat 0) ok]                ' Base case: 0 is a nat
   [(-nat (s N)) (+nat N)]})    ' Recursive: (s N) is nat if N is nat
 
@@ -179,7 +179,7 @@ Types are defined as **sets of interactive tests**:
   (== @(exec @#Tested #Test) ok))
 
 ' Use the type
-(:= two (+nat (s (s 0))))
+(def two (+nat (s (s 0))))
 (:: two nat)  ' Type check passes - interaction yields ok
 ```
 
@@ -190,16 +190,16 @@ Type checking = interaction that must result in `ok`
 #### Pattern 1: Logic Programming (Prolog-style)
 ```stellogen
 ' Facts (positive rays)
-(:= facts {
+(def facts {
   [(+parent tom bob)]
   [(+parent bob ann)]})
 
 ' Rules (linking negative to positive)
-(:= rules {
+(def rules {
   [(-grandparent X Z) (-parent X Y) (+parent Y Z)]})
 
 ' Query (negative rays with focus)
-(:= query @[(-grandparent tom Z) (result Z)])
+(def query @[(-grandparent tom Z) (result Z)])
 
 ' Execute
 (show (exec { #facts #rules #query }))
@@ -210,12 +210,12 @@ Type checking = interaction that must result in `ok`
 #### Pattern 2: Database Queries
 ```stellogen
 ' Database (facts)
-(:= employees {
+(def employees {
   [(+employee alice engineering)]
   [(+employee bob sales)]})
 
 ' Query constellation (focused state)
-(:= query {
+(def query {
   @[(-employee Name engineering) (result Name)]})
 
 ' Execute
@@ -227,12 +227,12 @@ Type checking = interaction that must result in `ok`
 #### Pattern 3: Recursive Computation
 ```stellogen
 ' Addition on natural numbers
-(:= add {
+(def add {
   [(+add 0 Y Y)]                           ' Base case
   [(-add X Y Z) (+add (s X) Y (s Z))]})    ' Recursive case
 
 ' Query
-(:= query @[(-add (s (s 0)) (s (s 0)) R) R])
+(def query @[(-add (s (s 0)) (s (s 0)) R) R])
 
 (show (exec #add #query))
 ```
@@ -242,11 +242,11 @@ Type checking = interaction that must result in `ok`
 #### Pattern 4: Using process for Pipelines
 ```stellogen
 ' Step 1: Transform A to B
-(:= step1 {
+(def step1 {
   @[(-data X) (+intermediate (transform X))]})
 
 ' Step 2: Transform B to C
-(:= step2 {
+(def step2 {
   [(-intermediate Y) (+result (process Y))]})
 
 ' Chain them
@@ -256,7 +256,7 @@ Type checking = interaction that must result in `ok`
 #### Pattern 5: Inequality Constraints
 ```stellogen
 ' Find different pairs
-(:= data {
+(def data {
   [(+item a)]
   [(+item b)]
   @[(-item X) (-item Y) (pair X Y) || (!= X Y)]})
@@ -339,12 +339,12 @@ dune exec sgen run -- <inputfile>
 
 ```stellogen
 ' Define addition constellation
-(:= add {
+(def add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
 ' Query: 2 + 2 = R
-(:= query [(-add <s s 0> <s s 0> R) R])
+(def query [(-add <s s 0> <s s 0> R) R])
 
 ' Execute interaction
 (show (exec #add @#query))
@@ -354,7 +354,7 @@ dune exec sgen run -- <inputfile>
 
 ```stellogen
 ' Macro for type specification
-(macro (spec X Y) (:= X Y))
+(macro (spec X Y) (def X Y))
 
 ' Macro for type assertion
 (macro (:: Tested Test)
@@ -366,7 +366,7 @@ dune exec sgen run -- <inputfile>
   [(-nat (s N)) (+nat N)]})
 
 ' Define and check values
-(:= 0 (+nat 0))
+(def 0 (+nat 0))
 (:: 0 nat)  ' succeeds
 ```
 
@@ -430,11 +430,11 @@ dune test
 ❌ **Mistake 1**: Forgetting `@` on query/state stars
 ```stellogen
 ' WRONG - query has no @
-(:= query [(-employee Name Dept)])
+(def query [(-employee Name Dept)])
 (exec #query #employees)  ' Returns {} - no state to interact with!
 
 ' CORRECT - query is focused
-(:= query @[(-employee Name Dept)])
+(def query @[(-employee Name Dept)])
 (exec #query #employees)  ' Works!
 ```
 
@@ -520,7 +520,7 @@ a bob 0         ' Constants
 [(+f X) || (!= X Y)]  ' Star with inequality constraint
 
 ' Definitions and Calls
-(:= name value) ' Define
+(def name value) ' Define
 #name           ' Call/reference
 @#name          ' Call and focus
 
@@ -554,13 +554,13 @@ EXECUTION        = Saturation via star fusion
 ### Typical Program Structure
 ```stellogen
 ' 1. Define facts/data (positive)
-(:= facts { [(+fact1)] [(+fact2)] })
+(def facts { [(+fact1)] [(+fact2)] })
 
 ' 2. Define rules (negative -> positive)
-(:= rules { [(-goal X) (+fact X)] })
+(def rules { [(-goal X) (+fact X)] })
 
 ' 3. Define query (negative, focused)
-(:= query @[(-goal X) (result X)])
+(def query @[(-goal X) (result X)])
 
 ' 4. Execute
 (show (exec { #facts #rules #query }))

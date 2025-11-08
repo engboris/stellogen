@@ -108,11 +108,11 @@ Two rays and **compatible** and can interact if they have opposite polarities
 
 ## Definitions and calls
 
-Our most useful term will be definitions written `(:= x t)` where `x` is the
+Our most useful term will be definitions written `(def x t)` where `x` is the
 name associated to the definition and `t` is a term. For example:
 
 ```stellogen
-(:= a (+f X))
+(def a (+f X))
 ```
 
 You can invoke a definition by prefixing a name with `#`:
@@ -208,7 +208,7 @@ For example:
 ```stellogen
 ' state:  @[-c d]
 ' action: [+a b]
-(:= d { [+a b] @[-c d] })
+(def d { [+a b] @[-c d] })
 ```
 
 **Intuition:** Focus corresponds to distinguishing **data** from
@@ -220,7 +220,7 @@ For example:
 You can also focus all stars of a constellation with `@`:
 
 ```stellogen
-(:= f @{ [a] [b] [c] })
+(def f @{ [a] [b] [c] })
 ```
 
 ## Execution of Constellations
@@ -233,13 +233,13 @@ interactions are possible. The result is a new constellation.
 **Let's execute constellations!**
 
 ```stellogen
-(:= x [(+f X) X])
-(:= y (-f a))
+(def x [(+f X) X])
+(def y (-f a))
 
-(:= res1 (exec @#x #y))  ' normal execution
+(def res1 (exec @#x #y))  ' normal execution
 (show #res1)
 
-(:= res2 (fire @#x #y))  ' actions are used exactly once
+(def res2 (fire @#x #y))  ' actions are used exactly once
 (show #res2)
 ```
 
@@ -250,7 +250,7 @@ interactions are possible. The result is a new constellation.
 Add constraints with `[ some star || (!= X1 Y1) ... (!= Xn Yn)]`:
 
 ```stellogen
-(:= ineq {
+(def ineq {
   [(+f a)]
   [(+f b)]
   @[(-f X) (-f Y) (r X Y) || (!= X Y)]})
@@ -270,7 +270,7 @@ Constellations can act like logic programs (à la Prolog).
 ### Facts
 
 ```stellogen
-(:= facts {
+(def facts {
   [(+childOf a b)]
   [(+childOf a c)]
   [(+childOf c d)]
@@ -280,7 +280,7 @@ Constellations can act like logic programs (à la Prolog).
 ### Rule
 
 ```stellogen
-(:= rules { (-childOf X Y) (-childOf Y Z) (+grandParentOf Z X) })
+(def rules { (-childOf X Y) (-childOf Y Z) (+grandParentOf Z X) })
 ```
 
 ### Query
@@ -292,16 +292,16 @@ Constellations can act like logic programs (à la Prolog).
 ### Putting it together
 
 ```stellogen
-(:= facts {
+(def facts {
   [(+childOf a b)]
   [(+childOf a c)]
   [(+childOf c d)]
   [(-childOf X Y) (-childOf Y Z) (+grandParentOf Z X)]
 })
 
-(:= rules { (-childOf X Y) (-childOf Y Z) (+grandParentOf Z X) })
+(def rules { (-childOf X Y) (-childOf Y Z) (+grandParentOf Z X) })
 
-(:= query [(-childOf X b) (res X)])
+(def query [(-childOf X b) (res X)])
 (show (exec { #facts #rules @#query }))
 ```
 
@@ -328,7 +328,7 @@ syntactic equality.
 Definitions are actually terms like others so they can be *parametric*:
 
 ```stellogen
-(:= (initial Q) [(-i W) (+a W Q)])
+(def (initial Q) [(-i W) (+a W Q)])
 ```
 
 In this case, calling
@@ -349,8 +349,8 @@ will replace `Q` by `q0` in `[(-i W) (+a W Q)]` so we get
 execution in a preprocessing phase:
 
 ```
-' replace (spec X Y) by (:= X Y) everywhere in the code
-(macro (spec X Y) (:= X Y))
+' replace (spec X Y) by (def X Y) everywhere in the code
+(macro (spec X Y) (def X Y))
 ```
 
 Notice that they do not involve any call with `#`, they replace terms.
@@ -366,9 +366,9 @@ evaluated but they and considered like empty constellations `{}`.
 For example:
 
 ```stellogen
-(exec [(+f X) X] (-f a) (:= x "Hello1"))
+(exec [(+f X) X] (-f a) (def x "Hello1"))
 (show #x)
-(:= y (show "Hello2"))
+(def y (show "Hello2"))
 #y
 ```
 
@@ -401,7 +401,7 @@ For example, we define a type for natural numbers which is simply a
 constellation corresponding to a "test":
 
 ```stellogen
-(:= nat {
+(def nat {
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 ```
@@ -421,11 +421,11 @@ A constellation can have one or several types:
 
 ```stellogen
 ' passes the test
-(:= 2 (+nat (s (s 0))))
+(def 2 (+nat (s (s 0))))
 (:: 2 nat)
 
 ' does not pass the test
-(:= 2 (+nat 2)
+(def 2 (+nat 2)
 ' (:: 2 nat)
 ```
 

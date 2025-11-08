@@ -1,2 +1,2 @@
 ' Test mismatched brackets
-(:= test [foo bar})
+(def test [foo bar})
