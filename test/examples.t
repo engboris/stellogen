@@ -15,17 +15,17 @@ Circuits example:
 
 Lambda calculus example:
   $ sgen run ../examples/lambda/lambda.sg
-  [(out (%cons r X7)) (ida (exp (%cons l X7) d))]
+  [(out [r X7]) (ida (exp [l X7] d))]
   [(out X7) (x (exp X7 d))]
 
 Linear lambda example:
   $ sgen run ../examples/lambda/linear_lambda.sg
-  [(out (%cons r X7)) (ida (%cons l X7))]
-  [(out (%cons X7 %nil)) (x X7)]
+  [(out [r X7]) (ida [l X7])]
+  [(out [X7]) (x X7)]
 
 MALL (multiplicative-additive linear logic) example:
   $ sgen run ../examples/proofnets/mall.sg
-  { [(-3 (%cons r (%cons l X4))) (-3 (%cons r (%cons r X4))) || (slice c b)] [(c X11) (d X11) || (slice c a)] }
+  { [(-3 [r l X4]) (-3 [r r X4]) || (slice c b)] [(c X11) (d X11) || (slice c a)] }
 
 MLL (multiplicative linear logic) example:
   $ sgen run ../examples/proofnets/mll.sg
@@ -75,7 +75,10 @@ Syntax reference:
   { [(-f X) (-f Y) (r X Y) || (!= X Y)] [(+f b)] [(+f a)] }
   { [(r b a) || (!= b a)] [(r a b) || (!= a b)] }
   (+n2 (s (s 0)))
-  { [(+field test2) (%cons (+f b) (%cons ok %nil))] [(+field test1) (%cons (+f a) (%cons ok %nil))] }
+  { [(+field test2) [(+f b) ok]] [(+field test1) [(+f a) ok]] }
+  [(+f a) ok]
+  [(+f b) ok]
+  [(+f c) ok]
 
 Turing machine example:
   $ sgen run ../examples/states/turing.sg

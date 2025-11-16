@@ -72,7 +72,14 @@ let rec constellation_of_term (t : StellarRays.term) : Marked.constellation =
     (* Check if this looks like a %cons list of rays (star representation) *)
     if is_cons_list other then
       let rays = rays_of_term other in
-      [ Action { content = rays; bans = [] } ]
+      (* Special case: if the ONLY ray is a %group, unpack it instead of keeping as a ray *)
+      match rays with
+      | [ (Func ((Null, "%group"), _) as group) ] ->
+        (* Single nested group - unpack it *)
+        constellation_of_term group
+      | _ ->
+        (* Multiple rays or non-group rays - create a star *)
+        [ Action { content = rays; bans = [] } ]
     else
       (* Single ray treated as a single-ray action star *)
       [ Action { content = [ other ]; bans = [] } ]

@@ -1,21 +1,17 @@
-(macro (stack A B) (A B))
-(macro (stack A B C ...) (A (stack B C ...)))
-
 (def g {
-  [+test1 1]
-  [+test2 {
-    [+test21 2]
-    [+test22 {
-      [+test3 3]}]}]})
+  [(+field test1) 1]
+  [(+field test2) {
+    [(+field test21) 2]
+    [(+field test22) {
+      [(+field test3) 3]}]}]})
 
-' (def x (stack eval exec { #g @[-test1] }))
-' (== #x 1)
+(def (get G X) (exec #G @[(-field X)]))
 
-' (def x (stack eval exec { #g @[-test2] }))
-' (def y (stack eval exec { #x @[-test21] }))
-' (== #y 2)
+(def test1 #(get g test1))
+(== #test1 1)
 
-' (def x (stack eval exec { #g @[-test2] }))
-' (def y (stack eval exec { #x @[-test22] }))
-' (def z (stack eval exec { #y @[-test3] }))
-' (== #z 3)
+(def test2 #(get g test2))
+(== #(get test2 test21) 2)
+
+(def test22 #(get test2 test22))
+(== #(get test22 test3) 3)
