@@ -509,9 +509,6 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in
     Exec (true, Group sgen_exprs, None) |> Result.return
-  | List [ { content = Symbol "eval"; _ }; arg ] ->
-    let* sgen_expr = sgen_expr_of_expr arg.content in
-    Eval sgen_expr |> Result.return
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op expect_op ->
     let* sgen_expr1 = sgen_expr_of_expr expr1.content in

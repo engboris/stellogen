@@ -68,16 +68,16 @@
 (show #g)
 
 'field access and evaluation
-(def (get G X) (eval (exec #G @[(-field X)])))
-(show #(get g test1))
-(show #(get g test2))
+' (def (get G X) (eval (exec #G @[(-field X)])))
+' (show #(get g test1))
+' (show #(get g test2))
 
 'nested fields
 (def g1 [
   [(+field test1) [
     [(+field test2) [(+f c) ok]]]]])
-(def g2 (eval (exec #g1 @[(-field test1)])))
-(stack show eval (exec #g2 @[(-field test2)]))
+' (def g2 (eval (exec #g1 @[(-field test1)])))
+' (stack show eval (exec #g2 @[(-field test2)]))
 
 'define type
 (macro (spec X Y) (def X Y))

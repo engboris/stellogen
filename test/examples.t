@@ -76,9 +76,6 @@ Syntax reference:
   { [(r b a) || (!= b a)] [(r a b) || (!= a b)] }
   (+n2 (s (s 0)))
   { [(+field test2) (%cons (+f b) (%cons ok %nil))] [(+field test1) (%cons (+f a) (%cons ok %nil))] }
-  [(+f a) ok]
-  [(+f b) ok]
-  (-field test2)
 
 Turing machine example:
   $ sgen run ../examples/states/turing.sg
