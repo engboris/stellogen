@@ -13,6 +13,33 @@ let string_of_var (x, index_opt) =
 let rec string_of_ray = function
   | Var var -> string_of_var var
   | Func (pf, []) -> string_of_polsym pf
+  | Func ((Null, "%group"), terms) ->
+    (* Pretty-print constellation groups as {...} *)
+    if List.is_empty terms then "{}"
+    else
+      let stars_str =
+        List.map terms ~f:string_of_ray |> String.concat ~sep:" "
+      in
+      Printf.sprintf "{ %s }" stars_str
+  | Func ((Null, "%cons"), [ head; tail ]) ->
+    (* Pretty-print cons lists as [a b c] *)
+    let rec collect_list acc = function
+      | Func ((Null, "%cons"), [ h; t ]) -> collect_list (h :: acc) t
+      | Func ((Null, "%nil"), []) -> List.rev acc
+      | other -> List.rev (other :: acc)
+      (* Improper list [a b|tail] *)
+    in
+    let elements = collect_list [ head ] tail in
+    let elems_str =
+      List.map elements ~f:string_of_ray |> String.concat ~sep:" "
+    in
+    Printf.sprintf "[%s]" elems_str
+  | Func ((Null, "@"), [ inner ]) ->
+    (* Focus marker *)
+    Printf.sprintf "@%s" (string_of_ray inner)
+  | Func ((Null, "%params"), [ rays; bans ]) ->
+    (* Star with constraints *)
+    Printf.sprintf "%s || %s" (string_of_ray rays) (string_of_ray bans)
   | Func (pf, terms) ->
     Printf.sprintf "(%s %s)" (string_of_polsym pf)
       (List.map terms ~f:string_of_ray |> String.concat ~sep:" ")

@@ -30,7 +30,7 @@ let trace input_file =
   match Expr.program_of_expr preprocessed with
   | Ok program ->
     (* Enable trace mode by setting __trace__ in the environment *)
-    let trace_marker = Sgen_ast.Raw [] in
+    let trace_marker = Sgen_ast.Raw (Lsc_ast.func "%nil" []) in
     let initial_env =
       { Sgen_ast.objs =
           (Lsc_ast.const "__trace__", trace_marker) :: Sgen_ast.initial_env.objs

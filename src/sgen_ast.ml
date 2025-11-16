@@ -15,10 +15,10 @@ type source_location =
   }
 
 type sgen_expr =
-  | Raw of Marked.constellation
+  | Raw of StellarRays.term
   | Call of ident
   | Exec of bool * sgen_expr * source_location option
-  | Group of sgen_expr list
+  | Group of sgen_expr list (* Internal: for combining multiple expressions *)
   | Focus of sgen_expr
   | Def of ident * sgen_expr
   | Show of sgen_expr list * source_location option

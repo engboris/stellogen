@@ -28,7 +28,8 @@ let eval_program_with_buffer (p : program) =
           (* Convert all results to strings and concatenate with space *)
           let output =
             List.rev results
-            |> List.map ~f:(fun constellation ->
+            |> List.map ~f:(fun term ->
+              let constellation = Sgen_eval.constellation_of_term term in
               string_of_constellation
                 (List.map constellation ~f:Lsc_ast.Marked.remove) )
             |> String.concat ~sep:" "
@@ -37,13 +38,12 @@ let eval_program_with_buffer (p : program) =
           Ok env_acc
         | expr :: rest -> (
           match Sgen_eval.eval_sgen_expr env_acc expr with
-          | Ok (env', constellation) ->
-            eval_all env' (constellation :: results) rest
+          | Ok (env', term) -> eval_all env' (term :: results) rest
           | Error e -> Error e )
       in
       eval_all env [] exprs
     | term -> (
-      (* For all other terms, use standard eval but discard constellation result *)
+      (* For all other terms, use standard eval but discard term result *)
       match Sgen_eval.eval_sgen_expr env term with
       | Ok (env', _) -> Ok env'
       | Error e -> Error e )
