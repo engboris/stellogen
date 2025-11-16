@@ -75,9 +75,6 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
   | Focus e ->
     let map_e = map_ray env ~f e in
     Focus map_e
-  | Eval e ->
-    let map_e = map_ray env ~f e in
-    Eval map_e
   | Def (id, e) -> Def (f id, map_ray env ~f e)
   | Show (exprs, loc) -> Show (List.map ~f:(map_ray env ~f) exprs, loc)
   | Expect (e1, e2, msg, loc) ->
@@ -281,21 +278,6 @@ let rec eval_sgen_expr (env : env) :
   | Focus e ->
     let* env', eval_e = eval_sgen_expr env e in
     eval_e |> Marked.remove_all |> Marked.make_state_all |> fun c -> Ok (env', c)
-  | Eval e -> (
-    let* env', eval_e = eval_sgen_expr env e in
-    match eval_e with
-    | [ State { content = [ r ]; bans = _ } ]
-    | [ Action { content = [ r ]; bans = _ } ] ->
-      let er = expr_of_ray r in
-      begin match Expr.sgen_expr_of_expr er with
-      | Ok sg -> eval_sgen_expr env' sg
-      | Error e -> Error (ExprError (e, None))
-      end
-    | e ->
-      failwith
-        ( "eval error: "
-        ^ string_of_constellation (Marked.remove_all e)
-        ^ " is not a ray." ) )
   | Def (identifier, expr) -> Ok ({ objs = add_obj env identifier expr }, [])
   | Show (exprs, show_loc) ->
     (* Evaluate all expressions and collect results *)
