@@ -9,6 +9,110 @@ let ( let* ) x f = Result.bind x ~f
 
 let unifiable r r' = StellarRays.solution [ (r, r') ] |> Option.is_some
 
+(* Conversion between terms and constellations *)
+let group_sym = (Null, "%group")
+
+let cons_sym = (Null, "%cons")
+
+let nil_sym = (Null, "%nil")
+
+let focus_sym = (Null, "@")
+
+let params_sym = (Null, "%params")
+
+let nil_term = StellarRays.Func (nil_sym, [])
+
+(* Convert a constellation to a term using %group *)
+let term_of_constellation (c : Marked.constellation) : StellarRays.term =
+  let open StellarRays in
+  let rec star_to_term : Marked.star -> term = function
+    | State s -> Func (focus_sym, [ star_content_to_term s ])
+    | Action s -> star_content_to_term s
+  and star_content_to_term (s : Raw.star) : term =
+    let rays_term = rays_to_term s.content in
+    if List.is_empty s.bans then rays_term
+    else
+      let bans_term = bans_to_term s.bans in
+      Func (params_sym, [ rays_term; bans_term ])
+  and rays_to_term (rays : ray list) : term =
+    List.fold_right rays
+      ~init:(Func (nil_sym, []))
+      ~f:(fun r acc -> Func (cons_sym, [ r; acc ]))
+  and bans_to_term (bans : ban list) : term =
+    let ban_to_term = function
+      | Ineq (r1, r2) -> Func ((Null, "!="), [ r1; r2 ])
+      | Incomp (r1, r2) -> Func ((Null, "slice"), [ r1; r2 ])
+    in
+    List.fold_right bans
+      ~init:(Func (nil_sym, []))
+      ~f:(fun b acc -> Func (cons_sym, [ ban_to_term b; acc ]))
+  in
+  (* Don't wrap single stars in %group *)
+  match c with
+  | [ single ] -> star_to_term single
+  | multiple -> Func (group_sym, List.map ~f:star_to_term multiple)
+
+(* Convert a term to a constellation - interprets %group and %cons structures *)
+let rec constellation_of_term (t : StellarRays.term) : Marked.constellation =
+  let open StellarRays in
+  match t with
+  | Func ((Null, "%group"), stars) ->
+    List.concat_map ~f:constellation_of_term stars
+  | Func ((Null, "%cons"), [ star; rest ]) when is_star_term star ->
+    (* %cons at constellation level: list of stars *)
+    constellation_of_term star @ constellation_of_term rest
+  | Func ((Null, "%nil"), []) -> []
+  | Func ((Null, "@"), [ inner ]) ->
+    constellation_of_term inner |> Marked.remove_all |> Marked.make_state_all
+  | Func ((Null, "%params"), [ rays_term; bans_term ]) ->
+    let rays = rays_of_term rays_term in
+    let bans = bans_of_term bans_term in
+    [ Action { content = rays; bans } ]
+  | other ->
+    (* Check if this looks like a %cons list of rays (star representation) *)
+    if is_cons_list other then
+      let rays = rays_of_term other in
+      [ Action { content = rays; bans = [] } ]
+    else
+      (* Single ray treated as a single-ray action star *)
+      [ Action { content = [ other ]; bans = [] } ]
+
+(* Check if a term is a cons list (%cons _ _) or %nil *)
+and is_cons_list = function
+  | Func ((Null, "%cons"), _) -> true
+  | Func ((Null, "%nil"), []) -> true
+  | _ -> false
+
+(* Check if a term looks like a star (either @ focused, %params, or cons list) *)
+and is_star_term = function
+  | Func ((Null, "@"), _) -> true
+  | Func ((Null, "%params"), _) -> true
+  | Func ((Null, "%cons"), _) -> true
+  | Func ((Null, "%nil"), _) -> true
+  | _ -> false
+
+and rays_of_term (t : StellarRays.term) : ray list =
+  let open StellarRays in
+  match t with
+  | Func ((Null, "%cons"), [ ray; rest ]) -> ray :: rays_of_term rest
+  | Func ((Null, "%nil"), []) -> []
+  | other -> [ other ]
+
+and bans_of_term (t : StellarRays.term) : ban list =
+  let open StellarRays in
+  match t with
+  | Func ((Null, "%cons"), [ ban; rest ]) ->
+    ban_of_term ban :: bans_of_term rest
+  | Func ((Null, "%nil"), []) -> []
+  | _ -> []
+
+and ban_of_term (t : StellarRays.term) : ban =
+  let open StellarRays in
+  match t with
+  | Func ((Null, "!="), [ r1; r2 ]) -> Ineq (r1, r2)
+  | Func ((Null, "slice"), [ r1; r2 ]) -> Incomp (r1, r2)
+  | _ -> failwith "Invalid ban structure"
+
 (* Global trace config for CLI trace mode *)
 let cli_trace_config : Lsc_eval.trace_config option ref = ref None
 
@@ -63,8 +167,18 @@ and get_trace_config env =
       Some cfg )
   | _ -> None
 
+and map_term_ray ~(f : ray -> ray) (t : StellarRays.term) : StellarRays.term =
+  let open StellarRays in
+  let rec map_t = function
+    | Var x -> f (Var x)
+    | Func (pf, ts) ->
+      let mapped_args = List.map ~f:map_t ts in
+      f (Func (pf, mapped_args))
+  in
+  map_t t
+
 and map_ray env ~f : sgen_expr -> sgen_expr = function
-  | Raw g -> Raw (List.map ~f:(Marked.map ~f) g)
+  | Raw t -> Raw (map_term_ray ~f t)
   | Call x -> Call (f x)
   | Exec (b, e, loc) ->
     let map_e = map_ray env ~f e in
@@ -237,8 +351,8 @@ let pp_err error : (string, err) Result.t =
     |> Result.return
 
 let rec eval_sgen_expr (env : env) :
-  sgen_expr -> (env * Marked.constellation, err) Result.t = function
-  | Raw mcs -> Ok (env, mcs)
+  sgen_expr -> (env * StellarRays.term, err) Result.t = function
+  | Raw t -> Ok (env, t)
   | Call x -> begin
     match get_obj env x with
     | None -> Error (UnknownID (string_of_ray x, None))
@@ -251,7 +365,8 @@ let rec eval_sgen_expr (env : env) :
       Result.bind result ~f:(eval_sgen_expr env)
   end
   | Group es ->
-    let* env', eval_es =
+    (* Evaluate each expression and combine the resulting terms into a %group *)
+    let* env', eval_terms =
       List.fold_left es
         ~init:(Ok (env, []))
         ~f:(fun acc e ->
@@ -259,9 +374,10 @@ let rec eval_sgen_expr (env : env) :
           let* env_new, result = eval_sgen_expr env_acc e in
           Ok (env_new, result :: results) )
     in
-    Ok (env', List.concat (List.rev eval_es))
+    Ok (env', func "%group" (List.rev eval_terms))
   | Exec (b, e, loc) ->
     let* env', eval_e = eval_sgen_expr env e in
+    let eval_constellation = constellation_of_term eval_e in
     let trace_cfg = get_trace_config env' in
     (* Set location in trace config if available *)
     ( match (trace_cfg, loc) with
@@ -274,11 +390,19 @@ let rec eval_sgen_expr (env : env) :
       in
       Lsc_eval.set_trace_location cfg (Some lsc_loc)
     | _ -> () );
-    Ok (env', exec ~linear:b ~trace:trace_cfg eval_e |> Marked.make_action_all)
+    let result_constellation =
+      exec ~linear:b ~trace:trace_cfg eval_constellation
+      |> Marked.make_action_all
+    in
+    Ok (env', term_of_constellation result_constellation)
   | Focus e ->
     let* env', eval_e = eval_sgen_expr env e in
-    eval_e |> Marked.remove_all |> Marked.make_state_all |> fun c -> Ok (env', c)
-  | Def (identifier, expr) -> Ok ({ objs = add_obj env identifier expr }, [])
+    let focused_constellation =
+      constellation_of_term eval_e |> Marked.remove_all |> Marked.make_state_all
+    in
+    Ok (env', term_of_constellation focused_constellation)
+  | Def (identifier, expr) ->
+    Ok ({ objs = add_obj env identifier expr }, nil_term)
   | Show (exprs, show_loc) ->
     (* Evaluate all expressions and collect results *)
     let rec eval_all env_acc results = function
@@ -287,12 +411,13 @@ let rec eval_sgen_expr (env : env) :
         let output =
           List.rev results
           |> List.map ~f:(fun evaluated ->
-            evaluated |> List.map ~f:Marked.remove |> string_of_constellation )
+            constellation_of_term evaluated
+            |> List.map ~f:Marked.remove |> string_of_constellation )
           |> String.concat ~sep:" "
         in
         Stdlib.print_endline output;
         Stdlib.flush Stdlib.stdout;
-        Ok (env_acc, [])
+        Ok (env_acc, nil_term)
       | expr :: rest ->
         (* Propagate location to inner expr if it doesn't have one *)
         let expr_with_loc =
@@ -307,17 +432,27 @@ let rec eval_sgen_expr (env : env) :
   | Expect (expr1, expr2, message, location) ->
     let* env1, eval1 = eval_sgen_expr env expr1 in
     let* env2, eval2 = eval_sgen_expr env1 expr2 in
-    let normalized1 = Marked.normalize_all eval1 in
-    let normalized2 = Marked.normalize_all eval2 in
-    if Marked.equal_constellation normalized1 normalized2 then Ok (env2, [])
-    else Error (ExpectError { got = eval1; expected = eval2; message; location })
+    let const1 = constellation_of_term eval1 in
+    let const2 = constellation_of_term eval2 in
+    let normalized1 = Marked.normalize_all const1 in
+    let normalized2 = Marked.normalize_all const2 in
+    if Marked.equal_constellation normalized1 normalized2 then
+      Ok (env2, nil_term)
+    else
+      Error (ExpectError { got = const1; expected = const2; message; location })
   | Match (expr1, expr2, message, location) ->
     let* env1, eval1 = eval_sgen_expr env expr1 in
     let* env2, eval2 = eval_sgen_expr env1 expr2 in
-    let const1 = List.map eval1 ~f:Marked.remove in
-    let const2 = List.map eval2 ~f:Marked.remove in
-    if constellations_matchable const1 const2 then Ok (env2, [])
-    else Error (MatchError { term1 = eval1; term2 = eval2; message; location })
+    let const1 = constellation_of_term eval1 |> List.map ~f:Marked.remove in
+    let const2 = constellation_of_term eval2 |> List.map ~f:Marked.remove in
+    if constellations_matchable const1 const2 then Ok (env2, nil_term)
+    else
+      let const1_marked = constellation_of_term eval1 in
+      let const2_marked = constellation_of_term eval2 in
+      Error
+        (MatchError
+           { term1 = const1_marked; term2 = const2_marked; message; location }
+        )
   | Use path -> (
     let open Lsc_ast.StellarRays in
     let filename =
@@ -335,7 +470,7 @@ let rec eval_sgen_expr (env : env) :
     match Expr.program_of_expr preprocessed with
     | Ok program ->
       let* new_env = eval_program_internal env program in
-      Ok (new_env, [])
+      Ok (new_env, nil_term)
     | Error (expr_err, loc) -> Error (ExprError (expr_err, loc)) )
 
 and expr_of_ray : ray -> Expr.expr = function

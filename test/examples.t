@@ -20,8 +20,8 @@ Lambda calculus example:
 
 Linear lambda example:
   $ sgen run ../examples/lambda/linear_lambda.sg
-  {}
-  {}
+  [(out (%cons r X7)) (ida (%cons l X7))]
+  [(out (%cons X7 %nil)) (x X7)]
 
 MALL (multiplicative-additive linear logic) example:
   $ sgen run ../examples/proofnets/mall.sg

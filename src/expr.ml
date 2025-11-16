@@ -429,6 +429,21 @@ let bans_of_expr ban_exprs : (ban list, expr_err) Result.t =
   in
   List.map ban_exprs ~f:(fun e -> ban_of_expr e.content) |> Result.all
 
+(* Helper to parse bans from a single expr containing a list *)
+let bans_of_expr_list (bans_list_expr : expr) : (ban list, expr_err) Result.t =
+  match bans_list_expr with
+  | List ban_exprs -> bans_of_expr ban_exprs
+  | _ -> Error (InvalidBan (to_string bans_list_expr))
+
+(* Convert a ban list to a term structure for %params *)
+let bans_list_to_term (bans : ban list) : ray =
+  let ban_to_term = function
+    | Ineq (r1, r2) -> func "!=" [ r1; r2 ]
+    | Incomp (r1, r2) -> func "slice" [ r1; r2 ]
+  in
+  List.fold_right bans ~init:(func "%nil" []) ~f:(fun b acc ->
+    func "%cons" [ ban_to_term b; acc ] )
+
 let rec raylist_of_expr expr : (ray list, expr_err) Result.t =
   match expr with
   | Symbol k when String.equal k nil_op -> Ok []
@@ -477,24 +492,21 @@ let rec constellation_of_expr :
 
 let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
   match expr with
-  | Symbol k when String.equal k nil_op ->
-    Raw [ Action { content = []; bans = [] } ] |> Result.return
-  | Var _ | Symbol _ ->
-    let* ray = ray_of_expr expr in
-    Raw [ Action { content = [ ray ]; bans = [] } ] |> Result.return
-  | List ({ content = Symbol op; _ } :: _) when String.equal op params_op ->
-    let* star = star_of_expr expr in
-    Raw [ star ] |> Result.return
-  | List ({ content = Symbol op; _ } :: _) when String.equal op cons_op ->
-    let* star = star_of_expr expr in
-    Raw [ star ] |> Result.return
   | List [ { content = Symbol op; _ }; arg ] when String.equal op call_op ->
     let* ray = ray_of_expr arg.content in
     Call ray |> Result.return
   | List [ { content = Symbol op; _ }; arg ] when String.equal op focus_op ->
     let* sgen_expr = sgen_expr_of_expr arg.content in
     Focus sgen_expr |> Result.return
+  | List [ { content = Symbol op; _ }; rays_expr; bans_expr ]
+    when String.equal op params_op ->
+    (* (params rays_list bans_list) → create %params term structure *)
+    let* rays_term = ray_of_expr rays_expr.content in
+    let* bans_list = bans_of_expr_list bans_expr.content in
+    let bans_term = bans_list_to_term bans_list in
+    Raw (func "%params" [ rays_term; bans_term ]) |> Result.return
   | List ({ content = Symbol op; _ } :: args) when String.equal op group_op ->
+    (* {a b c} → Group [a; b; c] *)
     let* sgen_exprs =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in
@@ -503,12 +515,18 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
     let* sgen_exprs =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in
-    Exec (false, Group sgen_exprs, None) |> Result.return
+    let combined =
+      match sgen_exprs with [ single ] -> single | multiple -> Group multiple
+    in
+    Exec (false, combined, None) |> Result.return
   | List ({ content = Symbol "fire"; _ } :: args) ->
     let* sgen_exprs =
       List.map args ~f:(fun e -> sgen_expr_of_expr e.content) |> Result.all
     in
-    Exec (true, Group sgen_exprs, None) |> Result.return
+    let combined =
+      match sgen_exprs with [ single ] -> single | multiple -> Group multiple
+    in
+    Exec (true, combined, None) |> Result.return
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op expect_op ->
     let* sgen_expr1 = sgen_expr_of_expr expr1.content in
@@ -544,9 +562,10 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
   | List [ { content = Symbol "use"; _ }; path ] ->
     let* path_ray = ray_of_expr path.content in
     Use path_ray |> Result.return
-  | List _ as list_expr ->
-    let* constellation = constellation_of_expr list_expr in
-    Raw constellation |> Result.return
+  | _ ->
+    (* Everything else is a raw term *)
+    let* ray = ray_of_expr expr in
+    Raw ray |> Result.return
 
 (* ---------------------------------------
    Stellogen program of Expr
