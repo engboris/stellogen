@@ -3,7 +3,10 @@ open Lsc_ast
 open Lsc_pretty
 open Lsc_eval
 open Sgen_ast
+open Expr_err
 open Out_channel
+
+exception EvalError of expr_err * source_location option
 
 let ( let* ) x f = Result.bind x ~f
 
@@ -118,7 +121,13 @@ and ban_of_term (t : StellarRays.term) : ban =
   match t with
   | Func ((Null, "!="), [ r1; r2 ]) -> Ineq (r1, r2)
   | Func ((Null, "slice"), [ r1; r2 ]) -> Incomp (r1, r2)
-  | _ -> failwith "Invalid ban structure"
+  | _ ->
+    raise
+      (EvalError
+         ( InvalidBanStructure
+             (Printf.sprintf "expected '!=' or 'slice' constraint, got: %s"
+                (string_of_ray t) )
+         , None ) )
 
 (* Global trace config for CLI trace mode *)
 let cli_trace_config : Lsc_eval.trace_config option ref = ref None
@@ -344,6 +353,18 @@ let pp_err error : (string, err) Result.t =
       | InvalidDeclaration expr ->
         ( Printf.sprintf "expression '%s' is not a valid declaration" expr
         , "Declarations must use def, show, ==, or use." )
+      | InvalidMacroArgument msg ->
+        ( Printf.sprintf "invalid macro argument: %s" msg
+        , "Macro arguments must be variables (start with uppercase)." )
+      | InvalidBanStructure msg ->
+        ( Printf.sprintf "invalid ban structure: %s" msg
+        , "Ban expressions must use != or 'slice' with two arguments." )
+      | CircularImport path ->
+        ( Printf.sprintf "circular import detected: %s" path
+        , "Check your import chain for cycles." )
+      | FileLoadError { filename; message } ->
+        ( Printf.sprintf "failed to load file '%s': %s" filename message
+        , "Check that the file exists and is readable." )
     in
     let header = bold (red "error") ^ ": " ^ bold error_msg in
     let loc_str =

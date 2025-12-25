@@ -3,6 +3,8 @@ open Lsc_ast
 open Sgen_ast
 open Expr_err
 
+exception MacroError of expr_err * source_location option
+
 let ( let* ) x f = Result.bind x ~f
 
 type ident = string
@@ -296,7 +298,21 @@ let unfold_decl_def (macro_env : (string * (string list * expr loc list)) list)
             match arg.content with
             | Var x -> x
             | Symbol "..." -> "..." (* Allow ... as a symbol *)
-            | _ -> failwith "error: syntax declaration must contain variables" )
+            | Symbol s ->
+              raise
+                (MacroError
+                   ( InvalidMacroArgument
+                       (Printf.sprintf
+                          "macro argument '%s' must be a variable (start with \
+                           uppercase)"
+                          s )
+                   , arg.loc ) )
+            | List _ ->
+              raise
+                (MacroError
+                   ( InvalidMacroArgument
+                       "macro argument must be a variable, not a list"
+                   , arg.loc ) ) )
         in
         (macro_name, (var_args, body)) :: acc
       | _ -> acc )
@@ -362,7 +378,21 @@ let extract_macros (raw_exprs : Raw.t list) : macro_env =
           match arg.content with
           | Var x -> x
           | Symbol "..." -> "..." (* Allow ... as a symbol *)
-          | _ -> failwith "error: syntax declaration must contain variables" )
+          | Symbol s ->
+            raise
+              (MacroError
+                 ( InvalidMacroArgument
+                     (Printf.sprintf
+                        "macro argument '%s' must be a variable (start with \
+                         uppercase)"
+                        s )
+                 , arg.loc ) )
+          | List _ ->
+            raise
+              (MacroError
+                 ( InvalidMacroArgument
+                     "macro argument must be a variable, not a list"
+                 , arg.loc ) ) )
       in
       ((macro_name, (var_args, body)) :: env, acc)
     | _ -> (env, acc)

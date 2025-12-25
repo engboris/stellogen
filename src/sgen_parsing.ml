@@ -2,6 +2,9 @@ open Base
 open Lexing
 open Lexer
 open Parser
+open Expr_err
+
+exception ImportError of expr_err
 
 let red text = "\x1b[31m" ^ text ^ "\x1b[0m"
 
@@ -230,8 +233,7 @@ let rec load_macro_file (filename : string) (current_file : string)
 
   (* Check for circular imports *)
   if List.mem visited resolved_filename ~equal:String.equal then
-    failwith
-      (Printf.sprintf "Circular macro import detected: %s" resolved_filename);
+    raise (ImportError (CircularImport resolved_filename));
 
   let visited = resolved_filename :: visited in
 
@@ -257,8 +259,9 @@ let rec load_macro_file (filename : string) (current_file : string)
     (* Later imports override earlier ones *)
     nested_macros @ file_macros
   with Sys_error msg ->
-    failwith
-      (Printf.sprintf "Error loading macro file '%s': %s" resolved_filename msg)
+    raise
+      (ImportError
+         (FileLoadError { filename = resolved_filename; message = msg }) )
 
 (* Preprocess with macro imports *)
 let preprocess_with_imports (source_file : string) (raw_exprs : Expr.Raw.t list)
