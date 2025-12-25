@@ -4,16 +4,9 @@ open Lexing
 open Lexer
 open Parser
 open Expr_err
+open Terminal
 
 exception ImportError of expr_err
-
-let red text = "\x1b[31m" ^ text ^ "\x1b[0m"
-
-let bold text = "\x1b[1m" ^ text ^ "\x1b[0m"
-
-let cyan text = "\x1b[36m" ^ text ^ "\x1b[0m"
-
-let yellow text = "\x1b[33m" ^ text ^ "\x1b[0m"
 
 let string_of_token = function
   | VAR s | SYM s | STRING s -> s
@@ -53,20 +46,18 @@ let unexpected_token_msg () =
 
 let format_location filename pos =
   let column = pos.pos_cnum - pos.pos_bol + 1 in
-  Printf.sprintf "%s:%d:%d" (cyan filename) pos.pos_lnum column
+  Terminal.format_location ~filename ~line:pos.pos_lnum ~column
 
 let show_source_location filename pos =
   match get_line filename pos.pos_lnum with
   | Some line ->
-    let line_num_str = Printf.sprintf "%4d" pos.pos_lnum in
     let column = pos.pos_cnum - pos.pos_bol + 1 in
-    let pointer = String.make (column - 1) ' ' ^ red "^" in
-    Printf.sprintf "\n %s %s %s\n      %s %s\n" (cyan line_num_str) (cyan "|")
-      line (cyan "|") pointer
+    Terminal.format_source_line ~line_num:pos.pos_lnum ~line_content:line
+      ~column
   | None -> ""
 
 let print_syntax_error pos error_msg filename =
-  let header = bold (red "error") ^ ": " ^ bold error_msg in
+  let header = error_label ^ ": " ^ bold error_msg in
   let loc_str = format_location filename pos in
   let source = show_source_location filename pos in
   Stdlib.Printf.eprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
@@ -200,7 +191,7 @@ let parse_with_error_recovery filename lexbuf =
     List.iter errors ~f:(fun error ->
       let hint_msg =
         match error.hint with
-        | Some h -> "\n  " ^ yellow "hint" ^ ": " ^ h
+        | Some h -> "\n  " ^ hint_label ^ ": " ^ h
         | None -> ""
       in
       print_syntax_error error.position error.message filename;

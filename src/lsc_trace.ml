@@ -9,6 +9,7 @@ open Base
 open Stdio
 open Lsc_ast.Raw
 open Lsc_pretty
+open Terminal
 
 (* ============================================================
    Source Location Tracking
@@ -32,22 +33,6 @@ let get_source_line filename line_num =
       skip line_num;
       In_channel.input_line ic )
   with _ -> None
-
-(* ============================================================
-   Terminal Colors
-   ============================================================ *)
-
-let cyan text = "\x1b[36m" ^ text ^ "\x1b[0m"
-
-let green text = "\x1b[32m" ^ text ^ "\x1b[0m"
-
-let yellow text = "\x1b[33m" ^ text ^ "\x1b[0m"
-
-let magenta text = "\x1b[35m" ^ text ^ "\x1b[0m"
-
-let bold text = "\x1b[1m" ^ text ^ "\x1b[0m"
-
-let dim text = "\x1b[2m" ^ text ^ "\x1b[0m"
 
 (* ============================================================
    Trace State
