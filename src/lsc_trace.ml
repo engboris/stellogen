@@ -6,6 +6,7 @@
  *)
 
 open Base
+open Stdio
 open Lsc_ast.Raw
 open Lsc_pretty
 
@@ -21,17 +22,15 @@ type source_location =
 
 let get_source_line filename line_num =
   try
-    let ic = Stdlib.open_in filename in
-    let rec skip n =
-      if n <= 1 then ()
-      else (
-        ignore (Stdlib.input_line ic);
-        skip (n - 1) )
-    in
-    skip line_num;
-    let line = Stdlib.input_line ic in
-    Stdlib.close_in ic;
-    Some line
+    In_channel.with_file filename ~f:(fun ic ->
+      let rec skip n =
+        if n <= 1 then ()
+        else (
+          ignore (In_channel.input_line_exn ic);
+          skip (n - 1) )
+      in
+      skip line_num;
+      In_channel.input_line ic )
   with _ -> None
 
 (* ============================================================

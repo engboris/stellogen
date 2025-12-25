@@ -1,4 +1,5 @@
 open Base
+open Stdio
 open Lexing
 open Lexer
 open Parser
@@ -30,18 +31,18 @@ let string_of_token = function
 let is_end_delimiter = function RPAR | RBRACK | RBRACE -> true | _ -> false
 
 let get_line filename line_num =
-  let ic = Stdlib.open_in filename in
-  let rec skip_lines n =
-    if n <= 0 then ()
-    else
-      match Stdlib.input_line ic with
-      | exception End_of_file -> ()
-      | _ -> skip_lines (n - 1)
-  in
-  skip_lines (line_num - 1);
-  let result = try Some (Stdlib.input_line ic) with End_of_file -> None in
-  Stdlib.close_in ic;
-  result
+  try
+    In_channel.with_file filename ~f:(fun ic ->
+      let rec skip_lines n =
+        if n <= 0 then ()
+        else
+          match In_channel.input_line ic with
+          | None -> ()
+          | Some _ -> skip_lines (n - 1)
+      in
+      skip_lines (line_num - 1);
+      In_channel.input_line ic )
+  with Sys_error _ -> None
 
 let unexpected_token_msg () =
   match !last_token with
@@ -237,31 +238,31 @@ let rec load_macro_file (filename : string) (current_file : string)
 
   let visited = resolved_filename :: visited in
 
-  try
-    let ic = Stdlib.open_in resolved_filename in
-    let lexbuf = Sedlexing.Utf8.from_channel ic in
-    Sedlexing.set_filename lexbuf resolved_filename;
+  let expr =
+    try
+      In_channel.with_file resolved_filename ~f:(fun ic ->
+        let lexbuf = Sedlexing.Utf8.from_channel ic in
+        Sedlexing.set_filename lexbuf resolved_filename;
+        parse_with_error resolved_filename lexbuf )
+    with Sys_error msg ->
+      raise
+        (ImportError
+           (FileLoadError { filename = resolved_filename; message = msg }) )
+  in
 
-    let expr = parse_with_error resolved_filename lexbuf in
-    Stdlib.close_in ic;
+  (* First, recursively load imports from this file *)
+  let nested_imports = Expr.collect_macro_imports expr in
+  let nested_macros =
+    List.concat_map nested_imports ~f:(fun import_path ->
+      load_macro_file import_path resolved_filename visited )
+  in
 
-    (* First, recursively load imports from this file *)
-    let nested_imports = Expr.collect_macro_imports expr in
-    let nested_macros =
-      List.concat_map nested_imports ~f:(fun import_path ->
-        load_macro_file import_path resolved_filename visited )
-    in
+  (* Then extract macros from this file *)
+  let file_macros = Expr.extract_macros expr in
 
-    (* Then extract macros from this file *)
-    let file_macros = Expr.extract_macros expr in
-
-    (* Combine nested macros with this file's macros *)
-    (* Later imports override earlier ones *)
-    nested_macros @ file_macros
-  with Sys_error msg ->
-    raise
-      (ImportError
-         (FileLoadError { filename = resolved_filename; message = msg }) )
+  (* Combine nested macros with this file's macros *)
+  (* Later imports override earlier ones *)
+  nested_macros @ file_macros
 
 (* Preprocess with macro imports *)
 let preprocess_with_imports (source_file : string) (raw_exprs : Expr.Raw.t list)

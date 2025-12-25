@@ -1,10 +1,10 @@
 open Base
+open Stdio
 open Lsc_ast
 open Lsc_pretty
 open Lsc_eval
 open Sgen_ast
 open Expr_err
-open Out_channel
 
 exception EvalError of expr_err * source_location option
 
@@ -226,17 +226,15 @@ let pp_err error : (string, err) Result.t =
 
   let get_source_line filename line_num =
     try
-      let ic = Stdlib.open_in filename in
-      let rec skip_lines n =
-        if n <= 1 then ()
-        else (
-          ignore (Stdlib.input_line ic);
-          skip_lines (n - 1) )
-      in
-      skip_lines line_num;
-      let line = Stdlib.input_line ic in
-      Stdlib.close_in ic;
-      Some line
+      In_channel.with_file filename ~f:(fun ic ->
+        let rec skip_lines n =
+          if n <= 1 then ()
+          else (
+            ignore (In_channel.input_line_exn ic);
+            skip_lines (n - 1) )
+        in
+        skip_lines line_num;
+        In_channel.input_line ic )
     with _ -> None
   in
 
@@ -491,9 +489,12 @@ let rec eval_sgen_expr (env : env) :
     let create_start_pos fname =
       { Lexing.pos_fname = fname; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
     in
-    let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in filename) in
-    Sedlexing.set_position lexbuf (create_start_pos filename);
-    let expr = Sgen_parsing.parse_with_error filename lexbuf in
+    let expr =
+      In_channel.with_file filename ~f:(fun ic ->
+        let lexbuf = Sedlexing.Utf8.from_channel ic in
+        Sedlexing.set_position lexbuf (create_start_pos filename);
+        Sgen_parsing.parse_with_error filename lexbuf )
+    in
     let preprocessed = Sgen_parsing.preprocess_with_imports filename expr in
     match Expr.program_of_expr preprocessed with
     | Ok program ->
@@ -517,7 +518,7 @@ and eval_program (p : program) =
   | Ok env -> Ok env
   | Error e ->
     let* pp = pp_err e in
-    output_string stderr pp;
+    Out_channel.output_string Out_channel.stderr pp;
     Error e
 
 and eval_program_internal (env : env) (p : program) =
