@@ -1,9 +1,13 @@
 open Base
+open Stdio
 open Lsc_ast
 open Lsc_pretty
 open Lsc_eval
 open Sgen_ast
-open Out_channel
+open Expr_err
+open Terminal
+
+exception EvalError of expr_err * source_location option
 
 let ( let* ) x f = Result.bind x ~f
 
@@ -118,7 +122,13 @@ and ban_of_term (t : StellarRays.term) : ban =
   match t with
   | Func ((Null, "!="), [ r1; r2 ]) -> Ineq (r1, r2)
   | Func ((Null, "slice"), [ r1; r2 ]) -> Incomp (r1, r2)
-  | _ -> failwith "Invalid ban structure"
+  | _ ->
+    raise
+      (EvalError
+         ( InvalidBanStructure
+             (Printf.sprintf "expected '!=' or 'slice' constraint, got: %s"
+                (string_of_ray t) )
+         , None ) )
 
 (* Global trace config for CLI trace mode *)
 let cli_trace_config : Lsc_eval.trace_config option ref = ref None
@@ -205,39 +215,30 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
   | Use id -> Use (f id)
 
 let pp_err error : (string, err) Result.t =
-  let red text = "\x1b[31m" ^ text ^ "\x1b[0m" in
-  let bold text = "\x1b[1m" ^ text ^ "\x1b[0m" in
-  let cyan text = "\x1b[36m" ^ text ^ "\x1b[0m" in
-  let yellow text = "\x1b[33m" ^ text ^ "\x1b[0m" in
-  let green text = "\x1b[32m" ^ text ^ "\x1b[0m" in
-
   let format_location loc =
-    Printf.sprintf "%s:%d:%d" (cyan loc.filename) loc.line loc.column
+    Terminal.format_location ~filename:loc.filename ~line:loc.line
+      ~column:loc.column
   in
 
   let get_source_line filename line_num =
     try
-      let ic = Stdlib.open_in filename in
-      let rec skip_lines n =
-        if n <= 1 then ()
-        else (
-          ignore (Stdlib.input_line ic);
-          skip_lines (n - 1) )
-      in
-      skip_lines line_num;
-      let line = Stdlib.input_line ic in
-      Stdlib.close_in ic;
-      Some line
+      In_channel.with_file filename ~f:(fun ic ->
+        let rec skip_lines n =
+          if n <= 1 then ()
+          else (
+            ignore (In_channel.input_line_exn ic);
+            skip_lines (n - 1) )
+        in
+        skip_lines line_num;
+        In_channel.input_line ic )
     with _ -> None
   in
 
   let show_source_location loc =
     match get_source_line loc.filename loc.line with
     | Some line ->
-      let line_num_str = Printf.sprintf "%4d" loc.line in
-      let pointer = String.make (loc.column - 1) ' ' ^ red "^" in
-      Printf.sprintf "\n %s %s %s\n      %s %s\n" (cyan line_num_str) (cyan "|")
-        line (cyan "|") pointer
+      Terminal.format_source_line ~line_num:loc.line ~line_content:line
+        ~column:loc.column
     | None -> ""
   in
 
@@ -245,7 +246,7 @@ let pp_err error : (string, err) Result.t =
   match error with
   | ExpectError { got; expected; message = Func ((Null, f), []); location }
     when String.equal f "default" ->
-    let header = bold (red "error") ^ ": " ^ bold "assertion failed" in
+    let header = error_label ^ ": " ^ bold "assertion failed" in
     let loc_str =
       Option.map location ~f:format_location
       |> Option.value ~default:"<unknown location>"
@@ -264,7 +265,7 @@ let pp_err error : (string, err) Result.t =
     |> Result.return
   | ExpectError { message = Func ((Null, f), [ term ]); location; _ }
     when String.equal f "error" ->
-    let header = bold (red "error") ^ ": " ^ string_of_ray term in
+    let header = error_label ^ ": " ^ string_of_ray term in
     let loc_str =
       Option.map location ~f:format_location
       |> Option.value ~default:"<unknown location>"
@@ -275,7 +276,7 @@ let pp_err error : (string, err) Result.t =
     Printf.sprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
     |> Result.return
   | ExpectError { message; location; _ } ->
-    let header = bold (red "error") ^ ": " ^ string_of_ray message in
+    let header = error_label ^ ": " ^ string_of_ray message in
     let loc_str =
       Option.map location ~f:format_location
       |> Option.value ~default:"<unknown location>"
@@ -287,7 +288,7 @@ let pp_err error : (string, err) Result.t =
     |> Result.return
   | MatchError { term1; term2; message = Func ((Null, f), []); location }
     when String.equal f "default" ->
-    let header = bold (red "error") ^ ": " ^ bold "unification failed" in
+    let header = error_label ^ ": " ^ bold "unification failed" in
     let loc_str =
       Option.map location ~f:format_location
       |> Option.value ~default:"<unknown location>"
@@ -303,7 +304,7 @@ let pp_err error : (string, err) Result.t =
       (yellow term2_str)
     |> Result.return
   | MatchError { message; location; _ } ->
-    let header = bold (red "error") ^ ": " ^ string_of_ray message in
+    let header = error_label ^ ": " ^ string_of_ray message in
     let loc_str =
       Option.map location ~f:format_location
       |> Option.value ~default:"<unknown location>"
@@ -314,7 +315,7 @@ let pp_err error : (string, err) Result.t =
     Printf.sprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
     |> Result.return
   | UnknownID (identifier, location) ->
-    let header = bold (red "error") ^ ": " ^ bold "identifier not found" in
+    let header = error_label ^ ": " ^ bold "identifier not found" in
     let loc_str =
       Option.map location ~f:format_location
       |> Option.value ~default:"<unknown location>"
@@ -344,8 +345,20 @@ let pp_err error : (string, err) Result.t =
       | InvalidDeclaration expr ->
         ( Printf.sprintf "expression '%s' is not a valid declaration" expr
         , "Declarations must use def, show, ==, or use." )
+      | InvalidMacroArgument msg ->
+        ( Printf.sprintf "invalid macro argument: %s" msg
+        , "Macro arguments must be variables (start with uppercase)." )
+      | InvalidBanStructure msg ->
+        ( Printf.sprintf "invalid ban structure: %s" msg
+        , "Ban expressions must use != or 'slice' with two arguments." )
+      | CircularImport path ->
+        ( Printf.sprintf "circular import detected: %s" path
+        , "Check your import chain for cycles." )
+      | FileLoadError { filename; message } ->
+        ( Printf.sprintf "failed to load file '%s': %s" filename message
+        , "Check that the file exists and is readable." )
     in
-    let header = bold (red "error") ^ ": " ^ bold error_msg in
+    let header = error_label ^ ": " ^ bold error_msg in
     let loc_str =
       Option.map location ~f:format_location
       |> Option.value ~default:"<unknown location>"
@@ -353,8 +366,8 @@ let pp_err error : (string, err) Result.t =
     let source =
       Option.map location ~f:show_source_location |> Option.value ~default:""
     in
-    Printf.sprintf "%s\n  %s %s\n%s\n  %s %s\n\n" header (cyan "-->") loc_str
-      source (cyan "help:") hint
+    Printf.sprintf "%s\n  %s %s\n%s\n  %s: %s\n\n" header (cyan "-->") loc_str
+      source hint_label hint
     |> Result.return
 
 let rec eval_sgen_expr (env : env) :
@@ -470,9 +483,12 @@ let rec eval_sgen_expr (env : env) :
     let create_start_pos fname =
       { Lexing.pos_fname = fname; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
     in
-    let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in filename) in
-    Sedlexing.set_position lexbuf (create_start_pos filename);
-    let expr = Sgen_parsing.parse_with_error filename lexbuf in
+    let expr =
+      In_channel.with_file filename ~f:(fun ic ->
+        let lexbuf = Sedlexing.Utf8.from_channel ic in
+        Sedlexing.set_position lexbuf (create_start_pos filename);
+        Sgen_parsing.parse_with_error filename lexbuf )
+    in
     let preprocessed = Sgen_parsing.preprocess_with_imports filename expr in
     match Expr.program_of_expr preprocessed with
     | Ok program ->
@@ -496,7 +512,7 @@ and eval_program (p : program) =
   | Ok env -> Ok env
   | Error e ->
     let* pp = pp_err e in
-    output_string stderr pp;
+    Out_channel.output_string Out_channel.stderr pp;
     Error e
 
 and eval_program_internal (env : env) (p : program) =

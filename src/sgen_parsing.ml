@@ -1,15 +1,12 @@
 open Base
+open Stdio
 open Lexing
 open Lexer
 open Parser
+open Expr_err
+open Terminal
 
-let red text = "\x1b[31m" ^ text ^ "\x1b[0m"
-
-let bold text = "\x1b[1m" ^ text ^ "\x1b[0m"
-
-let cyan text = "\x1b[36m" ^ text ^ "\x1b[0m"
-
-let yellow text = "\x1b[33m" ^ text ^ "\x1b[0m"
+exception ImportError of expr_err
 
 let string_of_token = function
   | VAR s | SYM s | STRING s -> s
@@ -27,18 +24,18 @@ let string_of_token = function
 let is_end_delimiter = function RPAR | RBRACK | RBRACE -> true | _ -> false
 
 let get_line filename line_num =
-  let ic = Stdlib.open_in filename in
-  let rec skip_lines n =
-    if n <= 0 then ()
-    else
-      match Stdlib.input_line ic with
-      | exception End_of_file -> ()
-      | _ -> skip_lines (n - 1)
-  in
-  skip_lines (line_num - 1);
-  let result = try Some (Stdlib.input_line ic) with End_of_file -> None in
-  Stdlib.close_in ic;
-  result
+  try
+    In_channel.with_file filename ~f:(fun ic ->
+      let rec skip_lines n =
+        if n <= 0 then ()
+        else
+          match In_channel.input_line ic with
+          | None -> ()
+          | Some _ -> skip_lines (n - 1)
+      in
+      skip_lines (line_num - 1);
+      In_channel.input_line ic )
+  with Sys_error _ -> None
 
 let unexpected_token_msg () =
   match !last_token with
@@ -49,20 +46,18 @@ let unexpected_token_msg () =
 
 let format_location filename pos =
   let column = pos.pos_cnum - pos.pos_bol + 1 in
-  Printf.sprintf "%s:%d:%d" (cyan filename) pos.pos_lnum column
+  Terminal.format_location ~filename ~line:pos.pos_lnum ~column
 
 let show_source_location filename pos =
   match get_line filename pos.pos_lnum with
   | Some line ->
-    let line_num_str = Printf.sprintf "%4d" pos.pos_lnum in
     let column = pos.pos_cnum - pos.pos_bol + 1 in
-    let pointer = String.make (column - 1) ' ' ^ red "^" in
-    Printf.sprintf "\n %s %s %s\n      %s %s\n" (cyan line_num_str) (cyan "|")
-      line (cyan "|") pointer
+    Terminal.format_source_line ~line_num:pos.pos_lnum ~line_content:line
+      ~column
   | None -> ""
 
 let print_syntax_error pos error_msg filename =
-  let header = bold (red "error") ^ ": " ^ bold error_msg in
+  let header = error_label ^ ": " ^ bold error_msg in
   let loc_str = format_location filename pos in
   let source = show_source_location filename pos in
   Stdlib.Printf.eprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
@@ -196,7 +191,7 @@ let parse_with_error_recovery filename lexbuf =
     List.iter errors ~f:(fun error ->
       let hint_msg =
         match error.hint with
-        | Some h -> "\n  " ^ yellow "hint" ^ ": " ^ h
+        | Some h -> "\n  " ^ hint_label ^ ": " ^ h
         | None -> ""
       in
       print_syntax_error error.position error.message filename;
@@ -230,35 +225,35 @@ let rec load_macro_file (filename : string) (current_file : string)
 
   (* Check for circular imports *)
   if List.mem visited resolved_filename ~equal:String.equal then
-    failwith
-      (Printf.sprintf "Circular macro import detected: %s" resolved_filename);
+    raise (ImportError (CircularImport resolved_filename));
 
   let visited = resolved_filename :: visited in
 
-  try
-    let ic = Stdlib.open_in resolved_filename in
-    let lexbuf = Sedlexing.Utf8.from_channel ic in
-    Sedlexing.set_filename lexbuf resolved_filename;
+  let expr =
+    try
+      In_channel.with_file resolved_filename ~f:(fun ic ->
+        let lexbuf = Sedlexing.Utf8.from_channel ic in
+        Sedlexing.set_filename lexbuf resolved_filename;
+        parse_with_error resolved_filename lexbuf )
+    with Sys_error msg ->
+      raise
+        (ImportError
+           (FileLoadError { filename = resolved_filename; message = msg }) )
+  in
 
-    let expr = parse_with_error resolved_filename lexbuf in
-    Stdlib.close_in ic;
+  (* First, recursively load imports from this file *)
+  let nested_imports = Expr.collect_macro_imports expr in
+  let nested_macros =
+    List.concat_map nested_imports ~f:(fun import_path ->
+      load_macro_file import_path resolved_filename visited )
+  in
 
-    (* First, recursively load imports from this file *)
-    let nested_imports = Expr.collect_macro_imports expr in
-    let nested_macros =
-      List.concat_map nested_imports ~f:(fun import_path ->
-        load_macro_file import_path resolved_filename visited )
-    in
+  (* Then extract macros from this file *)
+  let file_macros = Expr.extract_macros expr in
 
-    (* Then extract macros from this file *)
-    let file_macros = Expr.extract_macros expr in
-
-    (* Combine nested macros with this file's macros *)
-    (* Later imports override earlier ones *)
-    nested_macros @ file_macros
-  with Sys_error msg ->
-    failwith
-      (Printf.sprintf "Error loading macro file '%s': %s" resolved_filename msg)
+  (* Combine nested macros with this file's macros *)
+  (* Later imports override earlier ones *)
+  nested_macros @ file_macros
 
 (* Preprocess with macro imports *)
 let preprocess_with_imports (source_file : string) (raw_exprs : Expr.Raw.t list)

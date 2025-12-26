@@ -1,6 +1,6 @@
 (library
  (name stellogen)
- (libraries base menhirLib)
+ (libraries base stdio menhirLib)
  (preprocess
   (pps sedlex.ppx ppx_deriving.show ppx_deriving.ord ppx_deriving.eq)))
 

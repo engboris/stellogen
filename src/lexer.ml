@@ -21,7 +21,9 @@ let opposite_delimiter = function
   | ')' -> '('
   | ']' -> '['
   | '}' -> '{'
-  | c -> failwith (Printf.sprintf "Compiler error: '%c' is not a delimiter." c)
+  | _ ->
+    (* This case should be unreachable - if hit, it indicates a bug in the lexer *)
+    assert false
 
 let pop_delimiter sym (pos : Lexing.position) =
   match !delimiters_stack with
