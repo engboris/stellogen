@@ -627,6 +627,9 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
   | List [ { content = Symbol "use"; _ }; path ] ->
     let* path_ray = ray_of_expr path.content in
     Use path_ray |> Result.return
+  | List [ { content = Symbol "load-file"; _ }; path ] ->
+    let* path_ray = ray_of_expr path.content in
+    LoadFile path_ray |> Result.return
   | _ ->
     (* Everything else is a raw term *)
     let* ray = ray_of_expr expr in

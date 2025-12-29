@@ -213,6 +213,7 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
   | Match (e1, e2, msg, loc) ->
     Match (map_ray env ~f e1, map_ray env ~f e2, f msg, loc)
   | Use id -> Use (f id)
+  | LoadFile id -> LoadFile (f id)
 
 let pp_err error : (string, err) Result.t =
   let format_location loc =
@@ -422,7 +423,9 @@ let rec eval_sgen_expr (env : env) :
     in
     Ok (env', term_of_constellation focused_constellation)
   | Def (identifier, expr) ->
-    Ok ({ objs = add_obj env identifier expr }, nil_term)
+    Ok
+      ( { objs = add_obj env identifier expr; source_file = env.source_file }
+      , nil_term )
   | Show (exprs, show_loc) ->
     (* Evaluate all expressions and collect results *)
     let rec eval_all env_acc results = function
@@ -475,10 +478,16 @@ let rec eval_sgen_expr (env : env) :
         )
   | Use path -> (
     let open Lsc_ast.StellarRays in
-    let filename =
+    let raw_path =
       match path with
       | Func ((Null, f), [ s ]) when String.equal f "%string" -> string_of_ray s
       | _ -> string_of_ray path ^ ".sg"
+    in
+    (* Resolve path relative to source file *)
+    let filename =
+      match env.source_file with
+      | Some base -> Sgen_parsing.resolve_path base raw_path
+      | None -> raw_path
     in
     let create_start_pos fname =
       { Lexing.pos_fname = fname; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
@@ -492,9 +501,35 @@ let rec eval_sgen_expr (env : env) :
     let preprocessed = Sgen_parsing.preprocess_with_imports filename expr in
     match Expr.program_of_expr preprocessed with
     | Ok program ->
-      let* new_env = eval_program_internal env program in
-      Ok (new_env, nil_term)
+      (* Set source_file to the imported file for relative path resolution *)
+      let import_env = { env with source_file = Some filename } in
+      let* new_env = eval_program_internal import_env program in
+      (* Restore original source_file after import *)
+      Ok ({ new_env with source_file = env.source_file }, nil_term)
     | Error (expr_err, loc) -> Error (ExprError (expr_err, loc)) )
+  | LoadFile path ->
+    let open Lsc_ast.StellarRays in
+    let raw_path =
+      match path with
+      | Func ((Null, f), [ s ]) when String.equal f "%string" -> string_of_ray s
+      | _ -> string_of_ray path
+    in
+    (* Resolve path relative to source file *)
+    let filename =
+      match env.source_file with
+      | Some base -> Sgen_parsing.resolve_path base raw_path
+      | None -> raw_path
+    in
+    let content = In_channel.read_all filename in
+    (* Convert string to list of single-character strings *)
+    let char_to_term c =
+      Func ((Null, "%string"), [ Func ((Null, String.make 1 c), []) ])
+    in
+    let char_list =
+      List.fold_right (String.to_list content) ~init:nil_term ~f:(fun c acc ->
+        Func (cons_sym, [ char_to_term c; acc ]) )
+    in
+    Ok (env, char_list)
 
 and expr_of_ray : ray -> Expr.expr = function
   | Var (x, None) -> Expr.Var x
@@ -509,6 +544,15 @@ and expr_of_ray : ray -> Expr.expr = function
 
 and eval_program (p : program) =
   match eval_program_internal initial_env p with
+  | Ok env -> Ok env
+  | Error e ->
+    let* pp = pp_err e in
+    Out_channel.output_string Out_channel.stderr pp;
+    Error e
+
+and eval_program_with_file (source_file : string) (p : program) =
+  let env = { initial_env with source_file = Some source_file } in
+  match eval_program_internal env p with
   | Ok env -> Ok env
   | Error e ->
     let* pp = pp_err e in

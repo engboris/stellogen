@@ -16,7 +16,7 @@ let run input_file =
   match Expr.program_of_expr preprocessed with
   | Ok program ->
     let (_ : (Sgen_ast.env, Sgen_ast.err) Result.t) =
-      Sgen_eval.eval_program program
+      Sgen_eval.eval_program_with_file input_file program
     in
     ()
   | Error (expr_error, loc) -> (
@@ -34,6 +34,7 @@ let trace input_file =
     let initial_env =
       { Sgen_ast.objs =
           (Lsc_ast.const "__trace__", trace_marker) :: Sgen_ast.initial_env.objs
+      ; source_file = Some input_file
       }
     in
     let (_ : (Sgen_ast.env, Sgen_ast.err) Result.t) =
