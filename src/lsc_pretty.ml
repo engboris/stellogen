@@ -13,6 +13,9 @@ let string_of_var (x, index_opt) =
 let rec string_of_ray = function
   | Var var -> string_of_var var
   | Func (pf, []) -> string_of_polsym pf
+  | Func ((Null, "%string"), [ Func ((Null, s), []) ]) ->
+    (* Pretty-print strings as "..." *)
+    Printf.sprintf "\"%s\"" s
   | Func ((Null, "%group"), terms) ->
     (* Pretty-print constellation groups as {...} *)
     if List.is_empty terms then "{}"

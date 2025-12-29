@@ -25,6 +25,7 @@ type sgen_expr =
   | Expect of sgen_expr * sgen_expr * ident * source_location option
   | Match of sgen_expr * sgen_expr * ident * source_location option
   | Use of ident
+  | LoadFile of ident
 
 type err =
   | ExpectError of
@@ -42,8 +43,11 @@ type err =
   | UnknownID of string * source_location option
   | ExprError of expr_err * source_location option
 
-type env = { objs : (ident * sgen_expr) list }
+type env =
+  { objs : (ident * sgen_expr) list
+  ; source_file : string option
+  }
 
-let initial_env = { objs = [] }
+let initial_env = { objs = []; source_file = None }
 
 type program = sgen_expr list

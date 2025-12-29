@@ -70,7 +70,7 @@ Syntax reference:
   $ sgen run ../examples/syntax.sg
   a
   { [c] [b] [a] }
-  (%string hello world)
+  "hello world"
   (function a b)
   { [(-f X) (-f Y) (r X Y) || (!= X Y)] [(+f b)] [(+f a)] }
   { [(r b a) || (!= b a)] [(r a b) || (!= a b)] }
