@@ -270,25 +270,43 @@ Type checking = interaction that must result in `ok`
 
 ```
 stellogen/
-├── src/              # OCaml source code
-│   ├── sgen_ast.ml      # AST definitions
-│   ├── sgen_eval.ml     # Evaluator
-│   ├── sgen_parsing.ml  # Parser
-│   ├── unification.ml   # Unification engine
-│   ├── lexer.ml         # Lexer
-│   ├── lsc_*.ml         # LSC (constellation) components
-│   └── expr*.ml         # Expression handling
-├── bin/              # Executable entry points
-│   └── sgen.ml          # Main CLI
-├── test/             # Test suite
-├── examples/         # Example programs (.sg files)
-│   ├── nat.sg           # Natural numbers
-│   ├── prolog.sg        # Logic programming examples
-│   ├── automata.sg      # Finite state machines
-│   ├── lambda.sg        # Lambda calculus
+├── src/                      # OCaml source code
+│   ├── core/                 # Fundamental types and algorithms
+│   │   ├── unification.ml       # Generic unification algorithm
+│   │   ├── constellation.ml     # Rays, stars, constellations (core AST)
+│   │   ├── expression.ml        # Expression types and macro expansion
+│   │   ├── expression_error.ml  # Expression error types
+│   │   └── syntax.ml            # High-level Stellogen AST
+│   ├── parsing/              # Lexing, parsing, preprocessing
+│   │   ├── parse_error.ml       # Parse error handling
+│   │   └── stellogen_parsing.ml # Parser integration and imports
+│   ├── eval/                 # Evaluation and execution
+│   │   ├── evaluator.ml         # Main expression evaluator
+│   │   ├── executor.ml          # Star fusion execution engine
+│   │   └── constellation_eval.ml # Constellation evaluation helpers
+│   ├── output/               # Display and visualization
+│   │   ├── terminal.ml          # Terminal formatting and error display
+│   │   ├── pretty.ml            # Pretty-printing for constellations
+│   │   └── tracer.ml            # Execution trace visualization
+│   ├── web/                  # Web-specific code
+│   │   └── web_interface.ml     # Web playground interface
+│   ├── lexer.ml              # Sedlex-based lexer
+│   ├── parser.mly            # Menhir parser
+│   └── parser_context.ml     # Parser state
+├── bin/                      # Executable entry points
+│   └── sgen.ml                  # Main CLI
+├── test/                     # Test suite (cram tests)
+├── examples/                 # Example programs (.sg files)
+│   ├── hello.sg                 # Hello world
+│   ├── naive_nat.sg             # Natural numbers
+│   ├── lambda/                  # Lambda calculus examples
+│   ├── prolog/                  # Logic programming examples
+│   ├── states/                  # State machine examples
 │   └── ...
-├── exercises/        # Learning exercises
-└── nvim/             # Neovim integration
+├── exercises/                # Learning exercises
+├── docs/                     # Technical documentation
+├── web/                      # Web playground
+└── nvim/                     # Neovim integration
 ```
 
 ## Multi-Paradigm Support
@@ -379,11 +397,27 @@ dune exec sgen run -- <inputfile>
 
 ## Key Implementation Files
 
-- `src/sgen_ast.ml` - Core AST types: `sgen_expr`, `declaration`, `program`
-- `src/unification.ml` - Term unification algorithm
-- `src/sgen_eval.ml` - Expression evaluator and interaction engine
-- `src/lsc_ast.ml` - Low-level constellation representation
+- `src/core/unification.ml` - Generic term unification algorithm (functor)
+- `src/core/constellation.ml` - Core types: polarity, rays, stars, constellations, `Marked` module
+- `src/core/syntax.ml` - High-level AST: `sgen_expr`, `program`, `env`, `err`
+- `src/core/expression.ml` - Expression preprocessing and macro expansion
+- `src/eval/evaluator.ml` - Main expression evaluator and interaction engine
+- `src/eval/executor.ml` - Star fusion execution (queue-based algorithm)
+- `src/output/pretty.ml` - Pretty-printing for terms and constellations
 - `bin/sgen.ml` - CLI entry point
+
+### Module Name Reference
+
+| Module | Purpose |
+|--------|---------|
+| `Constellation` | Core types (rays, stars, constellations) |
+| `Syntax` | High-level AST and error types |
+| `Expression` | Macro expansion and preprocessing |
+| `Evaluator` | Program evaluation |
+| `Executor` | Star fusion engine |
+| `Pretty` | Pretty-printing |
+| `Tracer` | Execution tracing |
+| `Stellogen_parsing` | Parser integration |
 
 ## Testing
 
@@ -411,10 +445,11 @@ dune test
 
 ### When modifying:
 1. The language is **experimental** - syntax and semantics change frequently
-2. Understand term unification before touching `unification.ml`
-3. AST changes require updates to parser, evaluator, and pretty-printer
+2. Understand term unification before touching `core/unification.ml`
+3. AST changes require updates to parser, evaluator (`eval/evaluator.ml`), and pretty-printer (`output/pretty.ml`)
 4. Test with existing examples in `examples/` after changes
 5. **Always run `dune fmt` after finishing code modifications** to ensure consistent formatting
+6. Key modules have `.mli` interfaces - update both implementation and interface when changing public APIs
 
 ### Important concepts for contributors:
 - **Polarity** drives interaction - positive/negative rays fuse
@@ -568,5 +603,5 @@ EXECUTION        = Saturation via star fusion
 
 ---
 
-*Last updated: 2025-10-24*
+*Last updated: 2026-01-24*
 *For current implementation details, always refer to `BASICS.md`, the wiki, and source code as the language evolves rapidly.*
