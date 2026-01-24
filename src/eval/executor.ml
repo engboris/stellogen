@@ -6,9 +6,9 @@
  *)
 
 open Base
-open Lsc_ast
-open Lsc_ast.StellarRays
-open Lsc_ast.Raw
+open Constellation
+open Constellation.StellarRays
+open Constellation.Raw
 
 (* ============================================================
    Type Definitions

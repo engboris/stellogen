@@ -1,7 +1,7 @@
 open Base
-open Lsc_ast
-open Sgen_ast
-open Expr_err
+open Constellation
+open Syntax
+open Expression_error
 
 exception MacroError of expr_err * source_location option
 

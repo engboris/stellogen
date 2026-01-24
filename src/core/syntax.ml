@@ -1,6 +1,6 @@
 open Base
-open Lsc_ast
-open Expr_err
+open Constellation
+open Expression_error
 
 type ident = StellarRays.term
 

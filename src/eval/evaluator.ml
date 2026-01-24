@@ -1,10 +1,10 @@
 open Base
 open Stdio
-open Lsc_ast
-open Lsc_pretty
-open Lsc_eval
-open Sgen_ast
-open Expr_err
+open Constellation
+open Pretty
+open Constellation_eval
+open Syntax
+open Expression_error
 
 exception EvalError of expr_err * source_location option
 
@@ -130,12 +130,12 @@ and ban_of_term (t : StellarRays.term) : ban =
          , None ) )
 
 (* Global trace config for CLI trace mode *)
-let cli_trace_config : Lsc_eval.trace_config option ref = ref None
+let cli_trace_config : Constellation_eval.trace_config option ref = ref None
 
 let constellations_matchable c1 c2 =
   (* Check if two constellations are matchable for Match (~=) *)
   (* Uses term unification (ignoring polarity, only checking function name equality) *)
-  let open Lsc_ast in
+  let open Constellation in
   (* Extract all rays from both constellations *)
   let rays_from_constellation c =
     List.concat_map c ~f:(fun (star : Raw.star) -> star.content)
@@ -171,14 +171,14 @@ and get_obj env identifier = find_with_solution env identifier
 
 and get_trace_config env =
   match
-    List.Assoc.find ~equal:unifiable env.objs (Lsc_ast.const "__trace__")
+    List.Assoc.find ~equal:unifiable env.objs (Constellation.const "__trace__")
   with
   | Some (Raw _) -> (
     (* Create trace config once and reuse it *)
     match !cli_trace_config with
     | Some cfg -> Some cfg
     | None ->
-      let cfg = Lsc_eval.make_trace_config true in
+      let cfg = Constellation_eval.make_trace_config true in
       cli_trace_config := Some cfg;
       Some cfg )
   | _ -> None
@@ -219,7 +219,7 @@ let pp_err error : (string, err) Result.t =
     { Terminal.filename = loc.filename; line = loc.line; column = loc.column }
   in
 
-  let open Lsc_ast.StellarRays in
+  let open Constellation.StellarRays in
   match error with
   | ExpectError { got; expected; message = Func ((Null, f), []); location }
     when String.equal f "default" ->
@@ -332,12 +332,12 @@ let rec eval_sgen_expr (env : env) :
     ( match (trace_cfg, loc) with
     | Some cfg, Some location ->
       let lsc_loc =
-        { Lsc_eval.filename = location.filename
+        { Constellation_eval.filename = location.filename
         ; line = location.line
         ; column = location.column
         }
       in
-      Lsc_eval.set_trace_location cfg (Some lsc_loc)
+      Constellation_eval.set_trace_location cfg (Some lsc_loc)
     | _ -> () );
     let result_constellation =
       exec ~linear:b ~trace:trace_cfg eval_constellation
@@ -403,7 +403,7 @@ let rec eval_sgen_expr (env : env) :
            { term1 = const1_marked; term2 = const2_marked; message; location }
         )
   | Use path -> (
-    let open Lsc_ast.StellarRays in
+    let open Constellation.StellarRays in
     let filename =
       match path with
       | Func ((Null, f), [ s ]) when String.equal f "%string" -> string_of_ray s
@@ -416,24 +416,26 @@ let rec eval_sgen_expr (env : env) :
       In_channel.with_file filename ~f:(fun ic ->
         let lexbuf = Sedlexing.Utf8.from_channel ic in
         Sedlexing.set_position lexbuf (create_start_pos filename);
-        Sgen_parsing.parse_with_error filename lexbuf )
+        Stellogen_parsing.parse_with_error filename lexbuf )
     in
-    let preprocessed = Sgen_parsing.preprocess_with_imports filename expr in
-    match Expr.program_of_expr preprocessed with
+    let preprocessed =
+      Stellogen_parsing.preprocess_with_imports filename expr
+    in
+    match Expression.program_of_expr preprocessed with
     | Ok program ->
       let* new_env = eval_program_internal env program in
       Ok (new_env, nil_term)
     | Error (expr_err, loc) -> Error (ExprError (expr_err, loc)) )
 
-and expr_of_ray : ray -> Expr.expr = function
-  | Var (x, None) -> Expr.Var x
-  | Var (x, Some i) -> Expr.Var (x ^ Int.to_string i)
+and expr_of_ray : ray -> Expression.expr = function
+  | Var (x, None) -> Expression.Var x
+  | Var (x, Some i) -> Expression.Var (x ^ Int.to_string i)
   | Func (pf, []) -> Symbol (string_of_polsym pf)
   | Func (pf, args) ->
-    Expr.List
-      ( { Expr.content = Symbol (string_of_polsym pf); loc = None }
+    Expression.List
+      ( { Expression.content = Symbol (string_of_polsym pf); loc = None }
       :: List.map
-           ~f:(fun r -> { Expr.content = expr_of_ray r; loc = None })
+           ~f:(fun r -> { Expression.content = expr_of_ray r; loc = None })
            args )
 
 and eval_program (p : program) =
