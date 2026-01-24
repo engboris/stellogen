@@ -1,7 +1,6 @@
 (* Error recovery and reporting for the incremental parser *)
 
 open Base
-open Lexing
 
 (* Structured parse error *)
 type parse_error =
@@ -35,10 +34,8 @@ let has_errors collector = not (List.is_empty collector.errors)
 
 let get_errors collector = List.rev collector.errors
 
-(* Format error position *)
-let format_position pos =
-  let column = pos.pos_cnum - pos.pos_bol + 1 in
-  Printf.sprintf "%s:%d:%d" pos.pos_fname pos.pos_lnum column
+(* Format error position - delegates to shared Terminal module *)
+let format_position pos = Terminal.format_lexing_position pos
 
 (* Create a parse error from parser state *)
 let create_error ~position ?end_position ~message ?hint ?(severity = `Error) ()

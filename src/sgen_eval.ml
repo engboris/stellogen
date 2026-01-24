@@ -5,7 +5,6 @@ open Lsc_pretty
 open Lsc_eval
 open Sgen_ast
 open Expr_err
-open Terminal
 
 exception EvalError of expr_err * source_location option
 
@@ -215,117 +214,54 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
   | Use id -> Use (f id)
 
 let pp_err error : (string, err) Result.t =
-  let format_location loc =
-    Terminal.format_location ~filename:loc.filename ~line:loc.line
-      ~column:loc.column
-  in
-
-  let get_source_line filename line_num =
-    try
-      In_channel.with_file filename ~f:(fun ic ->
-        let rec skip_lines n =
-          if n <= 1 then ()
-          else (
-            ignore (In_channel.input_line_exn ic);
-            skip_lines (n - 1) )
-        in
-        skip_lines line_num;
-        In_channel.input_line ic )
-    with _ -> None
-  in
-
-  let show_source_location loc =
-    match get_source_line loc.filename loc.line with
-    | Some line ->
-      Terminal.format_source_line ~line_num:loc.line ~line_content:line
-        ~column:loc.column
-    | None -> ""
+  (* Convert internal location to Terminal.location *)
+  let to_terminal_loc (loc : source_location) : Terminal.location =
+    { Terminal.filename = loc.filename; line = loc.line; column = loc.column }
   in
 
   let open Lsc_ast.StellarRays in
   match error with
   | ExpectError { got; expected; message = Func ((Null, f), []); location }
     when String.equal f "default" ->
-    let header = error_label ^ ": " ^ bold "assertion failed" in
-    let loc_str =
-      Option.map location ~f:format_location
-      |> Option.value ~default:"<unknown location>"
-    in
-    let source =
-      Option.map location ~f:show_source_location |> Option.value ~default:""
-    in
     let expected_str =
       expected |> Marked.remove_all |> string_of_constellation
     in
     let got_str = got |> Marked.remove_all |> string_of_constellation in
-
-    Printf.sprintf "%s\n  %s %s\n%s\n  %s %s\n  %s %s\n\n" header (cyan "-->")
-      loc_str source (bold "Expected:") (green expected_str) (bold "     Got:")
-      (yellow got_str)
+    Terminal.format_comparison_error ~message:"assertion failed"
+      ~location:(Option.map location ~f:to_terminal_loc)
+      ~label1:"Expected" ~value1:expected_str ~label2:"     Got" ~value2:got_str
     |> Result.return
   | ExpectError { message = Func ((Null, f), [ term ]); location; _ }
     when String.equal f "error" ->
-    let header = error_label ^ ": " ^ string_of_ray term in
-    let loc_str =
-      Option.map location ~f:format_location
-      |> Option.value ~default:"<unknown location>"
-    in
-    let source =
-      Option.map location ~f:show_source_location |> Option.value ~default:""
-    in
-    Printf.sprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
+    Terminal.format_error_at_location_opt ~message:(string_of_ray term)
+      ~location:(Option.map location ~f:to_terminal_loc)
+      ~hint:None
     |> Result.return
   | ExpectError { message; location; _ } ->
-    let header = error_label ^ ": " ^ string_of_ray message in
-    let loc_str =
-      Option.map location ~f:format_location
-      |> Option.value ~default:"<unknown location>"
-    in
-    let source =
-      Option.map location ~f:show_source_location |> Option.value ~default:""
-    in
-    Printf.sprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
+    Terminal.format_error_at_location_opt ~message:(string_of_ray message)
+      ~location:(Option.map location ~f:to_terminal_loc)
+      ~hint:None
     |> Result.return
   | MatchError { term1; term2; message = Func ((Null, f), []); location }
     when String.equal f "default" ->
-    let header = error_label ^ ": " ^ bold "unification failed" in
-    let loc_str =
-      Option.map location ~f:format_location
-      |> Option.value ~default:"<unknown location>"
-    in
-    let source =
-      Option.map location ~f:show_source_location |> Option.value ~default:""
-    in
     let term1_str = term1 |> Marked.remove_all |> string_of_constellation in
     let term2_str = term2 |> Marked.remove_all |> string_of_constellation in
-
-    Printf.sprintf "%s\n  %s %s\n%s\n  %s %s\n  %s %s\n\n" header (cyan "-->")
-      loc_str source (bold "Term 1:") (green term1_str) (bold "Term 2:")
-      (yellow term2_str)
+    Terminal.format_comparison_error ~message:"unification failed"
+      ~location:(Option.map location ~f:to_terminal_loc)
+      ~label1:"Term 1" ~value1:term1_str ~label2:"Term 2" ~value2:term2_str
     |> Result.return
   | MatchError { message; location; _ } ->
-    let header = error_label ^ ": " ^ string_of_ray message in
-    let loc_str =
-      Option.map location ~f:format_location
-      |> Option.value ~default:"<unknown location>"
-    in
-    let source =
-      Option.map location ~f:show_source_location |> Option.value ~default:""
-    in
-    Printf.sprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
+    Terminal.format_error_at_location_opt ~message:(string_of_ray message)
+      ~location:(Option.map location ~f:to_terminal_loc)
+      ~hint:None
     |> Result.return
   | UnknownID (identifier, location) ->
-    let header = error_label ^ ": " ^ bold "identifier not found" in
-    let loc_str =
-      Option.map location ~f:format_location
-      |> Option.value ~default:"<unknown location>"
+    let hint =
+      Some (Printf.sprintf "The identifier '%s' was not defined." identifier)
     in
-    let source =
-      Option.map location ~f:show_source_location |> Option.value ~default:""
-    in
-    Printf.sprintf "%s\n  %s %s\n%s\n  The identifier %s was not defined.\n\n"
-      header (cyan "-->") loc_str source
-      (yellow ("'" ^ identifier ^ "'"))
+    Terminal.format_error_at_location_opt ~message:"identifier not found"
+      ~location:(Option.map location ~f:to_terminal_loc)
+      ~hint
     |> Result.return
   | ExprError (expr_error, location) ->
     let error_msg, hint =
@@ -358,16 +294,9 @@ let pp_err error : (string, err) Result.t =
         ( Printf.sprintf "failed to load file '%s': %s" filename message
         , "Check that the file exists and is readable." )
     in
-    let header = error_label ^ ": " ^ bold error_msg in
-    let loc_str =
-      Option.map location ~f:format_location
-      |> Option.value ~default:"<unknown location>"
-    in
-    let source =
-      Option.map location ~f:show_source_location |> Option.value ~default:""
-    in
-    Printf.sprintf "%s\n  %s %s\n%s\n  %s: %s\n\n" header (cyan "-->") loc_str
-      source hint_label hint
+    Terminal.format_error_at_location_opt ~message:error_msg
+      ~location:(Option.map location ~f:to_terminal_loc)
+      ~hint:(Some hint)
     |> Result.return
 
 let rec eval_sgen_expr (env : env) :
