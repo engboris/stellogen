@@ -7,8 +7,8 @@
 
 open Base
 open Stdio
-open Lsc_ast.Raw
-open Lsc_pretty
+open Constellation.Raw
+open Pretty
 open Terminal
 
 (* ============================================================
@@ -112,8 +112,8 @@ let print_footer () =
    Event Handler Factory
    ============================================================ *)
 
-let make_handler state : Lsc_exec.event_handler =
-  let open Lsc_exec in
+let make_handler state : Executor.event_handler =
+  let open Executor in
   function
   | StepStart { step; actions; states } -> (
     state.fusion_shown_this_step <- false;

@@ -8,46 +8,51 @@ let create_start_pos filename =
 let parse input_file =
   let lexbuf = Sedlexing.Utf8.from_channel (Stdlib.open_in input_file) in
   Sedlexing.set_position lexbuf (create_start_pos input_file);
-  Sgen_parsing.parse_with_error input_file lexbuf
+  Stellogen_parsing.parse_with_error input_file lexbuf
 
 let run input_file =
   let expr = parse input_file in
-  let preprocessed = Sgen_parsing.preprocess_with_imports input_file expr in
-  match Expr.program_of_expr preprocessed with
+  let preprocessed =
+    Stellogen_parsing.preprocess_with_imports input_file expr
+  in
+  match Expression.program_of_expr preprocessed with
   | Ok program ->
-    let (_ : (Sgen_ast.env, Sgen_ast.err) Result.t) =
-      Sgen_eval.eval_program program
+    let (_ : (Syntax.env, Syntax.err) Result.t) =
+      Evaluator.eval_program program
     in
     ()
   | Error (expr_error, loc) -> (
-    match Sgen_eval.pp_err (ExprError (expr_error, loc)) with
+    match Evaluator.pp_err (ExprError (expr_error, loc)) with
     | Ok error_msg -> Stdlib.Printf.eprintf "%s" error_msg
     | Error _ -> () )
 
 let trace input_file =
   let expr = parse input_file in
-  let preprocessed = Sgen_parsing.preprocess_with_imports input_file expr in
-  match Expr.program_of_expr preprocessed with
+  let preprocessed =
+    Stellogen_parsing.preprocess_with_imports input_file expr
+  in
+  match Expression.program_of_expr preprocessed with
   | Ok program ->
     (* Enable trace mode by setting __trace__ in the environment *)
-    let trace_marker = Sgen_ast.Raw (Lsc_ast.func "%nil" []) in
+    let trace_marker = Syntax.Raw (Constellation.func "%nil" []) in
     let initial_env =
-      { Sgen_ast.objs =
-          (Lsc_ast.const "__trace__", trace_marker) :: Sgen_ast.initial_env.objs
+      { Syntax.objs =
+          (Constellation.const "__trace__", trace_marker)
+          :: Syntax.initial_env.objs
       }
     in
-    let (_ : (Sgen_ast.env, Sgen_ast.err) Result.t) =
-      match Sgen_eval.eval_program_internal initial_env program with
+    let (_ : (Syntax.env, Syntax.err) Result.t) =
+      match Evaluator.eval_program_internal initial_env program with
       | Ok env -> Ok env
       | Error e ->
         let open Base.Result in
-        Sgen_eval.pp_err e >>= fun pp ->
+        Evaluator.pp_err e >>= fun pp ->
         Stdlib.output_string Stdlib.stderr pp;
         Error e
     in
     ()
   | Error (expr_error, loc) -> (
-    match Sgen_eval.pp_err (ExprError (expr_error, loc)) with
+    match Evaluator.pp_err (ExprError (expr_error, loc)) with
     | Ok error_msg -> Stdlib.Printf.eprintf "%s" error_msg
     | Error _ -> () )
 
@@ -130,9 +135,11 @@ let watch input_file timeout =
 
 let preprocess_only input_file =
   let expr = parse input_file in
-  let preprocessed = Sgen_parsing.preprocess_with_imports input_file expr in
+  let preprocessed =
+    Stellogen_parsing.preprocess_with_imports input_file expr
+  in
   preprocessed
-  |> List.map ~f:(fun e -> Expr.to_string e.Expr.content)
+  |> List.map ~f:(fun e -> Expression.to_string e.Expression.content)
   |> String.concat ~sep:"\n" |> Stdlib.print_endline
 
 let input_file_arg =

@@ -1,6 +1,6 @@
 open Base
-open Lsc_pretty
-open Sgen_ast
+open Pretty
+open Syntax
 
 (* Global output buffer *)
 let output_buffer : string list ref = ref []
@@ -21,7 +21,7 @@ let eval_program_with_buffer (p : program) =
   clear_output ();
 
   let eval_term env = function
-    | Sgen_ast.Show (exprs, _loc) ->
+    | Syntax.Show (exprs, _loc) ->
       (* Evaluate all expressions and collect results *)
       let rec eval_all env_acc results = function
         | [] ->
@@ -29,22 +29,22 @@ let eval_program_with_buffer (p : program) =
           let output =
             List.rev results
             |> List.map ~f:(fun term ->
-              let constellation = Sgen_eval.constellation_of_term term in
+              let constellation = Evaluator.constellation_of_term term in
               string_of_constellation
-                (List.map constellation ~f:Lsc_ast.Marked.remove) )
+                (List.map constellation ~f:Constellation.Marked.remove) )
             |> String.concat ~sep:" "
           in
           add_output output;
           Ok env_acc
         | expr :: rest -> (
-          match Sgen_eval.eval_sgen_expr env_acc expr with
+          match Evaluator.eval_sgen_expr env_acc expr with
           | Ok (env', term) -> eval_all env' (term :: results) rest
           | Error e -> Error e )
       in
       eval_all env [] exprs
     | term -> (
       (* For all other terms, use standard eval but discard term result *)
-      match Sgen_eval.eval_sgen_expr env term with
+      match Evaluator.eval_sgen_expr env term with
       | Ok (env', _) -> Ok env'
       | Error e -> Error e )
   in
@@ -57,7 +57,7 @@ let eval_program_with_buffer (p : program) =
       | Error e -> Error e )
   in
 
-  match eval_program_internal Sgen_ast.initial_env p with
+  match eval_program_internal Syntax.initial_env p with
   | Ok _env -> Ok ()
   | Error e -> Error e
 
@@ -65,15 +65,15 @@ let eval_program_with_buffer (p : program) =
 let run_from_string (code : string) : (string, string) Result.t =
   try
     (* Parse from string *)
-    let raw_exprs = Sgen_parsing.parse_from_string code in
+    let raw_exprs = Stellogen_parsing.parse_from_string code in
 
     (* Preprocess without imports *)
-    let preprocessed = Sgen_parsing.preprocess_without_imports raw_exprs in
+    let preprocessed = Stellogen_parsing.preprocess_without_imports raw_exprs in
 
     (* Convert to program *)
-    match Expr.program_of_expr preprocessed with
+    match Expression.program_of_expr preprocessed with
     | Error (expr_error, loc) -> (
-      match Sgen_eval.pp_err (Sgen_ast.ExprError (expr_error, loc)) with
+      match Evaluator.pp_err (Syntax.ExprError (expr_error, loc)) with
       | Ok error_msg -> Error error_msg
       | Error _ -> Error "Parse error" )
     | Ok program -> (
@@ -81,7 +81,7 @@ let run_from_string (code : string) : (string, string) Result.t =
       match eval_program_with_buffer program with
       | Ok () -> Ok (get_output ())
       | Error err -> (
-        match Sgen_eval.pp_err err with
+        match Evaluator.pp_err err with
         | Ok error_msg ->
           let output = get_output () in
           if String.is_empty output then Error error_msg

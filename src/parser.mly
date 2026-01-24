@@ -1,5 +1,5 @@
 %{
-open Expr.Raw
+open Expression.Raw
 %}
 
 %token <string> VAR
@@ -13,7 +13,7 @@ open Expr.Raw
 %token SHARP
 %token EOF
 
-%start <Expr.Raw.t list> expr_file
+%start <Expression.Raw.t list> expr_file
 
 %%
 
