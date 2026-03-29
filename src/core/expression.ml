@@ -636,8 +636,7 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
           List.for_all sgen_exprs ~f:(fun e ->
             match e with Group _ -> true | _ -> false )
         in
-        if all_groups then Ok sgen_exprs
-        else Ok [ Group sgen_exprs ]
+        if all_groups then Ok sgen_exprs else Ok [ Group sgen_exprs ]
     in
     Def (id_ray, value_exprs) |> Result.return
   | List

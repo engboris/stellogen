@@ -30,9 +30,7 @@ let nil_term = StellarRays.Func (nil_sym, [])
 (* Extract individual constellation terms from a galaxy term.
    Non-galaxy terms are treated as singleton galaxies. *)
 let constellations_of_galaxy (t : StellarRays.term) : StellarRays.term list =
-  match t with
-  | Func ((Null, "%galaxy"), terms) -> terms
-  | other -> [ other ]
+  match t with Func ((Null, "%galaxy"), terms) -> terms | other -> [ other ]
 
 (* Convert a constellation to a term using %group *)
 let term_of_constellation (c : Marked.constellation) : StellarRays.term =
@@ -217,8 +215,7 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
     let map_e = map_ray env ~f e in
     Focus map_e
   | Def (id, es) -> Def (f id, List.map ~f:(map_ray env ~f) es)
-  | Forall (gid, bind, body) ->
-    Forall (f gid, f bind, map_ray env ~f body)
+  | Forall (gid, bind, body) -> Forall (f gid, f bind, map_ray env ~f body)
   | Show (exprs, loc) -> Show (List.map ~f:(map_ray env ~f) exprs, loc)
   | Expect (e1, e2, msg, loc) ->
     Expect (map_ray env ~f e1, map_ray env ~f e2, f msg, loc)
@@ -365,8 +362,7 @@ let rec eval_sgen_expr (env : env) :
     Ok (env', term_of_constellation focused_constellation)
   | Def (identifier, exprs) -> (
     match exprs with
-    | [ single ] ->
-      Ok ({ objs = add_obj env identifier single }, nil_term)
+    | [ single ] -> Ok ({ objs = add_obj env identifier single }, nil_term)
     | multiple ->
       (* Multiple expressions = galaxy: evaluate each, wrap in %galaxy *)
       let* env', eval_terms =
@@ -377,9 +373,7 @@ let rec eval_sgen_expr (env : env) :
             let* env_new, result = eval_sgen_expr env_acc e in
             Ok (env_new, result :: results) )
       in
-      let galaxy_term =
-        StellarRays.Func (galaxy_sym, List.rev eval_terms)
-      in
+      let galaxy_term = StellarRays.Func (galaxy_sym, List.rev eval_terms) in
       Ok ({ objs = add_obj env' identifier (Raw galaxy_term) }, nil_term) )
   | Forall (galaxy_id, bind_var, body) ->
     let* _, galaxy_term = eval_sgen_expr env (Call galaxy_id) in
@@ -388,9 +382,7 @@ let rec eval_sgen_expr (env : env) :
       ~init:(Ok (env, nil_term))
       ~f:(fun acc const_term ->
         let* env_acc, _ = acc in
-        let local_env =
-          { objs = add_obj env_acc bind_var (Raw const_term) }
-        in
+        let local_env = { objs = add_obj env_acc bind_var (Raw const_term) } in
         let* _, _ = eval_sgen_expr local_env body in
         Ok (env_acc, nil_term) )
   | Show (exprs, show_loc) ->
