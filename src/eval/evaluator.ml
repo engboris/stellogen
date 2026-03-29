@@ -302,8 +302,8 @@ let pp_err error : (string, err) Result.t =
 let rec eval_sgen_expr (env : env) :
   sgen_expr -> (env * StellarRays.term, err) Result.t = function
   | Raw t -> Ok (env, t)
-  | Call x -> begin
-    match get_obj env x with
+  | Call x ->
+    begin match get_obj env x with
     | None -> Error (UnknownID (string_of_ray x, None))
     | Some (g, subst) ->
       let result =
@@ -312,7 +312,7 @@ let rec eval_sgen_expr (env : env) :
           |> Result.return )
       in
       Result.bind result ~f:(eval_sgen_expr env)
-  end
+    end
   | Group es ->
     (* Evaluate each expression and combine the resulting terms into a %group *)
     let* env', eval_terms =
