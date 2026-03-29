@@ -23,7 +23,16 @@ let focus_sym = (Null, "@")
 
 let params_sym = (Null, "%params")
 
+let galaxy_sym = (Null, "%galaxy")
+
 let nil_term = StellarRays.Func (nil_sym, [])
+
+(* Extract individual constellation terms from a galaxy term.
+   Non-galaxy terms are treated as singleton galaxies. *)
+let constellations_of_galaxy (t : StellarRays.term) : StellarRays.term list =
+  match t with
+  | Func ((Null, "%galaxy"), terms) -> terms
+  | other -> [ other ]
 
 (* Convert a constellation to a term using %group *)
 let term_of_constellation (c : Marked.constellation) : StellarRays.term =
@@ -59,6 +68,8 @@ let term_of_constellation (c : Marked.constellation) : StellarRays.term =
 let rec constellation_of_term (t : StellarRays.term) : Marked.constellation =
   let open StellarRays in
   match t with
+  | Func ((Null, "%galaxy"), consts) ->
+    List.concat_map ~f:constellation_of_term consts
   | Func ((Null, "%group"), stars) ->
     List.concat_map ~f:constellation_of_term stars
   | Func ((Null, "%cons"), [ star; rest ]) when is_star_term star ->
@@ -205,7 +216,9 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
   | Focus e ->
     let map_e = map_ray env ~f e in
     Focus map_e
-  | Def (id, e) -> Def (f id, map_ray env ~f e)
+  | Def (id, es) -> Def (f id, List.map ~f:(map_ray env ~f) es)
+  | Forall (gid, bind, body) ->
+    Forall (f gid, f bind, map_ray env ~f body)
   | Show (exprs, loc) -> Show (List.map ~f:(map_ray env ~f) exprs, loc)
   | Expect (e1, e2, msg, loc) ->
     Expect (map_ray env ~f e1, map_ray env ~f e2, f msg, loc)
@@ -350,8 +363,36 @@ let rec eval_sgen_expr (env : env) :
       constellation_of_term eval_e |> Marked.remove_all |> Marked.make_state_all
     in
     Ok (env', term_of_constellation focused_constellation)
-  | Def (identifier, expr) ->
-    Ok ({ objs = add_obj env identifier expr }, nil_term)
+  | Def (identifier, exprs) -> (
+    match exprs with
+    | [ single ] ->
+      Ok ({ objs = add_obj env identifier single }, nil_term)
+    | multiple ->
+      (* Multiple expressions = galaxy: evaluate each, wrap in %galaxy *)
+      let* env', eval_terms =
+        List.fold_left multiple
+          ~init:(Ok (env, []))
+          ~f:(fun acc e ->
+            let* env_acc, results = acc in
+            let* env_new, result = eval_sgen_expr env_acc e in
+            Ok (env_new, result :: results) )
+      in
+      let galaxy_term =
+        StellarRays.Func (galaxy_sym, List.rev eval_terms)
+      in
+      Ok ({ objs = add_obj env' identifier (Raw galaxy_term) }, nil_term) )
+  | Forall (galaxy_id, bind_var, body) ->
+    let* _, galaxy_term = eval_sgen_expr env (Call galaxy_id) in
+    let constellation_terms = constellations_of_galaxy galaxy_term in
+    List.fold_left constellation_terms
+      ~init:(Ok (env, nil_term))
+      ~f:(fun acc const_term ->
+        let* env_acc, _ = acc in
+        let local_env =
+          { objs = add_obj env_acc bind_var (Raw const_term) }
+        in
+        let* _, _ = eval_sgen_expr local_env body in
+        Ok (env_acc, nil_term) )
   | Show (exprs, show_loc) ->
     (* Evaluate all expressions and collect results *)
     let rec eval_all env_acc results = function
