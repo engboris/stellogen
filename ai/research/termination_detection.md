@@ -7,6 +7,20 @@
 
 This document investigates approaches for detecting termination and non-termination in Stellogen programs. The core idea, inspired by term rewriting systems, is to track whether terms decrease in size after fusion operations. We explore multiple termination detection strategies, their theoretical foundations, practical implementation considerations, and limitations specific to Stellogen's unification-based interaction model.
 
+## Thesis Connections
+
+The termination questions explored in this document are directly addressed by Boris Eng's PhD thesis, "An Exegesis of Transcendental Syntax" (2023, Universite Sorbonne Paris Nord), particularly Chapter 9.
+
+**Acyclic finite constellations terminate (Ch. 9):** The thesis proves that acyclic finite constellations always terminate. This is the central formal termination result for stellar resolution. The dependency graph of a constellation determines whether it is acyclic -- if no cycle exists in the dependency structure, execution is guaranteed to reach a fixed point in finite steps. This provides a decidable sufficient condition for termination that is more principled than the heuristic bounded-execution approach proposed in this document.
+
+**Structural classification (Ch. 9):** The thesis classifies constellations along two axes that are directly relevant to termination analysis: (1) acyclic vs. cyclic -- acyclic constellations terminate, cyclic ones may not; (2) deterministic vs. branching -- deterministic constellations have a unique interaction at each step. Additionally, the thesis defines *exact* and *perfect* constellations. A "perfect constellation has a unique saturated correct diagram," meaning not only does it terminate, but it produces a unique result regardless of execution order.
+
+**Connections to term rewriting (Ch. 9):** The thesis sketches connections between stellar resolution termination and term rewriting termination theory, which this document independently explores. The thesis's dependency graph analysis is analogous to the dependency pair framework (Arts & Giesl, 2000) referenced in Section 3.5 of this document. The thesis's approach is structural (based on the shape of the constellation's dependency graph) rather than metric-based (tracking term sizes), which may be more natural for stellar resolution.
+
+**Complexity caveat (Ch. 9):** The thesis explicitly acknowledges that the complexity of concrete execution is "horrible" -- meaning that even when termination is guaranteed, the number of steps can be very large. This supports this document's recommendation for bounded execution monitoring as a practical measure.
+
+**Confluence (Ch. 9):** The thesis proves confluence results for certain classes of constellations, meaning that different execution orders lead to the same final result. This is relevant to Section 5.3 of this document: when confluence holds, the non-deterministic interaction order does not affect the final result, only the path taken.
+
 ## 1. Background: Stellogen's Execution Model
 
 ### 1.1 Fusion and Interaction

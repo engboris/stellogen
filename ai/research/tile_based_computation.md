@@ -22,7 +22,17 @@ Both systems are **Turing-complete** and exhibit rich computational behavior. Th
 - Alternative computational paradigms
 - Natural representations of spatial computation
 
-### 1.2 Tile Systems as Interactive Computation
+### 1.2 Thesis Connections
+
+The tile-based computation explored in this document is directly grounded in Boris Eng's PhD thesis, "An Exegesis of Transcendental Syntax" (2023, Universite Sorbonne Paris Nord).
+
+**Tile encodings in the thesis (Ch. 8):** Chapter 8 explicitly encodes tile systems -- both Wang tiles and the abstract Tile Assembly Model (aTAM) -- in stellar resolution. The thesis uses these encodings as concrete illustrations of stellar resolution's computational power. Stars naturally correspond to tiles, with polarized rays representing edge colors/glues. Two tiles attach when their adjacent rays have opposite polarity and their edge terms unify. This document's encoding strategy aligns with the thesis's approach.
+
+**Path to Turing-completeness (Ch. 8-9):** The thesis uses tile encodings as one of the paths to proving Turing-completeness of stellar resolution. Since Wang tiles are known to be Turing-complete (Berger, 1966), and the thesis shows they can be faithfully encoded in stellar resolution, this contributes to the Turing-completeness proof in Chapter 9. The thesis also proves Turing-completeness via automata encodings (also in Ch. 8), providing an independent path.
+
+**Stars ARE tiles (Ch. 8):** The thesis makes the conceptual point that the analogy between stars and tiles is not merely a convenient encoding -- it reflects a deep structural similarity. Both are local computational elements that connect along matching edges/rays. Constellations, as sets of stars, correspond to tile assemblies. The thesis's philosophy of computation as local interaction is exemplified by tile systems.
+
+### 1.3 Tile Systems as Interactive Computation
 
 Stellogen's philosophy aligns naturally with tile-based computation:
 - **Locality**: Tiles interact only with immediate neighbors
@@ -32,7 +42,7 @@ Stellogen's philosophy aligns naturally with tile-based computation:
 
 The match is so natural that one wonders if tile systems might be Stellogen's "native" computational model.
 
-### 1.3 Overview of This Report
+### 1.4 Overview of This Report
 
 This report:
 1. Introduces Wang tiles and aTAM (Section 2-3)

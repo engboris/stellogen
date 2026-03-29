@@ -73,6 +73,16 @@ In Stellogen terms:
 
 ---
 
+## Thesis Connections
+
+The "locking/unlocking" metaphor in this document maps to the Constat/Performance distinction in the thesis "An Exegesis of Transcendental Syntax" (Boris Eng, 2023, Ch.6). A "locked" system corresponds to Constat -- explicit, formatted, constrained results where structure is visible and enforced. An "unlocked" system corresponds to Performance -- implicit, dynamic, unconstrained computation where stellar resolution proceeds freely.
+
+The thesis argues that logic IS this formatting -- moving from raw computation (stellar resolution) to structured logic is exactly what "locking" achieves. The thesis's central claim is that logic is not computation itself but a "formatting" of computation, imposing regularity and structure on otherwise unconstrained interaction. System locking is a practical mechanism for applying this formatting.
+
+The "crystallization" concept discussed in this document aligns with the thesis's notion of behaviours (bi-orthogonal closures, Ch.10). A behaviour "crystallizes" a set of tests into a stable logical type: starting from a set of constellations, bi-orthogonal closure produces a fixed point -- a stable, self-consistent collection of constellations that all pass each other's tests. This is the mathematical counterpart of crystallizing practices into a system with rules. The Usine level (Ch.6) provides the finite, practical version of this: a system is defined by a finite set of test constellations, and locking into that system means committing to pass all those tests.
+
+---
+
 ## The Workshop Metaphor
 
 ### Stellogen as a Workshop

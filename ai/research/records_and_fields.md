@@ -33,6 +33,14 @@ This document analyzes whether this encoding is **viable and sufficient** for ge
 
 ---
 
+## Thesis Connections
+
+Records relate to the thesis's concept of "structured constellations." In "An Exegesis of Transcendental Syntax" (Boris Eng, 2023), proof-structures are defined using addressed terms (Ch.10) where addresses encode tree positions within a structure. Record fields are analogous to these addresses -- they provide structured access into a constellation, with each field name acting as a locator for a particular sub-constellation.
+
+The multi-test type specification problem discussed later in this document (multiple named tests for a type, as in the MLL examples) connects directly to the thesis's Usine concept (Ch.6): a type at the Usine level is a finite set of tests, and each test checks a different aspect of correctness. The record pattern `[+testrl ...] [+testrr ...]` is an encoding of this finite test set. The thesis's behaviours -- bi-orthogonal closures of sets of constellations (Ch.10) -- provide the theoretical grounding for why multiple independent tests can collectively define a type: a behaviour is not a single test but a closed set of acceptable interactions, and finite test sets (Usine) approximate this ideal.
+
+---
+
 ## The `eval` Primitive
 
 ### Implementation

@@ -27,6 +27,20 @@ The theoretical foundation rests on two pillars:
 
 ---
 
+## Thesis Connections
+
+The formal foundations discussed in this document are deeply rooted in Boris Eng's PhD thesis, "An Exegesis of Transcendental Syntax" (2023, Universite Sorbonne Paris Nord).
+
+**Geometry of Interaction as precursor (Ch. 5):** The thesis presents Girard's Geometry of Interaction (GoI) as the conceptual ancestor of stellar resolution. In GoI, proofs are modeled as paths and permutations over wirings, and computation is the composition and execution of these paths. Stellar resolution generalizes this by replacing binary flow composition with n-ary star fusion, allowing internal structure within each computational node.
+
+**Stellar resolution as generalization (Ch. 7):** The thesis explicitly positions stellar resolution as extending interaction nets to handle n-ary interactions with internal structure. Where interaction nets restrict interaction to binary active pairs (two agents connected at principal ports), stellar resolution allows a star to have arbitrarily many polarized rays that can interact with multiple partners. Dependency graphs and diagrams formalize how these n-ary interactions compose. The three execution modes (abstract, concrete, interactive) provide distinct operational semantics for these interactions.
+
+**MLL proof-net interpretation (Ch. 10):** Chapter 10 provides the most direct connection to the proof-net material in this document. The thesis shows how MLL (multiplicative linear logic) proof-structures are encoded as constellations, and demonstrates that the Danos-Regnier correctness criterion for proof-nets can be expressed as test constellations. Cut-elimination in proof-nets is simulated by star fusion. This formally establishes that proof-net reduction and star fusion are computationally equivalent for the MLL fragment.
+
+**Exponentials and duplication (Ch. 11):** The thesis addresses how interaction nets handle duplication (the exponential modality of linear logic) through multiple matchable rays. This is relevant to understanding the difference between `exec` (non-linear, stars can be reused) and `fire` (linear, stars consumed) in Stellogen -- the thesis formalizes duplication via "multiple matchable rays" and weakening via "black holes" that absorb unused rays.
+
+---
+
 ## 2. Background: Interaction Nets
 
 ### 2.1 Agents, Ports, and Wires

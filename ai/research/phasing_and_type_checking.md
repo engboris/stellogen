@@ -107,6 +107,16 @@ Design a **general phasing system** for Stellogen that:
 
 ---
 
+## Thesis Connections
+
+The thesis "An Exegesis of Transcendental Syntax" (Boris Eng, 2023) provides the theoretical framework underlying this document's concerns. In the thesis, types are NOT syntactic annotations -- they are "behaviours" (Ch.10-13): sets of constellations closed under bi-orthogonality. Type checking amounts to running a constellation against test constellations and checking that interaction produces expected results.
+
+The Usine/Usage distinction from the thesis's four "hells" (Ch.6) maps directly to the compile-time vs runtime question explored here. **Usine** (level -2) corresponds to finite, explicit testing that is compile-time checkable -- a type is a finite set of test constellations. **Usage** (level -1) corresponds to ideal semantic meaning that may be potentially infinite, capturing the full runtime behaviour. The phasing problem is essentially the problem of deciding what belongs at the Usine level (static, finite, decidable) versus the Usage level (dynamic, potentially infinite).
+
+The thesis's "apodictic" layer (Ch.12) defines logic without a fixed system -- it introduces self-dual constants and structural orthogonality to derive logical structure from raw interaction. This is the theoretical basis for user-defined type systems in Stellogen: users do not adopt a pre-existing type discipline but instead define their own "formatting" of computation into logical structure. The thesis's central claim -- that logic is a "formatting" of computation, not computation itself -- directly justifies why type checking in Stellogen should be an explicit, user-controlled phase rather than a built-in language feature.
+
+---
+
 ## The Current State
 
 ### Current Execution Pipeline
