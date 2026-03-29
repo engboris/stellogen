@@ -1,8 +1,10 @@
 (use-macros "milkyway/prelude.sg")
 (macro (:: Tested Test)
-  (== (process #Test #Tested) ok))
+  (forall Test T
+    (== (process #T #Tested) ok)))
 
-(spec u4 [(-b _ 1 _) (-b _ 2 _) (-b _ 3 _) (-b _ 4 _) ok])
+(spec u4
+  {[(-b _ 1 _) (-b _ 2 _) (-b _ 3 _) (-b _ 4 _) ok]})
 
 (def (make_bin Name X1 X2 X3 X4)
   { [(+b Name 1 X1)] [(+b Name 2 X2)] [(+b Name 3 X3)] [(+b Name 4 X4)] })

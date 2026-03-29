@@ -22,12 +22,12 @@
 (show (exec #id #x_arg #linker))
 
 ' linear types
-(spec (larrow a a) {
-  [+test1 [
+(spec (larrow a a)
+  {[+test1 [
     [(-x X) (+parxy X)]
     [(-y X)]
-    @[(-parxy X) ok]]]
-  [+test2 [
+    @[(-parxy X) ok]]]}
+  {[+test2 [
     [(-x X)]
     [(-y X) (+parxy X)]
     @[(-parxy X) ok]]]})
