@@ -105,7 +105,7 @@ let rec expand_macro : Raw.t -> expr loc = function
     { content =
         List
           ( { content = Symbol group_op; loc = None }
-          :: List.map ~f:expand_macro es )
+          :: List.map ~f:expand_macro (List.rev es) )
     ; loc = None
     }
   | Raw.List es -> { content = List (List.map ~f:expand_macro es); loc = None }
