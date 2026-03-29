@@ -16,6 +16,18 @@ We explore the tension between Stellogen's philosophy of purely local term inter
 
 ---
 
+## Thesis Connections
+
+The synchronization problem identified in this document is explicitly acknowledged as a known limitation in Boris Eng's PhD thesis, "An Exegesis of Transcendental Syntax" (2023, Universite Sorbonne Paris Nord).
+
+**Circuit encoding limitation (Ch. 8):** The thesis itself encodes boolean circuits in stellar resolution and acknowledges that there is no computationally faithful circuit encoding -- specifically, there is no way to enforce synchronous flow within the stellar resolution framework. This is not merely a Stellogen implementation issue but a fundamental property of the model: stellar resolution's execution is inherently asynchronous, and circuits require synchronization that the formalism does not natively provide. This document's analysis independently rediscovered a limitation the thesis author was already aware of.
+
+**Structural classification and non-determinism (Ch. 9):** The circuit synchronization problem relates directly to the thesis's structural classification of constellations. Circuit encodings produce *branching* (non-deterministic) constellations where multiple interaction orders are possible, and crucially, the execution order affects intermediate states. In *deterministic* constellations, there is a unique interaction at each step, making synchronization irrelevant. The circuit problem arises precisely because the encoding is branching -- multiple gates can fire in different orders, and some orders lead to premature computation with unbound variables.
+
+**Three execution modes (Ch. 7):** The thesis distinguishes abstract execution (which is order-independent by definition), concrete execution (which follows a specific order and can diverge), and interactive execution (which starts from focused stars). The circuit synchronization problem is a concrete execution issue -- the abstract semantics may be well-defined even when concrete execution diverges due to wrong firing order.
+
+---
+
 ## 1. Problem Statement
 
 ### 1.1 The Circuit Encoding

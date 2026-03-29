@@ -95,6 +95,16 @@ Stellogen's philosophy of **user-driven semantics** and **logic-agnostic foundat
 
 ---
 
+## Thesis Connections
+
+The thesis "An Exegesis of Transcendental Syntax" (Boris Eng, 2023) provides theoretical justification for this proposal through its layered architecture -- the four "hells" (Ch.6). Level -4 (Constat) is raw, explicit computation results. Level -3 (Performance) adds implicit dynamics via stellar resolution. Level -2 (Usine) adds finite testing and Church-style typing. Level -1 (Usage) provides full semantic meaning through Curry-style typing. Each level adds more "formatting" on top of the raw computational substrate.
+
+The `#system`/`#lang` proposal maps to choosing which "level" or "formatting" to work at. A system declaration selects what logical and syntactic structure to impose on the underlying stellar resolution. The thesis's "apodictic" layer (Ch.12) shows how logic can be defined without a fixed system -- self-dual constants and structural orthogonality derive logical structure from interaction alone. A `#system` declaration would be choosing which apodictic formatting to apply to the raw computational material.
+
+However, it should be noted that the thesis only sketches these higher layers (particularly Usine and Usage); full implementation of the layered architecture would require solving open theoretical problems, especially around second-order quantification (Ch.13, the "epidictic" layer) and the precise mechanics of moving between levels. The practical feasibility of this proposal depends on how much of the theoretical hierarchy can be concretely realized.
+
+---
+
 ## The Current Pattern: Parametric Variables with `#(...)`
 
 ### How It Works Today

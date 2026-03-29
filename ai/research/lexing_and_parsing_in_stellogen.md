@@ -38,6 +38,16 @@ The Stellogen toolchain's front-end consists of:
 - Supports incremental parsing (see `docs/incremental_parsing.md`)
 - Provides error recovery and accurate position tracking
 
+## Thesis Connections
+
+The thesis "An Exegesis of Transcendental Syntax" (Boris Eng, 2023) proves Turing-completeness of stellar resolution via automata encoding (Ch.8). This means self-hosting -- implementing a lexer and parser in Stellogen -- is theoretically possible. The thesis's automata examples (NFA, PDA, Turing machine encodings) demonstrate exactly the building blocks that this document explores for lexing (FSM) and parsing (PDA).
+
+However, the thesis also notes that concrete execution complexity of stellar resolution is problematic due to graph isomorphism computation required during interaction. The matching of constellations involves checking structural equivalence of dependency graphs (Ch.7), which in the general case is computationally expensive. This makes practical self-hosting a significant performance challenge, consistent with this document's estimates of 10-100x slowdown compared to compiled tools like sedlex and menhir.
+
+The thesis's structural classification (Ch.9) -- acyclic vs cyclic, deterministic vs branching constellations -- is relevant to optimizing a self-hosted implementation. Lexer constellations would typically be acyclic and deterministic (regular languages), which the thesis identifies as a well-behaved class where execution is more predictable. Parser constellations would be more complex (context-free languages require stack simulation), potentially involving branching, but the thesis's framework for classifying constellation complexity could guide optimization efforts.
+
+---
+
 ## 2. Theoretical Foundation
 
 ### 2.1 Automata Theory Recap

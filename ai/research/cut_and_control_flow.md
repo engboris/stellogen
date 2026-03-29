@@ -51,6 +51,20 @@ Any solution must align with these principles.
 
 ---
 
+## Thesis Connections
+
+This document's analysis can be grounded in Boris Eng's PhD thesis, "An Exegesis of Transcendental Syntax" (2023, Universite Sorbonne Paris Nord).
+
+**Structural classification (Ch. 9):** The thesis formally classifies constellations along two axes: acyclic/cyclic and deterministic/branching. A *deterministic* constellation has a unique execution path at each step -- this is the thesis's answer to "control flow" within stellar resolution. Rather than needing a cut operator to prune branches, deterministic constellations have no branches to prune. The thesis's position is that unordered interaction IS the computational paradigm, not a limitation to be worked around.
+
+**Three execution modes (Ch. 7):** The thesis defines three distinct execution modes -- abstract (denotational, order-independent), concrete (operational, which can diverge), and interactive (starts from focused stars). These three modes are the thesis's formal answer to "how does execution proceed" and replace the role that clause ordering and backtracking play in Prolog. The interactive mode, which begins from focused (`@`) stars, is closest to what this document discusses as Stellogen's evaluation model.
+
+**No formal link to logic programming (Ch. 9):** The thesis explicitly acknowledges that no formal connection has been established between stellar resolution's semantics and standard logic programming semantics (e.g., SLD resolution, Clark completion). This is directly relevant to why Prolog's cut does not translate: stellar resolution is not a variant of Prolog's resolution strategy. It is a fundamentally different computational model derived from Girard's Geometry of Interaction (Ch. 5), not from Horn clause logic.
+
+**Perfect constellations (Ch. 9):** The thesis defines "perfect" constellations as those having a unique saturated correct diagram. This concept partially addresses the determinism concern raised in this document -- when a constellation is perfect, there is exactly one result, without needing any cut-like mechanism.
+
+---
+
 ## Prolog's Cut Operator
 
 ### What is Cut?

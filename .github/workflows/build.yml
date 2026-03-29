@@ -37,7 +37,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew upgrade
+          brew upgrade || true
           brew install pkgconf
       - name: update-linux
         if: runner.os == 'linux'

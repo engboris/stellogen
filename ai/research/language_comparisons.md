@@ -45,6 +45,22 @@ This document explores how Stellogen relates to similar languages and approaches
 
 ---
 
+## Thesis Connections
+
+The comparative positioning of Stellogen can be grounded in Boris Eng's PhD thesis, "An Exegesis of Transcendental Syntax" (2023, Universite Sorbonne Paris Nord), which provides the formal foundations for stellar resolution.
+
+**Relationship to logic programming / Prolog (Ch. 7, Ch. 9):** The thesis positions stellar resolution as extending Robinson's first-order resolution (the basis of logic programming) to n-ary interactions. However, the thesis explicitly notes that no formal link to logic programming semantics has been established. SLD resolution (Prolog's strategy) is sequential and clause-ordered; stellar resolution is unordered and interaction-based. The similarities are at the level of unification as a shared primitive, not at the level of execution strategy.
+
+**Lambda calculus is indirect (Ch. 10-11):** The thesis explicitly acknowledges that lambda calculus is encoded only indirectly, through proof-nets, not via a direct translation. Chapter 10 shows how MLL proof-structures become constellations and how cut-elimination becomes star fusion. Chapter 11 extends this to handle exponentials (duplication/weakening) needed for full lambda calculus. This means comparisons to functional languages (Lisp, Scheme, Haskell) should note that functional computation in Stellogen goes through a proof-theoretic intermediate layer, not through direct function application.
+
+**Geometry of Interaction as bridge (Ch. 5):** The Geometry of Interaction (GoI) is the theoretical bridge between functional computation and stellar resolution. GoI models proofs as paths/permutations over wirings, and stellar resolution generalizes this to n-ary interactions. This is the formal justification for why Stellogen can encode functional patterns despite not having functions as primitives.
+
+**Turing-completeness via automata (Ch. 8-9):** The thesis proves Turing-completeness via automata encoding (finite automata, then Turing machines through tile systems), not via lambda calculus translation. This is a notable design choice -- it means Stellogen's computational universality is established through a state-machine-like model rather than through the functional programming tradition. This positions Stellogen closer to automata theory and tile-based computation than to the lambda calculus lineage.
+
+**Logic is a "formatting" of computation (Ch. 6):** The thesis's philosophical position, drawn from Girard's Transcendental Syntax, is that logic and computation are distinct notions -- logic is a "formatting" or structuring imposed on computation, not its foundation. This directly supports the "logic-agnostic" label: Stellogen does not assume any particular logic because logic itself is something the user constructs on top of the computational substrate.
+
+---
+
 ## Prolog and Datalog
 
 ### Overview
