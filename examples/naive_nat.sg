@@ -1,8 +1,8 @@
 (use-macros "milkyway/prelude.sg")
 
-(spec nat {
-  [(-nat 0) ok]
-  [(-nat (s N)) (+nat N)]})
+(spec nat
+  {[(-nat 0) ok]
+   [(-nat (s N)) (+nat N)]})
 
 (def 0 (+nat 0))     (:: 0 nat)
 (def 1 (+nat (s 0))) (:: 1 nat)

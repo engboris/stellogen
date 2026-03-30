@@ -57,6 +57,10 @@ let string_op = primitive "string"
 
 let def_op = "def"
 
+let spec_op = "spec"
+
+let forall_op = "forall"
+
 let expect_op = "=="
 
 let match_op = "~="
@@ -101,7 +105,7 @@ let rec expand_macro : Raw.t -> expr loc = function
     { content =
         List
           ( { content = Symbol group_op; loc = None }
-          :: List.map ~f:expand_macro es )
+          :: List.map ~f:expand_macro (List.rev es) )
     ; loc = None
     }
   | Raw.List es -> { content = List (List.map ~f:expand_macro es); loc = None }
@@ -614,11 +618,38 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
     let* sgen_expr2 = sgen_expr_of_expr expr2.content in
     let* message_ray = ray_of_expr message.content in
     Match (sgen_expr1, sgen_expr2, message_ray, None) |> Result.return
-  | List [ { content = Symbol op; _ }; identifier; value ]
-    when String.equal op def_op ->
+  | List ({ content = Symbol op; _ } :: identifier :: values)
+    when (String.equal op def_op || String.equal op spec_op)
+         && not (List.is_empty values) ->
     let* id_ray = ray_of_expr identifier.content in
-    let* value_expr = sgen_expr_of_expr value.content in
-    Def (id_ray, value_expr) |> Result.return
+    let* value_exprs =
+      match values with
+      | [ single ] ->
+        let* e = sgen_expr_of_expr single.content in
+        Ok [ e ]
+      | multiple ->
+        let* sgen_exprs =
+          List.map multiple ~f:(fun e -> sgen_expr_of_expr e.content)
+          |> Result.all
+        in
+        let all_groups =
+          List.for_all sgen_exprs ~f:(fun e ->
+            match e with Group _ -> true | _ -> false )
+        in
+        if all_groups then Ok sgen_exprs else Ok [ Group sgen_exprs ]
+    in
+    Def (id_ray, value_exprs) |> Result.return
+  | List
+      [ { content = Symbol op; _ }
+      ; galaxy_expr
+      ; { content = Var bind_var; _ }
+      ; body
+      ]
+    when String.equal op forall_op ->
+    let* galaxy_id = ray_of_expr galaxy_expr.content in
+    let bind_id = const bind_var in
+    let* body_expr = sgen_expr_of_expr body.content in
+    Forall (galaxy_id, bind_id, body_expr) |> Result.return
   | List ({ content = Symbol "show"; _ } :: args) when List.length args > 0 ->
     let* sgen_exprs =
       List.map args ~f:(fun arg -> sgen_expr_of_expr arg.content) |> Result.all

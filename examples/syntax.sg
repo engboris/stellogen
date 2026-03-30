@@ -79,11 +79,10 @@
 (def g2 #(get g1 test1))
 (stack show #(get g2 test2))
 
-'define type
-(macro (spec X Y) (def X Y))
-(spec nat {
-  [(-nat 0) ok]
-  [(-nat (s N)) (+nat N)]})
+'define type (spec is a built-in for galaxies)
+(spec nat
+  {[(-nat 0) ok]
+   [(-nat (s N)) (+nat N)]})
 
 'expect (equality check)
 (def x 0)
@@ -109,10 +108,6 @@
 (def 2 (stack +nat s s 0))
 (== @(exec @#2 #nat) ok)
 
-'import file
+'import file and type assertion macro
 (use-macros "milkyway/prelude.sg")
-
-'declaration definition
-(macro (:: Tested Test)
-  (== @(exec @#Tested #Test) ok))
 (:: 2 nat)

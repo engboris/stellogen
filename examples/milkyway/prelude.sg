@@ -1,12 +1,10 @@
 ' Stellogen Prelude
 ' Common macros for type system and testing
 
-' Macro for type specification
-(macro (spec X Y) (def X Y))
-
-' Macro for type assertion
+' Macro for type assertion (iterates over galaxy of tests)
 (macro (:: Tested Test)
-  (== @(exec @#Tested #Test) ok))
+  (forall Test T
+    (== @(exec @#Tested #T) ok)))
 
 ' Generic folding macros
 

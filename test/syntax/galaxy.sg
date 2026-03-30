@@ -1,0 +1,39 @@
+' Test: galaxies (sets of constellations) and forall
+
+' --- Galaxy definition with multiple constellations ---
+
+(def my-tests
+  {[(-check a) ok]}
+  {[(-check b) ok]})
+
+' forall iterates over each constellation independently
+(forall my-tests Test
+  (show #Test))
+
+' --- Single-constellation galaxy (backward compatible) ---
+
+(def nat
+  {[(-nat 0) ok]
+   [(-nat (s N)) (+nat N)]})
+
+(def two (+nat (s (s 0))))
+
+' :: macro using forall
+(macro (:: V T)
+  (forall T Test
+    (== @(exec @#V #Test) ok)))
+
+(:: two nat)
+
+' --- Using galaxy in exec flattens all constellations ---
+
+(def val (+check a))
+(== @(exec @#val #my-tests) ok)
+
+' --- spec is alias for def ---
+
+(spec direction
+  {[-north ok] [-south ok] [-west ok] [-east ok]})
+
+(def n +north)
+(:: n direction)
