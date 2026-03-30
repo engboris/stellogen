@@ -9,3 +9,6 @@ web/examples.js
 
 # Deployment script
 deploy.sh
+
+# Claude Code local settings
+.claude/settings.local.json
