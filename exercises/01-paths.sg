@@ -1,32 +1,34 @@
-'fill the 'your_answer' holes to replace #1 in the constellations
-'below such that the result of execution is { ok }
+' Exercise 1 - Interaction Paths
+' Define each #your_answer so that the execution result equals [ok].
+'
+' A positive ray (+X) fuses with a negative ray (-X).
+' When a focused state star (@) interacts with an action star,
+' the matching rays disappear and the remaining rays merge.
 
-(== x1 (const (star ok)))
-(def x1
-  (union (const (@star -1 ok)) #1)
-  [#1=>#your_answer])
+' x1: The state @[-1 ok] needs something to consume -1 and leave ok.
+(def ans1 #your_answer)
+(== (exec { @[-1 ok] #ans1 }) [ok])
 
-(== x2 (const (star ok)))
-(def x2
-  (union (const (@star -1) (star +2)) #1)
-  [#1=>#your_answer])
+' x2: The state @[-1] can fuse with +1, and the star [+2]
+' needs someone to consume +2. Connect them in one star.
+(def ans2 #your_answer)
+(== (exec { @[-1] [+2] #ans2 }) [ok])
 
-(== x3 (const (star ok)))
-(def x3
-  (union (const (@star -1 ok) (star -2 +3)) #1)
-  [#1=>#your_answer])
+' x3: @[-1 ok] and [-2 +3] are given. Provide the missing stars
+' so that everything chains into [ok].
+(def ans3 #your_answer)
+(== (exec { @[-1 ok] [-2 +3] #ans3 }) [ok])
 
-(== x4 (const (star ok)))
-(def x4
-  (union (const (@star (-f (+g X)) ok)) #1)
-  [#1=>#your_answer])
+' x4: The state has a compound ray (-f (g X)).
+' Provide a star whose positive ray unifies with it.
+(def ans4 #your_answer)
+(== (exec { @[(-f (g X)) ok] #ans4 }) [ok])
 
-(== x5 (const (star ok)))
-(def x5
-  (union
-    (const
-      (star (+f a) (+f b))
-      (star (+g a))
-      (@star (+g b) ok))
-    #1)
-  [#1=>#your_answer])
+' x5: Multiple stars interact. The state @[(+g b) ok] needs
+' the right negative rays to complete the path.
+(def ans5 #your_answer)
+(== (exec {
+  [(+f a) (+f b)]
+  [(+g a)]
+  @[(+g b) ok]
+  #ans5 }) [ok])
