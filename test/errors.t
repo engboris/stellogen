@@ -91,10 +91,10 @@ Test that any expression is now valid as a term (unified design):
   $ sgen run errors/invalid_declaration.sg
 
 
-Error Recovery
---------------
+Fail-Fast on Multiple Errors
+-----------------------------
 
-Test multiple errors (reports first error only):
+Test multiple errors (reports first error only, no recovery):
   $ sgen run errors/multiple_errors.sg
   error: Unterminated string literal
     --> errors/multiple_errors.sg:4:1
