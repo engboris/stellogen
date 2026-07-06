@@ -10,9 +10,6 @@ Binary4 example:
   { [(+b r 1 1)] [(+b r 2 1)] [(+b r 3 1)] [(+b r 4 0)] }
   { [(+b r2 1 1)] [(+b r2 2 1)] [(+b r2 3 1)] [(+b r2 4 0)] }
 
-Circuits example:
-  $ sgen run ../examples/circuits.sg
-
 Lambda calculus example:
   $ sgen run ../examples/lambda/lambda.sg
   [(out [r X7]) (ida (exp [l X7] d))]
