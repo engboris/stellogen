@@ -51,12 +51,6 @@ Proposals on the table:
 paragraph: one operation, mode = structural discipline of actions,
 staging = derived fold.
 
-### 2.3 Merge `use-macros` into `use` — **pending**
-- **Why:** Two import mechanisms is confusing; `collect_macro_imports` has 8
-  near-identical match arms.
-- **Action:** `use` imports both macros and definitions; remove `use-macros`
-  from parser, `expression.ml`, `stellogen_parsing.ml`.
-
 ### 2.5 Fold `constellation_eval.ml` into `tracer.ml` — **pending**
 - **Why:** Thin wrapper re-exporting from `executor.ml`/`tracer.ml`;
   indirection without value.
@@ -73,7 +67,7 @@ staging = derived fold.
   document listing every form the evaluator accepts, with the rule: *if a
   feature can be defined as a macro, it must not be in the kernel; if it
   can't and isn't essential, remove it.*
-- **Action:** Write `KERNEL.md` after 2.3–2.6 land, **in two parts**:
+- **Action:** Write `KERNEL.md` after 2.5–2.6 land, **in two parts**:
   the *object kernel* (stellar resolution proper: terms, rays, stars,
   constellations, focus, `||` constraints) and the *meta kernel* (the
   functional glue: `def`, `#`, fixed-arity `macro`, `exec`/`fire`/`then`,
@@ -237,7 +231,7 @@ logics/
 
 | Category | Items |
 |----------|-------|
-| **Simplify** | `use-macros` merge (2.3), `constellation_eval.ml` (2.5), trace hack (2.6) |
+| **Simplify** | `constellation_eval.ml` (2.5), trace hack (2.6) |
 | **Decide** | execution-variant factorization (2.2b) |
 | **Document** | `KERNEL.md` incl. code-as-term encoding contract (2.7, 2.5.2), file-shape house style, `BASICS.md` rewrite |
 | **Rename/reframe** | `prolog/`→`relational/`, `family.sg`, `hello.sg`, `stack.sg`, `macro_demo.sg` |

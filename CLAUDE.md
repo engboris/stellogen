@@ -146,7 +146,7 @@ an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 - **Forall**: `(forall Galaxy X body)` - evaluate `body` once per member of a galaxy, binding each to `X` (used to run every test of a type)
 - **Then**: `(then c1 c2 ...)` - staged execution (built-in, see above)
 - **Macro**: `(macro pattern expansion)` - syntactic preprocessing; **fixed arity only** (no `...` variadic patterns; a name may have several patterns of different arities)
-- **Import**: `(use "path")` imports definitions; `(use-macros "path")` imports macros. Relative paths resolve **relative to the importing file**, not the working directory.
+- **Import**: `(use "path")` imports both definitions and macros. Relative paths resolve **relative to the importing file**, not the working directory.
 
 ## Syntax Elements
 
@@ -178,7 +178,7 @@ an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 - Staged execution with `then` (built-in)
 - Fields and field access
 - Nested structures
-- File imports with `(use "path")` / `(use-macros "path")`
+- File imports with `(use "path")`
 - Expect (`==`) for equality assertions
 - Match (`~=`) for unifiability checks
 - Parametric definitions `(def (f a b) ...)` and calls `#(f a b)`
@@ -628,8 +628,7 @@ a bob 0         ' Constants
 (forall G X e)  ' Evaluate e for each member of galaxy G bound to X
 
 ' Imports
-(use "path")        ' Import definitions (path relative to this file)
-(use-macros "path") ' Import macros
+(use "path")    ' Import definitions and macros (path relative to this file)
 
 ' Syntactic Sugar
 [a b c]         ' In TERM position: list (%cons a (%cons b (%cons c %nil)))

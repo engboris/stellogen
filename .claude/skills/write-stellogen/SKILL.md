@@ -19,7 +19,7 @@ You are writing code in **Stellogen**, an experimental language based on **stell
 4. **Constellations are groups of stars** in `{...}`. They are unordered.
 5. **Focus (`@`) is critical.** It marks state stars (data being transformed). Without `@`, nothing executes.
 6. **`exec` is non-linear** (actions reused), **`fire` is linear** (actions consumed once).
-7. **`process` chains** constellations sequentially.
+7. **`then` chains** constellations sequentially (built-in).
 
 ## Writing Process
 
@@ -50,9 +50,9 @@ These create reusable templates called with `#(transition q0 a q1)`.
 
 ## When Using the Prelude
 
-If the program needs type checking (`::`, `spec`) or `stack`/`process` macros, start with:
+If the program needs the `::` type assertion macro, start with:
 ```stellogen
-(use-macros "milkyway/prelude.sg")
+(use "milkyway/prelude.sg")
 ```
 
 ## Output

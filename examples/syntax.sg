@@ -1,4 +1,4 @@
-(use-macros "milkyway/prelude.sg")
+(use "milkyway/prelude.sg")
 
 'define ray
 (def a (-f X))
@@ -114,5 +114,5 @@
 (== @(exec @#2 #nat) ok)
 
 'import file and type assertion macro
-(use-macros "milkyway/prelude.sg")
+(use "milkyway/prelude.sg")
 (:: 2 nat)

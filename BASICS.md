@@ -382,13 +382,8 @@ It is possible to import the content of a file through their relative path:
 (use "filename")
 ```
 
-For macros use:
-
-```stellogen
-(use-macros "filename")
-```
-
-Because macros are applied before actual execution.
+This imports both the definitions and the macros of the file. Paths are
+resolved relative to the importing file.
 
 ---
 

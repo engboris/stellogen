@@ -29,18 +29,16 @@ a bob 0            ' Constants (lowercase/digits)
 ' Execution
 (exec actions @states)    ' Non-linear (actions reusable)
 (fire actions @states)    ' Linear (actions consumed once)
-(process c1 c2 c3)        ' Chain: exec c2 on c1, then c3 on result
+(then c1 c2 c3)           ' Chain: exec c2 on c1, then c3 on result (built-in)
 
 ' Testing & display
 (show expr)               ' Display result
 (== e1 e2)                ' Assert syntactic equality
-(~= r1 r2)                ' Check unifiability (opposite polarities needed)
+(~= r1 r2)                ' Check unifiability (polarity is ignored)
 
 ' Syntactic sugar
 [a b c]                   ' Cons list: (%cons a (%cons b (%cons c %nil)))
 [a|Tail]                  ' Cons with tail variable
-<f a b>                   ' Stack: (f (a b))
-(stack f a b c)            ' Same as (f (a (b c))) — needs prelude
 
 ' Constraints
 [rays... || (!= X Y)]    ' Inequality constraint on star
@@ -55,8 +53,7 @@ a bob 0            ' Constants (lowercase/digits)
 (macro (pattern A B ...) (expansion using A B ...))
 
 ' Imports
-(use "path.sg")           ' Import definitions
-(use-macros "path.sg")    ' Import macros
+(use "path.sg")           ' Import definitions and macros
 ```
 
 ## Fundamental Mechanics
@@ -83,9 +80,9 @@ Result: [(result hello)]
 - Execution = repeated fusion until **saturation** (no more interactions possible)
 - Result = remaining constellation after saturation
 
-### Process Chaining
+### Chaining with then
 
-`(process c1 c2 c3)` means:
+`(then c1 c2 c3)` means:
 1. Execute c1 (focused) → result r1
 2. Execute c2 with r1 as focused state → result r2
 3. Execute c3 with r2 as focused state → final result
@@ -254,4 +251,4 @@ Types are galaxies (collections of constellations) of interactive tests:
 ## Cleaning Results
 
 - `(def kill (-unwanted _ _))` — absorb leftover rays after execution
-- `(process (exec ...) #kill)` — chain a cleanup step
+- `(then (exec ...) #kill)` — chain a cleanup step

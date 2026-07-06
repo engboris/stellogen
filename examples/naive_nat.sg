@@ -1,4 +1,4 @@
-(use-macros "milkyway/prelude.sg")
+(use "milkyway/prelude.sg")
 
 (spec nat
   {[(-nat 0) ok]

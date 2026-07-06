@@ -294,40 +294,22 @@ let unfold_decl_def (macro_env : (string * (string list * expr loc list)) list)
 (* Type for macro environment *)
 type macro_env = (string * (string list * expr loc list)) list
 
-(* Collect all use-macros directives from raw expressions *)
+(* Collect the paths of all use directives from raw expressions.
+   Imports are resolved twice: here, during preprocessing, to bring the
+   imported file's macros into scope, and later at evaluation time where
+   the same directive imports the file's definitions. *)
 let collect_macro_imports (raw_exprs : Raw.t list) : string list =
+  let strip = function
+    | Raw.Positioned (inner, _, _) -> inner
+    | other -> other
+  in
   List.concat_map raw_exprs ~f:(fun raw_expr ->
-    (* Unwrap Positioned if present *)
-    let unwrapped =
-      match raw_expr with
-      | Raw.Positioned (inner, _, _) -> inner
-      | other -> other
-    in
-    match unwrapped with
-    | Raw.List [ Raw.Symbol "use-macros"; Raw.String path ] -> [ path ]
-    | Raw.List [ Raw.Symbol "use-macros"; Raw.Symbol path ] -> [ path ]
-    | Raw.List
-        [ Raw.Symbol "use-macros"; Raw.Positioned (Raw.String path, _, _) ] ->
-      [ path ]
-    | Raw.List
-        [ Raw.Symbol "use-macros"; Raw.Positioned (Raw.Symbol path, _, _) ] ->
-      [ path ]
-    | Raw.List
-        [ Raw.Positioned (Raw.Symbol "use-macros", _, _); Raw.String path ] ->
-      [ path ]
-    | Raw.List
-        [ Raw.Positioned (Raw.Symbol "use-macros", _, _); Raw.Symbol path ] ->
-      [ path ]
-    | Raw.List
-        [ Raw.Positioned (Raw.Symbol "use-macros", _, _)
-        ; Raw.Positioned (Raw.String path, _, _)
-        ] ->
-      [ path ]
-    | Raw.List
-        [ Raw.Positioned (Raw.Symbol "use-macros", _, _)
-        ; Raw.Positioned (Raw.Symbol path, _, _)
-        ] ->
-      [ path ]
+    match strip raw_expr with
+    | Raw.List [ head; path ] -> (
+      match (strip head, strip path) with
+      | Raw.Symbol "use", Raw.String path | Raw.Symbol "use", Raw.Symbol path ->
+        [ path ]
+      | _ -> [] )
     | _ -> [] )
 
 (* Extract macro definitions from a list of raw expressions *)
@@ -367,27 +349,11 @@ let extract_macros (raw_exprs : Raw.t list) : macro_env =
     process_expr (env, acc) e )
   |> fst
 
-(* Preprocess with a given macro environment *)
+(* Preprocess with a given macro environment. Use directives are kept:
+   the evaluator needs them to import definitions. *)
 let preprocess_with_macro_env (macro_env : macro_env) (raw_exprs : Raw.t list) :
   expr loc list =
-  (* Remove use-macros directives from the raw expression list *)
-  let is_use_macros raw_expr =
-    let unwrapped =
-      match raw_expr with
-      | Raw.Positioned (inner, _, _) -> inner
-      | other -> other
-    in
-    match unwrapped with
-    | Raw.List (Raw.Symbol "use-macros" :: _) -> true
-    | Raw.List (Raw.Positioned (Raw.Symbol "use-macros", _, _) :: _) -> true
-    | _ -> false
-  in
-  let filtered_raw_exprs =
-    List.filter raw_exprs ~f:(fun e -> not (is_use_macros e))
-  in
-
-  (* Expand to expr loc and apply macros *)
-  filtered_raw_exprs |> List.map ~f:expand_macro |> unfold_decl_def macro_env
+  raw_exprs |> List.map ~f:expand_macro |> unfold_decl_def macro_env
 
 (* ---------------------------------------
    Constellation of Expr
@@ -592,7 +558,7 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
     Show (sgen_exprs, None) |> Result.return
   | List [ { content = Symbol "use"; _ }; path ] ->
     let* path_ray = ray_of_expr path.content in
-    Use path_ray |> Result.return
+    Use (path_ray, None) |> Result.return
   | _ ->
     (* Everything else is a raw term *)
     let* ray = ray_of_expr expr in
@@ -610,6 +576,7 @@ let attach_location (sgen : sgen_expr) (loc : source_location option) :
   | Match (e1, e2, msg, _) -> Match (e1, e2, msg, loc)
   | Show (e, _) -> Show (e, loc)
   | Exec (b, e, _) -> Exec (b, e, loc)
+  | Use (id, _) -> Use (id, loc)
   | other -> other
 
 let sgen_expr_of_expr_loc (expr : expr loc) :
