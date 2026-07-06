@@ -29,7 +29,7 @@
 
 (def kill (-a _ _ _))
 
-(show (process (exec @#e #a1)    #kill))
-(show (process (exec @#0000 #a1) #kill))
-(show (process (exec @#0110 #a1) #kill))
-(show (process (exec @#1110 #a1) #kill))
+(show (then (exec @#e #a1)    #kill))
+(show (then (exec @#0000 #a1) #kill))
+(show (then (exec @#0110 #a1) #kill))
+(show (then (exec @#1110 #a1) #kill))

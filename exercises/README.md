@@ -8,7 +8,7 @@ Learn Stellogen by replacing `#your_answer` holes to make each program compile w
 |------|-------|----------|
 | `00-unification.sg` | Unification | Rays, polarity, fusion, `exec` |
 | `01-paths.sg` | Interaction paths | Building constellations to complete interaction chains |
-| `02-registers.sg` | Registers | `process`, state updates, duplication, swapping |
+| `02-registers.sg` | Registers | `then`, state updates, duplication, swapping |
 | `03-boolean.sg` | Boolean logic | Defining operations, composing constellations, queries |
 
 ## Running

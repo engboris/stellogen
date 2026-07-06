@@ -1,7 +1,5 @@
-(use-macros "../examples/milkyway/prelude.sg")
-
 ' Exercise 2 - Registers
-' A register is a positive ray (+name value). Using process,
+' A register is a positive ray (+name value). Using then,
 ' chain steps that read, update, duplicate, and swap registers.
 ' Replace each #your_answer with the right constellation(s).
 '
@@ -12,7 +10,7 @@
 ' To duplicate a register into two, use a group { ... } of two
 ' action stars in a single step so both interact with the same state.
 
-(stack show exec (process
+(show (then
   'represents a register with value 0
   (+r0 0)
 

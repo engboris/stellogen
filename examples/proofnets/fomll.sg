@@ -1,5 +1,3 @@
-(use-macros "../milkyway/prelude.sg")
-
 ''' ======================================================== '''
 ''' FIRST-ORDER MULTIPLICATIVE LINEAR LOGIC PROOF-STRUCTURES '''
 ''' ======================================================== '''

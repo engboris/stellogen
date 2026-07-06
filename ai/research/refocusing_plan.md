@@ -80,28 +80,81 @@ has been deleted and its durable findings are preserved in its Appendix A.
 
 ## Phase 2: Simplify the Implementation
 
-### 2.1 Make `process` a built-in — **pending, do first in this phase**
-- **Why:** `process` is a core workbench construct (chaining interactions =
-  building proofs step by step) but is currently a variadic macro in
-  `milkyway/prelude.sg`. It must be a kernel form *before* variadic macros
-  can be removed (2.2 depends on it).
-- **Action:** Add `Process` variant to `sgen_expr`; handle
-  `(process e1 e2 ...)` in `expression.ml`/`evaluator.ml`: evaluate, execute,
-  merge left-associatively.
-- **Files:** `syntax.ml`, `expression.ml`, `evaluator.ml`
+### 2.1 Make `process` a built-in — **done (2026-07-06): `then` built-in desugaring**
+- **Renamed `process` → `then`**: the old name over-promised (suggests a
+  process-calculus construct); the thing is sequencing sugar —
+  `(then A B)` ≡ `@(exec B @A)`, n-ary = left-nested binary (verified:
+  byte-identical preprocess output).
+- **Why still built-in:** flat n-ary pipelines are real (15-stage pipeline
+  in `exercises/02`, staged layers per Appendix A.1 of the evaluation doc),
+  and after 2.2 flat n-arity is *not* macro-expressible — so the
+  "macro-expressible ⇒ not kernel" rule no longer applies. It is glue in the
+  §3.2 sense, same family as n-ary `exec`.
+- **Implementation:** *no new AST node, no evaluator change* — `(then c1 …
+  cn)` desugars in `sgen_expr_of_expr` (`expression.ml`) to a left fold of
+  existing `Focus`/`Exec`/`Group` nodes, identical to the old macro
+  expansion. `then` stays usable as an ordinary symbol in ray/term position
+  (cf. `(if read C on Q then Q')` notation) — the desugaring only claims
+  expression-position head.
 
-### 2.2 Remove variadic macro support — **pending, after 2.1**
-- **Why:** Variadic `...` splicing, arity dispatch, and recursive variadic
-  expansion are a general-purpose metaprogramming language inside the macro
-  system. The kernel needs simple, fixed-arity notation macros.
+### 2.2 Remove variadic macro support — **done (2026-07-06)**
+- **Why:** Variadic `...` splicing + arity dispatch = base case/inductive
+  case = usable recursion: a general-purpose computation layer inside the
+  macro system. Without variadics, fixed-arity macros *cannot* usefully
+  recurse (a self-reference has no base case to dispatch to), so the macro
+  layer becomes total-in-practice **by construction** — the §3.2 "total and
+  boring" property, enforced structurally. The n-ary needs are covered
+  elsewhere: n-ary *data* = cons lists / stars / constellations (object
+  syntax is natively n-ary); n-ary *assembly* = `exec`/`{}`; n-ary
+  *sequencing* = `then` (2.1). Empirical record: in the whole repo only
+  `stack`/`chain`/`process` ever used variadics; all real logic notation is
+  fixed-arity.
 - **Action:** Remove `is_variadic_pattern`, `min_args_for_pattern`,
-  `pattern_matches_args`, `split_variadic_params`, `find_matching_pattern`,
-  `apply_variadic_substitution` from `src/core/expression.ml` (~120 lines).
-- **Impact:** `stack`/`chain`/`process` macros in `milkyway/prelude.sg`
-  break. `process` is rescued by 2.1. `stack`/`chain`: drop them; writing
-  `(s (s 0))` is bearable, and no reader sugar should be added until real
-  tower code demands it. Note `CLAUDE.md` documents a `<f a b>` sugar that no
-  longer exists in the lexer — fix the doc, don't resurrect the feature.
+  `pattern_matches_args`, `split_variadic_params`,
+  `apply_variadic_substitution` from `src/core/expression.ml`; replace
+  dispatch with exact-arity match; drop the `...` allowance in macro
+  parameter parsing.
+- **Impact:** `stack`/`chain` dropped from the prelude (writing `(s (s 0))`
+  is bearable; no reader sugar until real tower code demands it);
+  `process` becomes `then` (2.1); call sites rewritten
+  (`naive_nat`, `syntax`, `stack`, `prolog/arithmetic`, `binary4`,
+  `proofnets/mall`, `states/nfa|npda`, `exercises/02`+solution,
+  `test/syntax/linear|prolog`). Note `CLAUDE.md` documents a `<f a b>`
+  sugar that no longer exists in the lexer — fix the doc, don't resurrect
+  the feature.
+
+### 2.2b Factorize execution variants — **new, design note, decision pending**
+Recorded 2026-07-06 (Boris to decide later). Execution is **one operation**
+(saturation of a focused space) with two orthogonal axes:
+
+- *Resource discipline of action stars* — which structural rules actions
+  enjoy: weakening always (unused actions are discarded); contraction =
+  `exec` (actions as if under `!`); none = `fire` (purely linear dynamics).
+  The AST already half-knows this: `Exec of bool * …` — the bool is this
+  axis.
+- *Composition shape* — flat vs staged (`then`). Staging is **not** an
+  execution mode: it is derived notation (a left fold of executions), which
+  is why it never touches the evaluator.
+
+Proposals on the table:
+
+1. **Encode the mode axis honestly:** replace the bool with
+   `type exec_mode = Reuse | Linear`. Extensible to bounded/soft disciplines
+   later — exponential disciplines ↔ complexity classes (light logics),
+   which connects directly to the descriptive-complexity program
+   (evaluation doc §6). The mode axis is research-relevant, not plumbing.
+2. **2×2 matrix** {reuse, linear} × {flat, staged}: ship three cells
+   (`exec`, `fire`, `then` = staged reuse); staged-linear is a 2-line
+   addition when a use case arrives (e.g. step-by-step proof construction).
+3. **Naming options:** (i) systematic family `exec`/`exec-lin`/`exec-seq`
+   (renames `fire` — churn); (ii) mode symbols inside one head,
+   `(exec lin seq …)` — **rejected**: bare symbols become context-dependent,
+   the §4.2 reader hazard; (iii) keep `exec`/`fire` + `then` — least churn,
+   current choice pending the decision.
+
+`KERNEL.md` (2.7) should state whichever factorization wins in one
+paragraph: one operation, mode = structural discipline of actions,
+staging = derived fold.
 
 ### 2.3 Merge `use-macros` into `use` — **pending**
 - **Why:** Two import mechanisms is confusing; `collect_macro_imports` has 8
@@ -136,7 +189,7 @@ has been deleted and its durable findings are preserved in its Appendix A.
 - **Action:** Write `KERNEL.md` after 2.1–2.6 land, **in two parts**:
   the *object kernel* (stellar resolution proper: terms, rays, stars,
   constellations, focus, `||` constraints) and the *meta kernel* (the
-  functional glue: `def`, `#`, fixed-arity `macro`, `exec`/`fire`/`process`,
+  functional glue: `def`, `#`, fixed-arity `macro`, `exec`/`fire`/`then`,
   `show`, `==`, `~=`, `forall`, `use`). Sorting rule: anything that computes
   belongs in the object language; meta constructs justify themselves as glue
   (assemble/run/compare) or are demoted/removed. Demote `spec` to a prelude
@@ -296,7 +349,7 @@ logics/
 |----------|-------|------------|
 | **Remove** | `circuits.sg`, `watch`, incremental parsing/error recovery | ~500 removed |
 | **Simplify** | variadic macros, `use-macros`, `MatchableRays`, `constellation_eval.ml`, trace hack | ~250 removed |
-| **Add (kernel)** | `process` built-in (meta level; ray scoping deferred — zero object-kernel additions) | ~60 added |
+| **Add (kernel)** | `then` built-in desugaring (meta level, no evaluator change; ray scoping deferred — zero object-kernel additions) | ~10 added |
 | **Document** | `KERNEL.md` (incl. code-as-term encoding contract), file-shape house style, `BASICS.md` rewrite, `CLAUDE.md` structure fix | — |
 | **Rename/reframe** | `prolog/`→`relational/`, `hello.sg`, `stack.sg`, `macro_demo.sg` | ~50 changed |
 | **New content** | `logics/` library + flagship MLL tutorial, exercise extensions | ~600 new |
@@ -312,8 +365,8 @@ states the project's identity — with zero additions to the object kernel.
 
 ```
 Phase 1 (immediate)      → Remove: circuits.sg, watch, parser recovery
-Phase 2 (short term)     → Simplify: process built-in first, then macro/import
-                           cleanups; write KERNEL.md
+Phase 2 (short term)     → Simplify: `then` built-in + variadic removal,
+                           import cleanups; write KERNEL.md
 Phase 2.5 (design work)  → Encoding contract (blocks Phase 4); scoping deferred
 Phase 3 (ongoing)        → Reframe examples and docs
 Phase 4 (the point)      → logics/ library + flagship MLL demonstration
