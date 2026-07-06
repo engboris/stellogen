@@ -39,7 +39,7 @@ has been deleted and its durable findings are preserved in its Appendix A.
 
 ## Phase 1: Remove Distractions
 
-### 1.1 Delete broken example `circuits.sg` — **pending**
+### 1.1 Delete broken example `circuits.sg` — **done (2026-07-06)**
 - **Why:** Starts with `' FIXME`, body is 100% commented out. Shipping broken
   examples harms credibility. The impossibility of faithful synchronous
   circuits is a boundary of the model (thesis Ch. 8), not a bug to fix.
@@ -59,13 +59,13 @@ has been deleted and its durable findings are preserved in its Appendix A.
 - **Follow-up:** Update `CLAUDE.md`'s project-structure section (it still
   lists `docs/`).
 
-### 1.4 Remove `watch` CLI command — **pending**
+### 1.4 Remove `watch` CLI command — **done (2026-07-06)**
 - **Why:** Developer convenience, not a workbench feature. ~70 lines of
   Unix-specific process management. Users can use `entr`/`watchexec`.
 - **Action:** Remove `watch` subcommand, `run_with_timeout`, `timeout_arg`
   from `bin/sgen.ml`.
 
-### 1.5 Remove incremental parsing + error recovery — **new, pending**
+### 1.5 Remove incremental parsing + error recovery — **done (2026-07-06)**
 - **Why:** `src/parsing/parse_error.ml` (~120 lines) and the recovery driver
   in `stellogen_parsing.ml` implement Menhir's incremental API with
   token-skipping multi-error recovery. This is IDE-grade machinery serving
