@@ -1,34 +1,47 @@
-(show-exec (process
+(use-macros "../../examples/milkyway/prelude.sg")
+
+' Exercise 2 - Registers
+' A register is a positive ray (+name value). Using process,
+' chain steps that read, update, duplicate, and swap registers.
+' Fill in the #your_answer holes.
+'
+' Key idea: to update a register without infinite loops, use a
+' temporary name: first rename (-old X) (+tmp X), then set
+' the new value (-tmp X) (+new val).
+'
+' To duplicate a register into two, use a group of two action
+' stars in a single step so both can interact with the same state.
+
+(stack show exec (process
   'represents a register with value 0
-  (const (star (+r0 0)))
+  (+r0 0)
 
   'update the value to 1
-  (const (star (-r0 X) (+tmp0 X)))
-  (const (star (-tmp0 X) (+r0 1)))
+  [(-r0 X) (+tmp X)]
+  [(-tmp X) (+r0 1)]
 
   'duplicate the register into two registers r1 and r2
-  (const
-    (star (-r0 X) (+r1 X))
-    (star (-r0 X) (+r2 X)))
+  { [(-r0 X) (+r1 X)]
+    [(-r0 X) (+r2 X)] }
 
   'update r1 to 0
-  (const (star (-r1 X) (+tmp0 X)))
-  (const (star (-tmp0 X) (+r1 0)))
+  [(-r1 X) (+tmp X)]
+  [(-tmp X) (+r1 0)]
 
-  'swap the value of r1 and r2
-  (const (star (-r1 X) (+s1 X)))
-  (const (star (-r2 X) (+s2 X)))
-  (const (star (-s1 X) (+r2 X)))
-  (const (star (-s2 X) (+r1 X)))
+  'swap the values of r1 and r2
+  [(-r1 X) (+s1 X)]
+  [(-r2 X) (+s2 X)]
+  [(-s1 X) (+r2 X)]
+  [(-s2 X) (+r1 X)]
 
-  'duplicate r1 and add a copy identifier as first argument
-  (const (star (-r1 X) (+r1 l X)))
-  (const (star (-r1 X) (+r1 r X)))
+  'duplicate r1 with a copy identifier as first argument
+  { [(-r1 X) (+r1 l X)]
+    [(-r1 X) (+r1 r X)] }
 
-  'update the two copies to 5 at once
-  (const (star (-r1 A X) (+tmp0 A X)))
-  (const (star (-tmp0 A X) (+r1 A 5)))
+  'update all copies of r1 to 5 at once
+  [(-r1 A X) (+tmp A X)]
+  [(-tmp A X) (+r1 A 5)]
 
   'duplicate each copy of r1 again with the same method
-  (const (star (-r1 A X) (+r1 l A X)))
-  (const (star (-r1 A X) (+r1 r A X)))))
+  { [(-r1 A X) (+r1 l A X)]
+    [(-r1 A X) (+r1 r A X)] }))

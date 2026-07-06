@@ -1,84 +1,98 @@
-'fill the #your_answer hole by following the specifications
+(use-macros "../examples/milkyway/prelude.sg")
 
-(def checker
-  (galaxy
-    (interaction (union #tested #test))
-    (expect (const (star ok)))))
+' Exercise 3 - Boolean Logic
+' Implement boolean operations as constellations and verify them.
+' Each operation takes boolean inputs (0 or 1) and produces a result.
+' Replace each #your_answer with the correct definition.
 
-(def not_spec
-  (galaxy
-    (test0 (const (@star (-not 0 1) ok)))
-    (test1 (const (@star (-not 1 0) ok)))))
+'''
+NOT
+'''
 
-(:: not (not_spec / checker))
-(def not
-  #your_asnwer)
+' Define NOT: not(0)=1, not(1)=0
+(def not #your_answer)
 
-'how to print the truth table of NOT ?
-(== table_not (const
-  (star (table_not 0 1))
-  (star (table_not 1 0))))
-(def table_not
-  (union
-    #not
-    #your_answer))
+(== (exec { #not @[(-not 0 R) R] }) [1])
+(== (exec { #not @[(-not 1 R) R] }) [0])
 
-(def and_spec
-  (galaxy
-    (test00 (const (@star (-and 0 0 0) ok)))
-    (test01 (const (@star (-and 0 1 0) ok)))
-    (test10 (const (@star (-and 1 0 0) ok)))
-    (test11 (const (@star (-and 1 1 1) ok)))))
+' How to print the truth table of NOT?
+' Hint: use #not with a focused query that extracts X and Y.
+(def table_not (exec { #not @#your_answer }))
+(== #table_not { [(table_not 0 1)] [(table_not 1 0)] })
 
-(:: and (and_spec / checker))
-(def and
-  #your_answer)
+'''
+AND
+'''
 
-'find a second way to compute AND
-(:: and (and_spec / checker))
-(def and2
-  #your_answer)
+' Define AND with all four cases
+(def and #your_answer)
 
-(def or_spec
-  (galaxy
-    (test00 (const (@star (-or 0 0 0) ok)))
-    (test01 (const (@star (-or 0 1 1) ok)))
-    (test10 (const (@star (-or 1 0 1) ok)))
-    (test11 (const (@star (-or 1 1 1) ok)))))
+(== (exec { #and @[(-and 0 0 R) R] }) [0])
+(== (exec { #and @[(-and 0 1 R) R] }) [0])
+(== (exec { #and @[(-and 1 0 R) R] }) [0])
+(== (exec { #and @[(-and 1 1 R) R] }) [1])
 
-(:: or (or_spec / checker))
-(def or
-  #your_asnwer)
+' Find a more compact definition using variables
+(def and2 #your_answer)
 
-'find a second way to compute OR
-(:: or2 (or_spec / checker))
-(def or2
-  #your_answer)
+(== (exec { #and2 @[(-and 0 0 R) R] }) [0])
+(== (exec { #and2 @[(-and 0 1 R) R] }) [0])
+(== (exec { #and2 @[(-and 1 0 R) R] }) [0])
+(== (exec { #and2 @[(-and 1 1 R) R] }) [1])
 
-(def impl_spec
-  (galaxy
-    (test00 (const (@star (-impl 0 0 1) ok)))
-    (test01 (const (@star (-impl 0 1 1) ok)))
-    (test10 (const (@star (-impl 1 0 0) ok)))
-    (test11 (const (@star (-impl 1 1 1) ok)))))
+'''
+OR
+'''
 
-(:: impl (impl_spec / checker))
-(def impl
-  (exec (union (union #not #or)
-  #your_answer)))
+' Define OR with all four cases
+(def or #your_answer)
 
-'find a second way to compute IMPLICATION
-(:: impl2 (impl_spec / checker))
-(def impl2
-  (exec (union (union #not #or)
-  #your_answer)))
+(== (exec { #or @[(-or 0 0 R) R] }) [0])
+(== (exec { #or @[(-or 0 1 R) R] }) [1])
+(== (exec { #or @[(-or 1 0 R) R] }) [1])
+(== (exec { #or @[(-or 1 1 R) R] }) [1])
 
-'implement the excluded middle X \/ ~X
-(== ex (const (star (+ex 1 1)) (star (+ex 0 1))))
-(def ex
-  (union (union #not #or)
-  #your_answer))
+' Find a more compact definition using variables
+(def or2 #your_answer)
 
-'how to show the values of X, Y and Z for which X /\ ~(Y /\ Z) is true?
-(show-exec
-  #your_answer)
+(== (exec { #or2 @[(-or 0 0 R) R] }) [0])
+(== (exec { #or2 @[(-or 0 1 R) R] }) [1])
+(== (exec { #or2 @[(-or 1 0 R) R] }) [1])
+(== (exec { #or2 @[(-or 1 1 R) R] }) [1])
+
+'''
+IMPLICATION (A => B = ~A \/ B)
+'''
+
+' Compose NOT and OR to build implication.
+' Hint: use a focused query star that chains (-not ...) and (-or ...)
+' to produce (+impl ...).
+(def impl (exec {
+  #not #or
+  @#your_answer }))
+
+(== (exec { #impl @[(-impl 0 0 R) R] }) [1])
+(== (exec { #impl @[(-impl 0 1 R) R] }) [1])
+(== (exec { #impl @[(-impl 1 0 R) R] }) [0])
+(== (exec { #impl @[(-impl 1 1 R) R] }) [1])
+
+'''
+EXCLUDED MIDDLE (X \/ ~X = 1)
+'''
+
+' Compute X \/ ~X for all X using NOT and OR.
+(def excluded_middle (exec {
+  #not #or
+  @#your_answer }))
+
+(== #excluded_middle { [(+em 0 1)] [(+em 1 1)] })
+
+'''
+For which X, Y, Z is X /\ ~(Y /\ Z) true?
+'''
+
+' Hint: chain (-and Y Z R1) (-not R1 R2) (-and X R2 1)
+' with output rays (x X) (y Y) (z Z).
+(show (exec {
+  #or #not #and
+  @#your_answer }))

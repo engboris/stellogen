@@ -1,95 +1,104 @@
-'fill the #your_answer hole by following the specifications
+(use-macros "../../examples/milkyway/prelude.sg")
 
-(def checker
-  (galaxy
-    (interaction (union #tested #test))
-    (expect (const (star ok)))))
+' Exercise 3 - Boolean Logic
+' Implement boolean operations as constellations and verify them.
+' Each operation takes boolean inputs (0 or 1) and produces a result.
 
-(def not_spec
-  (galaxy
-    (test0 (const (@star (-not 0 1) ok)))
-    (test1 (const (@star (-not 1 0) ok)))))
+'''
+NOT
+'''
 
-(:: not (not_spec / checker))
-(def not
-  (const
-    (star (+not 0 1))
-    (star (+not 1 0))))
+(def not {
+  [(+not 0 1)]
+  [(+not 1 0)] })
 
-'how to print the truth table of NOT ?
-(== table_not (const
-  (star (table_not 0 1))
-  (star (table_not 1 0))))
-(def table_not
-  (union
-    #not
-    (const (@star (-not X Y) (table_not X Y)))))
+(== (exec { #not @[(-not 0 R) R] }) [1])
+(== (exec { #not @[(-not 1 R) R] }) [0])
 
-(def and_spec
-  (galaxy
-    (test00 (const (@star (-and 0 0 0) ok)))
-    (test01 (const (@star (-and 0 1 0) ok)))
-    (test10 (const (@star (-and 1 0 0) ok)))
-    (test11 (const (@star (-and 1 1 1) ok)))))
+' Truth table of NOT
+(def table_not (exec {
+  #not
+  @[(-not X Y) (table_not X Y)] }))
+(== #table_not { [(table_not 0 1)] [(table_not 1 0)] })
 
-(:: and (and_spec / checker))
-(def and
-  (const
-    (star (+and 0 0 0))
-    (star (+and 0 1 0))
-    (star (+and 1 0 0))
-    (star (+and 1 1 1))))
+'''
+AND
+'''
 
-(:: and (and_spec / checker))
-(def and2
-  (const
-    (star (+and 0 X 0))
-    (star (+and 1 X X))))
+(def and {
+  [(+and 0 0 0)]
+  [(+and 0 1 0)]
+  [(+and 1 0 0)]
+  [(+and 1 1 1)] })
 
-(def or_spec
-  (galaxy
-    (test00 (const (@star (-or 0 0 0) ok)))
-    (test01 (const (@star (-or 0 1 1) ok)))
-    (test10 (const (@star (-or 1 0 1) ok)))
-    (test11 (const (@star (-or 1 1 1) ok)))))
+(== (exec { #and @[(-and 0 0 R) R] }) [0])
+(== (exec { #and @[(-and 0 1 R) R] }) [0])
+(== (exec { #and @[(-and 1 0 R) R] }) [0])
+(== (exec { #and @[(-and 1 1 R) R] }) [1])
 
-(:: or (or_spec / checker))
-(def or
-  (const
-    (star (+or 0 0 0))
-    (star (+or 0 1 1))
-    (star (+or 1 0 1))
-    (star (+or 1 1 1))))
+' A more compact definition using variables
+(def and2 {
+  [(+and 0 X 0)]
+  [(+and 1 X X)] })
 
-(:: or2 (or_spec / checker))
-(def or2
-  (const
-    (star (+or 0 X X))
-    (star (+or 1 X 1))))
+(== (exec { #and2 @[(-and 0 0 R) R] }) [0])
+(== (exec { #and2 @[(-and 0 1 R) R] }) [0])
+(== (exec { #and2 @[(-and 1 0 R) R] }) [0])
+(== (exec { #and2 @[(-and 1 1 R) R] }) [1])
 
-(def impl_spec
-  (galaxy
-    (test00 (const (@star (-impl 0 0 1) ok)))
-    (test01 (const (@star (-impl 0 1 1) ok)))
-    (test10 (const (@star (-impl 1 0 0) ok)))
-    (test11 (const (@star (-impl 1 1 1) ok)))))
+'''
+OR
+'''
 
-(:: impl (impl_spec / checker))
-(def impl
-  (exec (union (union #not #or)
-  (const (@star (-not X Y) (-or Y Z R) (+impl X Z R))))))
+(def or {
+  [(+or 0 0 0)]
+  [(+or 0 1 1)]
+  [(+or 1 0 1)]
+  [(+or 1 1 1)] })
 
-(:: impl2 (impl_spec / checker))
-(def impl2
-  (exec (union (union #not #or)
-  (const (@star (-not X Y) (-or Y Z R) (+impl X Z R))))))
+(== (exec { #or @[(-or 0 0 R) R] }) [0])
+(== (exec { #or @[(-or 0 1 R) R] }) [1])
+(== (exec { #or @[(-or 1 0 R) R] }) [1])
+(== (exec { #or @[(-or 1 1 R) R] }) [1])
 
-(== ex (const (star (+ex 1 1)) (star (+ex 0 1))))
-(def ex
-  (union (union #not #or)
-  (const (@star (-not X R1) (-or R1 X R2) (+ex X R2)))))
+' A more compact definition using variables
+(def or2 {
+  [(+or 0 X X)]
+  [(+or 1 X 1)] })
 
-'how to show the values of X, Y and Z for which X /\ ~(Y /\ Z) is true?
-(show-exec
-  (union (union (union #or #not) #and)
-  (const (@star (-or Y Z R1) (-not R1 R2) (-and X R2 1) (x X) (y Y) (z Z)))))
+(== (exec { #or2 @[(-or 0 0 R) R] }) [0])
+(== (exec { #or2 @[(-or 0 1 R) R] }) [1])
+(== (exec { #or2 @[(-or 1 0 R) R] }) [1])
+(== (exec { #or2 @[(-or 1 1 R) R] }) [1])
+
+'''
+IMPLICATION (A => B = ~A \/ B)
+'''
+
+' Compose NOT and OR: negate A, then OR with B
+(def impl (exec {
+  #not #or
+  @[(-not X Y) (-or Y Z R) (+impl X Z R)] }))
+
+(== (exec { #impl @[(-impl 0 0 R) R] }) [1])
+(== (exec { #impl @[(-impl 0 1 R) R] }) [1])
+(== (exec { #impl @[(-impl 1 0 R) R] }) [0])
+(== (exec { #impl @[(-impl 1 1 R) R] }) [1])
+
+'''
+EXCLUDED MIDDLE (X \/ ~X = 1)
+'''
+
+(def excluded_middle (exec {
+  #not #or
+  @[(-not X R1) (-or R1 X R2) (+em X R2)] }))
+
+(== #excluded_middle { [(+em 0 1)] [(+em 1 1)] })
+
+'''
+For which X, Y, Z is X /\ ~(Y /\ Z) true?
+'''
+
+(show (exec {
+  #or #not #and
+  @[(-and Y Z R1) (-not R1 R2) (-and X R2 1) (x X) (y Y) (z Z)] }))
