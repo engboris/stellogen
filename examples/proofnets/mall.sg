@@ -1,5 +1,3 @@
-(use-macros "../milkyway/prelude.sg")
-
 (def left  [(+5 [l l|X]) (+5 [l r|X]) || (slice c a)])
 (def right [(+5 [r l|X]) (+5 [r r|X]) || (slice c b)])
 
@@ -11,6 +9,6 @@
 
 (def cut [(-5 X) (-3 X)])
 
-(stack show exec (process
+(show (then
   #with
   { #plus #cut }))

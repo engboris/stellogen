@@ -120,20 +120,20 @@ This is **Robinson's resolution** from formal logic!
 - `exec`: Non-linear - action stars can be reused multiple times
 - `fire`: Linear - each action star used exactly once (resource-aware)
 
-### 9. Process - Chaining Interactions
-`(process c1 c2 ...)` chains constellations: execute `c1`, feed the result
-as state to `c2`, and so on — useful for building pipelines.
-
-**Note**: `process` is NOT a built-in. It is a macro from
-`examples/milkyway/prelude.sg`; you must import it first:
+### 9. Then - Staged Execution
+`(then c1 c2 ...)` is a **built-in**: execute `c1`, feed the result
+as state to `c2`, and so on - useful for building pipelines.
+It is a left fold over execution: `(then a b)` = `@(exec b @a)`.
+No import needed:
 ```stellogen
-(use-macros "milkyway/prelude.sg")   ' path relative to the importing file
-(def c (process
+(def c (then
   (+n0 0)                 ' base constellation
   [(-n0 X) (+n1 (s X))]   ' interacts with previous result
   [(-n1 X) (+n2 (s X))])) ' interacts with previous result
 (show #c)                 ' (+n2 (s (s 0)))
 ```
+`then` is only special as the head of an expression; it remains usable as
+an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 
 ### 10. Key Operators
 - **Definition**: `(def name value)` - bind name to value
@@ -144,7 +144,8 @@ as state to `c2`, and so on — useful for building pipelines.
 - **Expect**: `(== expr1 expr2)` - assert syntactic equality
 - **Match**: `(~= ray1 ray2)` - check if rays are compatible
 - **Forall**: `(forall Galaxy X body)` - evaluate `body` once per member of a galaxy, binding each to `X` (used to run every test of a type)
-- **Macro**: `(macro pattern expansion)` - syntactic preprocessing
+- **Then**: `(then c1 c2 ...)` - staged execution (built-in, see above)
+- **Macro**: `(macro pattern expansion)` - syntactic preprocessing; **fixed arity only** (no `...` variadic patterns; a name may have several patterns of different arities)
 - **Import**: `(use "path")` imports definitions; `(use-macros "path")` imports macros. Relative paths resolve **relative to the importing file**, not the working directory.
 
 ## Syntax Elements
@@ -157,8 +158,8 @@ as state to `c2`, and so on — useful for building pipelines.
 - **Cons lists**: `[a b c]` in **term position** is `(%cons a (%cons b (%cons c %nil)))`; `[1|Tail]` for head/tail construction
 - **Brackets are resolved by position**: `[...]` at constellation level is a **star**; `[...]` inside a term is a **list**
 - **Groups**: `{...}` for constellations
-- **Stacking**: there is NO `<f a b>` angle-bracket sugar (angle brackets are ordinary symbol characters!). Use the `stack` macro from `milkyway/prelude.sg`: `(stack s s 0)` expands to `(s (s 0))`
-- **Process chaining**: `(process c1 c2 ...)` — a prelude macro, see above
+- **Stacking**: there is NO `<f a b>` angle-bracket sugar and NO `stack` macro; write nested terms directly: `(s (s 0))`
+- **Staged execution**: `(then c1 c2 ...)` — a built-in, see above
 
 ### Declarations
 - **Definition**: `(def name value)`
@@ -171,10 +172,10 @@ as state to `c2`, and so on — useful for building pipelines.
 **See `examples/syntax.sg`** for comprehensive examples of all syntactic features including:
 - Rays, stars, and constellations
 - Focus (`@`) and identifiers (`#`)
-- String literals, cons lists, and the `stack` macro
+- String literals and cons lists
 - Linear (`fire`) vs non-linear (`exec`) execution
 - Inequality constraints (`|| (!= X Y)`)
-- Process chaining (prelude macro)
+- Staged execution with `then` (built-in)
 - Fields and field access
 - Nested structures
 - File imports with `(use "path")` / `(use-macros "path")`
@@ -288,18 +289,16 @@ branches leave stuck residue stars instead of silently backtracking.
 
 **Key**: Mix positive base cases with negative-to-positive recursive rules
 
-#### Pattern 4: Using process for Pipelines
+#### Pattern 4: Using then for Pipelines
 ```stellogen
-(use-macros "milkyway/prelude.sg")  ' process is a prelude macro
-
-(def c (process
+(def c (then                ' then is a built-in, no import needed
   (+n0 0)                 ' base constellation (becomes the state)
   [(-n0 X) (+n1 (s X))]   ' step 1: consumes the previous result
   [(-n1 X) (+n2 (s X))])) ' step 2: consumes step 1's result
 (show #c)                 ' => (+n2 (s (s 0)))
 ```
 Each step is executed with the accumulated result focused as state:
-`(process A B)` expands to `@(exec B @A)`, chained left-associatively.
+`(then A B)` desugars to `@(exec B @A)`, chained left-associatively.
 
 #### Pattern 5: Inequality Constraints
 ```stellogen
@@ -348,7 +347,7 @@ stellogen/
 │   ├── hello.sg                 # Hello world
 │   ├── naive_nat.sg             # Natural numbers
 │   ├── syntax.sg                # Canonical syntax reference
-│   ├── milkyway/                # The prelude (::, stack, chain, process macros)
+│   ├── milkyway/                # The prelude (the :: type-assertion macro)
 │   ├── lambda/                  # Lambda calculus examples
 │   ├── prolog/                  # Logic programming examples
 │   ├── proofnets/               # MLL proof nets (correctness as tests)
@@ -620,7 +619,7 @@ a bob 0         ' Constants
 ' Execution
 (exec c1 c2)    ' Non-linear execution
 (fire c1 c2)    ' Linear execution
-(process c1 c2) ' Chain constellations (prelude macro, needs use-macros)
+(then c1 c2)    ' Staged execution (built-in): @(exec c2 @c1)
 
 ' Utilities
 (show expr)     ' Display result
@@ -635,7 +634,7 @@ a bob 0         ' Constants
 ' Syntactic Sugar
 [a b c]         ' In TERM position: list (%cons a (%cons b (%cons c %nil)))
                 ' At constellation level: a star of three rays!
-(stack s s 0)   ' Prelude macro: (s (s 0)) — there is NO <...> sugar
+                ' No stacking sugar: write (s (s 0)) directly
 { a b c }       ' Group: (%group a b c)
 
 ' Macros

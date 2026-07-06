@@ -27,9 +27,8 @@
 ' [0 1] == %cons(0 (%cons 1 %nil))
 (def w (+w [0 1 0 1]))
 
-'stack
-' (stack s s 0) == (s (s 0))
-(def n (+nat (stack s s 0)))
+'nested terms
+(def n (+nat (s (s 0))))
 
 'execution
 (def x [(+f X) X])
@@ -52,10 +51,12 @@
   [(+f b)]
   @[(-f X) (-f Y) (r X Y) || (!= X Y)]})
 (show #ineq)
-(stack show exec #ineq)
+(show (exec #ineq))
 
-'process
-(def c (process
+'staged execution (then): each step executes against
+'the previous result focused as state
+' (then a b) == @(exec b @a)
+(def c (then
   (+n0 0)                 'base constellation
   [(-n0 X) (+n1 (s X))]   'interacts with previous
   [(-n1 X) (+n2 (s X))])) 'interacts with previous
@@ -77,7 +78,7 @@
   [(+field test1) [
     [(+field test2) [(+f c) ok]]]]])
 (def g2 #(get g1 test1))
-(stack show #(get g2 test2))
+(show #(get g2 test2))
 
 'define type (spec is a built-in for galaxies)
 (spec nat
@@ -105,7 +106,7 @@
 ' (~= (+f a) (+f b))  'same polarity, cannot interact
 
 'type checking
-(def 2 (stack +nat s s 0))
+(def 2 (+nat (s (s 0))))
 (== @(exec @#2 #nat) ok)
 
 'import file and type assertion macro

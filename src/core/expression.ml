@@ -148,90 +148,26 @@ let rec replace_id (var_from : ident) replacement (expr : expr loc) : expr loc =
    Macro Expansion Helpers
    --------------------------------------- *)
 
-(* Check if a pattern's formal params indicate variadic (ends with Var ...) *)
-let is_variadic_pattern (formal_params : string list) : bool =
-  match List.rev formal_params with "..." :: _ :: _ -> true | _ -> false
-
-(* Calculate minimum arguments for a pattern *)
-let min_args_for_pattern (formal_params : string list) : int =
-  if is_variadic_pattern formal_params then
-    match List.rev formal_params with
-    | "..." :: _var :: rest -> List.length rest
-    | _ -> List.length formal_params
-  else List.length formal_params
-
-(* Check if a pattern matches the given argument count *)
-let pattern_matches_args (formal_params : string list) (arg_count : int) : bool
-    =
-  let min_args = min_args_for_pattern formal_params in
-  if is_variadic_pattern formal_params then arg_count >= min_args
-  else arg_count = min_args
-
-(* Split formal params into fixed params and optional variadic param name *)
-let split_variadic_params (formal_params : string list) :
-  string list * string option =
-  if is_variadic_pattern formal_params then
-    match List.rev formal_params with
-    | "..." :: var :: rest -> (List.rev rest, Some var)
-    | _ -> (formal_params, None)
-  else (formal_params, None)
-
-(* Find the best matching pattern for a macro name.
-   Prefers exact (non-variadic) matches over variadic ones. *)
+(* Find the pattern whose arity matches the call exactly *)
 let find_matching_pattern
   (all_patterns : (string * (string list * expr loc list)) list)
   (arg_count : int) : (string list * expr loc list) option =
-  (* First try exact (non-variadic) matches *)
-  match
-    List.find all_patterns ~f:(fun (_, (params, _)) ->
-      pattern_matches_args params arg_count && not (is_variadic_pattern params) )
-  with
-  | Some (_, pattern) -> Some pattern
-  | None ->
-    (* Then try variadic matches *)
-    List.find_map all_patterns ~f:(fun ((_, (params, _)) as pattern) ->
-      if pattern_matches_args params arg_count then Some (snd pattern) else None )
+  List.find_map all_patterns ~f:(fun (_, ((params, _) as pattern)) ->
+    if List.length params = arg_count then Some pattern else None )
 
-(* Apply substitution to an expression, handling variadic splicing.
-   - subst_pairs: fixed param -> arg mappings
-   - variadic_param: optional name of variadic param
-   - rest_args: arguments captured by variadic param *)
-let rec apply_variadic_substitution (subst_pairs : (string * expr loc) list)
-  (variadic_param : string option) (rest_args : expr loc list) (e : expr loc) :
-  expr loc =
-  match (e.content, variadic_param) with
-  | List subexprs, Some vp ->
-    (* Scan for Var ... pattern and splice *)
-    let rec splice_list exprs =
-      match exprs with
-      | { content = Var v; _ } :: { content = Symbol "..."; _ } :: rest
-        when String.equal v vp ->
-        (* Found the pattern - splice in rest_args at this position *)
-        rest_args @ splice_list rest
-      | e :: rest ->
-        (* Recursively substitute in this element, then continue *)
-        apply_variadic_substitution subst_pairs variadic_param rest_args e
-        :: splice_list rest
-      | [] -> []
-    in
-    { content = List (splice_list subexprs); loc = e.loc }
-  | List subexprs, None ->
-    (* No variadic param - just recurse *)
-    { content =
-        List
-          (List.map subexprs
-             ~f:
-               (apply_variadic_substitution subst_pairs variadic_param rest_args) )
+(* Apply parameter -> argument substitution to an expression *)
+let rec apply_substitution (subst_pairs : (string * expr loc) list)
+  (e : expr loc) : expr loc =
+  match e.content with
+  | List subexprs ->
+    { content = List (List.map subexprs ~f:(apply_substitution subst_pairs))
     ; loc = e.loc
     }
-  | Var v, Some vp when String.equal v vp ->
-    (* Variadic param used alone without ... - wrap rest_args in a list *)
-    { content = List rest_args; loc = e.loc }
-  | Var v, _ -> (
+  | Var v -> (
     match List.Assoc.find subst_pairs v ~equal:String.equal with
     | Some replacement -> { replacement with loc = e.loc }
     | None -> e )
-  | _, _ -> e
+  | _ -> e
 
 (* Expand a single matched macro: substitute params and recursively expand *)
 let expand_matched_macro
@@ -241,8 +177,6 @@ let expand_matched_macro
     ) (formal_params : string list) (body : expr loc list)
   (call_args : expr loc list) (call_loc : source_location option) :
   expr loc list =
-  let fixed_params, variadic_param = split_variadic_params formal_params in
-  let min_args = List.length fixed_params in
   (* First, recursively expand macros in the arguments *)
   let expanded_args =
     List.map call_args ~f:(fun arg ->
@@ -250,15 +184,10 @@ let expand_matched_macro
       | [ single ] -> single
       | multiple -> { content = List multiple; loc = arg.loc } )
   in
-  (* Split into fixed and variadic args *)
-  let fixed_args, rest_args = List.split_n expanded_args min_args in
-  (* Build substitution environment *)
-  let subst_pairs = List.zip_exn fixed_params fixed_args in
+  (* Arity equality is guaranteed by find_matching_pattern *)
+  let subst_pairs = List.zip_exn formal_params expanded_args in
   (* Apply substitution to body *)
-  let substituted =
-    List.map body
-      ~f:(apply_variadic_substitution subst_pairs variadic_param rest_args)
-  in
+  let substituted = List.map body ~f:(apply_substitution subst_pairs) in
   (* Recursively expand macros in the substituted body *)
   let expanded = List.concat_map substituted ~f:(expand_fn macro_env) in
   (* Attach the call site location to the expanded expressions *)
@@ -336,7 +265,6 @@ let unfold_decl_def (macro_env : (string * (string list * expr loc list)) list)
           List.map args ~f:(fun arg ->
             match arg.content with
             | Var x -> x
-            | Symbol "..." -> "..." (* Allow ... as a symbol *)
             | Symbol s ->
               raise
                 (MacroError
@@ -416,7 +344,6 @@ let extract_macros (raw_exprs : Raw.t list) : macro_env =
         List.map args ~f:(fun arg ->
           match arg.content with
           | Var x -> x
-          | Symbol "..." -> "..." (* Allow ... as a symbol *)
           | Symbol s ->
             raise
               (MacroError
@@ -596,6 +523,14 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
       match sgen_exprs with [ single ] -> single | multiple -> Group multiple
     in
     Exec (true, combined, None) |> Result.return
+  | List ({ content = Symbol "then"; _ } :: first :: rest) ->
+    (* (then c1 c2 ... cn): staged execution. Left fold where each step
+       executes against the previous result focused as state:
+       (then a b) = @(exec b @a) *)
+    let* first_expr = sgen_expr_of_expr first.content in
+    List.fold_result rest ~init:first_expr ~f:(fun acc step ->
+      let* step_expr = sgen_expr_of_expr step.content in
+      Result.return (Focus (Exec (false, Group [ step_expr; Focus acc ], None))) )
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op expect_op ->
     let* sgen_expr1 = sgen_expr_of_expr expr1.content in

@@ -1,7 +1,6 @@
-(use-macros "milkyway/prelude.sg")
 (macro (:: Tested Test)
   (forall Test T
-    (== (process #T #Tested) ok)))
+    (== (then #T #Tested) ok)))
 
 (spec u4
   {[(-b _ 1 _) (-b _ 2 _) (-b _ 3 _) (-b _ 4 _) ok]})
@@ -21,28 +20,28 @@
 (def (and A B R) {
   #(if A = 0 and B = _ then R = 0)
   #(if A = 1 and B = X then R = X) })
-(def rand (process #b1 #(and b1 b2 r) #b2))
+(def rand (then #b1 #(and b1 b2 r) #b2))
 (show #rand)
 (== #rand #(make_bin r 0 0 0 1))
 
 (def (or A B R) {
   #(if A = 0 and B = X then R = X)
   #(if A = 1 and B = Y then R = 1) })
-(def ror (process #b1 #(or b1 b2 r) #b2))
+(def ror (then #b1 #(or b1 b2 r) #b2))
 (show #ror)
 (== #ror #(make_bin r 0 0 1 1))
 
 (def (not A R) {
   #(if A = 1 then R = 0)
   #(if A = 0 then R = 1) })
-(def rnot (process #b1 #(not b1 r)))
+(def rnot (then #b1 #(not b1 r)))
 (show #rnot)
 (== #rnot #(make_bin r 1 1 1 0))
 
-(def rnand (process #b1 #(and b1 b2 r1) #b2 #(not r1 r2)))
+(def rnand (then #b1 #(and b1 b2 r1) #b2 #(not r1 r2)))
 (show #rnand)
 
 '''
-(def rxor (process #rnand #(and r2 r r3) #ror))
+(def rxor (then #rnand #(and r2 r r3) #ror))
 (show #rxor)
 '''
