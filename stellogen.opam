@@ -20,7 +20,7 @@ bug-reports: "https://github.com/engboris/stellogen/issues"
 depends: [
   "dune" {>= "3.7"}
   "base"
-  "menhir"
+  "menhir" {>= "20180523"}
   "sedlex"
   "ppx_deriving"
   "js_of_ocaml"

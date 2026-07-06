@@ -67,5 +67,5 @@ jobs:
           opam exec -- dune build @fmt || (echo "\n⚠️ please run \`dune fmt\` and try again" && exit 1)
       - name: lint-fresh-opam-file
         run: |
-          git diff --exit-code stellogen.opam || (echo "⚠️ please run \`dune build\`, commit the changes to owi.opam, and then try again" && exit 1)
+          git diff --exit-code stellogen.opam || (echo "⚠️ please run \`dune build\`, commit the changes to stellogen.opam, and then try again" && exit 1)
         shell: bash
