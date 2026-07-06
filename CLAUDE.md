@@ -121,17 +121,31 @@ This is **Robinson's resolution** from formal logic!
 - `fire`: Linear - each action star used exactly once (resource-aware)
 
 ### 9. Process - Chaining Interactions
-`(process c1 c2)` chains constellations:
-- Execute `c1`, then merge result with `c2`, useful for building pipelines
+`(process c1 c2 ...)` chains constellations: execute `c1`, feed the result
+as state to `c2`, and so on — useful for building pipelines.
+
+**Note**: `process` is NOT a built-in. It is a macro from
+`examples/milkyway/prelude.sg`; you must import it first:
+```stellogen
+(use-macros "milkyway/prelude.sg")   ' path relative to the importing file
+(def c (process
+  (+n0 0)                 ' base constellation
+  [(-n0 X) (+n1 (s X))]   ' interacts with previous result
+  [(-n1 X) (+n2 (s X))])) ' interacts with previous result
+(show #c)                 ' (+n2 (s (s 0)))
+```
 
 ### 10. Key Operators
 - **Definition**: `(def name value)` - bind name to value
+- **Spec**: `(spec name value)` - built-in synonym of `def` (marks intent: the thing defined is a test suite/type)
 - **Call**: `#name` - retrieve definition
 - **Focus**: `@expr` - mark as state/evaluate
 - **Show**: `(show expr)` - display result
 - **Expect**: `(== expr1 expr2)` - assert syntactic equality
 - **Match**: `(~= ray1 ray2)` - check if rays are compatible
+- **Forall**: `(forall Galaxy X body)` - evaluate `body` once per member of a galaxy, binding each to `X` (used to run every test of a type)
 - **Macro**: `(macro pattern expansion)` - syntactic preprocessing
+- **Import**: `(use "path")` imports definitions; `(use-macros "path")` imports macros. Relative paths resolve **relative to the importing file**, not the working directory.
 
 ## Syntax Elements
 
@@ -140,10 +154,11 @@ This is **Robinson's resolution** from formal logic!
 - Multi-line: `''' comment text '''`
 
 ### Syntactic Sugar
-- **Stack notation**: `<f a b c>` equivalent to `(f (a (b c)))`
-- **Cons lists**: `[1|Tail]` for list construction
+- **Cons lists**: `[a b c]` in **term position** is `(%cons a (%cons b (%cons c %nil)))`; `[1|Tail]` for head/tail construction
+- **Brackets are resolved by position**: `[...]` at constellation level is a **star**; `[...]` inside a term is a **list**
 - **Groups**: `{...}` for constellations
-- **Process chaining**: `(process X {Y Z})` chains constellations
+- **Stacking**: there is NO `<f a b>` angle-bracket sugar (angle brackets are ordinary symbol characters!). Use the `stack` macro from `milkyway/prelude.sg`: `(stack s s 0)` expands to `(s (s 0))`
+- **Process chaining**: `(process c1 c2 ...)` — a prelude macro, see above
 
 ### Declarations
 - **Definition**: `(def name value)`
@@ -156,25 +171,30 @@ This is **Robinson's resolution** from formal logic!
 **See `examples/syntax.sg`** for comprehensive examples of all syntactic features including:
 - Rays, stars, and constellations
 - Focus (`@`) and identifiers (`#`)
-- String literals, cons lists, and stack notation
-- Linear (`fire`) vs non-linear (`interact`) execution
+- String literals, cons lists, and the `stack` macro
+- Linear (`fire`) vs non-linear (`exec`) execution
 - Inequality constraints (`|| (!= X Y)`)
-- Process chaining
+- Process chaining (prelude macro)
 - Fields and field access
 - Nested structures
-- File imports with `(use "path")`
+- File imports with `(use "path")` / `(use-macros "path")`
 - Expect (`==`) for equality assertions
 - Match (`~=`) for unifiability checks
+- Parametric definitions `(def (f a b) ...)` and calls `#(f a b)`
 
 ### Type System (Unconventional)
-Types are defined as **sets of interactive tests**:
+Types are defined as **sets of interactive tests**. Type checking =
+interaction between the tested constellation and each test, whose result
+is judged by a base observation (`==`).
+
+Simple version (type = ONE test constellation):
 ```stellogen
 ' Define nat type as a test constellation
 (def nat {
   [(-nat 0) ok]                ' Base case: 0 is a nat
   [(-nat (s N)) (+nat N)]})    ' Recursive: (s N) is nat if N is nat
 
-' Macro for type checking
+' Macro for type checking: success = residue is exactly `ok`
 (macro (:: Tested Test)
   (== @(exec @#Tested #Test) ok))
 
@@ -183,29 +203,58 @@ Types are defined as **sets of interactive tests**:
 (:: two nat)  ' Type check passes - interaction yields ok
 ```
 
-Type checking = interaction that must result in `ok`
+The real prelude (`examples/milkyway/prelude.sg`) is more general: a type
+may be a **galaxy** of several tests, and the tested must pass **each test
+separately** (in its own interaction space). That is what `forall` is for:
+```stellogen
+(macro (:: Tested Test)
+  (forall Test T
+    (== @(exec @#Tested #T) ok)))
+```
+
+The success convention is deliberately user-defined: different practices
+judge differently (e.g. `examples/proofnets/mll.sg` defines `::lin` using
+linear `fire` instead of `exec`). The fixed, trusted part is only the base
+observations `==`/`~=`; every checking macro must bottom out in them.
 
 ### Common Patterns for Writing Stellogen
 
-#### Pattern 1: Logic Programming (Prolog-style)
+#### Pattern 1: Relational/Logic Programming (saturation-style, NOT Prolog)
 ```stellogen
 ' Facts (positive rays)
 (def facts {
   [(+parent tom bob)]
   [(+parent bob ann)]})
 
-' Rules (linking negative to positive)
+' Rule: POSITIVE head (conclusion), NEGATIVE premises
 (def rules {
-  [(-grandparent X Z) (-parent X Y) (+parent Y Z)]})
+  [(+grandparent X Z) (-parent X Y) (-parent Y Z)]})
 
-' Query (negative rays with focus)
-(def query @[(-grandparent tom Z) (result Z)])
-
-' Execute
-(show (exec { #facts #rules #query }))
+' Query (negative ray with focus)
+(show (exec { #facts #rules } @[(-grandparent tom Z) (result Z)]))
+' => (result ann)
 ```
 
-**Key**: Facts are `+`, queries are `-` with `@`
+**Key**: Facts are `+`; rule heads are `+` and rule premises are `-`;
+queries are `-` with `@`. A rule head must be positive so the negative
+query can fuse with it — a rule written with a negative head can never
+answer a negative query.
+
+**Warning**: putting a positive premise in a rule (e.g.
+`[(+grandparent X Z) (-parent X Y) (+parent Y Z)]`) lets rule copies feed
+each other and typically **diverges** under `exec`. Keep exactly one
+positive ray (the conclusion) per rule.
+
+Simple joins don't need a rule at all — put several negative rays in the
+query star:
+```stellogen
+(show (exec #facts @[(-parent tom Y) (-parent Y Z) (grandchild Z)]))
+' => (grandchild ann)
+```
+
+Execution is **saturation** (all consequences at once, Datalog-like), not
+Prolog's ordered depth-first search: no clause order, no cut, and failed
+branches leave stuck residue stars instead of silently backtracking.
 
 #### Pattern 2: Database Queries
 ```stellogen
@@ -241,17 +290,16 @@ Type checking = interaction that must result in `ok`
 
 #### Pattern 4: Using process for Pipelines
 ```stellogen
-' Step 1: Transform A to B
-(def step1 {
-  @[(-data X) (+intermediate (transform X))]})
+(use-macros "milkyway/prelude.sg")  ' process is a prelude macro
 
-' Step 2: Transform B to C
-(def step2 {
-  [(-intermediate Y) (+result (process Y))]})
-
-' Chain them
-(show (process (exec #step1) #step2))
+(def c (process
+  (+n0 0)                 ' base constellation (becomes the state)
+  [(-n0 X) (+n1 (s X))]   ' step 1: consumes the previous result
+  [(-n1 X) (+n2 (s X))])) ' step 2: consumes step 1's result
+(show #c)                 ' => (+n2 (s (s 0)))
 ```
+Each step is executed with the accumulated result focused as state:
+`(process A B)` expands to `@(exec B @A)`, chained left-associatively.
 
 #### Pattern 5: Inequality Constraints
 ```stellogen
@@ -299,12 +347,16 @@ stellogen/
 ├── examples/                 # Example programs (.sg files)
 │   ├── hello.sg                 # Hello world
 │   ├── naive_nat.sg             # Natural numbers
+│   ├── syntax.sg                # Canonical syntax reference
+│   ├── milkyway/                # The prelude (::, stack, chain, process macros)
 │   ├── lambda/                  # Lambda calculus examples
 │   ├── prolog/                  # Logic programming examples
+│   ├── proofnets/               # MLL proof nets (correctness as tests)
 │   ├── states/                  # State machine examples
 │   └── ...
-├── exercises/                # Learning exercises
-├── docs/                     # Technical documentation
+├── exercises/                # Learning exercises (with solutions/)
+├── ai/                       # AI-assisted research notes (strategy docs)
+├── BASICS.md                 # Fundamental mechanics reference
 ├── web/                      # Web playground
 └── nvim/                     # Neovim integration
 ```
@@ -340,18 +392,26 @@ dune build
 ### Running Programs
 ```bash
 # Using built executable
-./sgen.exe run <inputfile>
+./_build/default/bin/sgen.exe run <inputfile>
 
 # Using Dune
 dune exec sgen run -- <inputfile>
 
+# Other subcommands
+sgen preprocess <file>   # show code after macro expansion
+sgen trace <file>        # run with interactive execution trace
+sgen watch <file>        # re-run on file changes
+
 # Help
-./sgen.exe --help
+sgen --help
 ```
+
+**Tip**: when running with a timeout (programs can diverge), invoke the
+built binary directly — `timeout -s KILL 10 ./_build/default/bin/sgen.exe
+run file.sg` — because `dune exec` wraps the process and defeats `timeout`.
 
 ## File Extensions
 - `.sg` - Stellogen source files
-- `.mml` - Alternative extension (legacy?)
 
 ## Example: Natural Number Addition
 
@@ -362,17 +422,16 @@ dune exec sgen run -- <inputfile>
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
 ' Query: 2 + 2 = R
-(def query [(-add <s s 0> <s s 0> R) R])
+(def query [(-add (s (s 0)) (s (s 0)) R) R])
 
 ' Execute interaction
-(show (exec #add @#query))
+(show (exec #add @#query))   ' => (s (s (s (s 0))))
 ```
 
 ## Example: Type Definition
 
 ```stellogen
-' Macro for type specification
-(macro (spec X Y) (def X Y))
+' spec is a built-in synonym of def (marks intent)
 
 ' Macro for type assertion
 (macro (:: Tested Test)
@@ -562,16 +621,22 @@ a bob 0         ' Constants
 ' Execution
 (exec c1 c2)    ' Non-linear execution
 (fire c1 c2)    ' Linear execution
-(process c1 c2) ' Chain constellations
+(process c1 c2) ' Chain constellations (prelude macro, needs use-macros)
 
 ' Utilities
 (show expr)     ' Display result
 (== e1 e2)      ' Assert equality
 (~= r1 r2)      ' Check ray compatibility
+(forall G X e)  ' Evaluate e for each member of galaxy G bound to X
+
+' Imports
+(use "path")        ' Import definitions (path relative to this file)
+(use-macros "path") ' Import macros
 
 ' Syntactic Sugar
-[a b c]         ' List: (%cons a (%cons b (%cons c %nil)))
-<f a b>         ' Stack: (f (a b))
+[a b c]         ' In TERM position: list (%cons a (%cons b (%cons c %nil)))
+                ' At constellation level: a star of three rays!
+(stack s s 0)   ' Prelude macro: (s (s 0)) — there is NO <...> sugar
 { a b c }       ' Group: (%group a b c)
 
 ' Macros
@@ -582,26 +647,28 @@ a bob 0         ' Constants
 ```
 FACTS (data)     = Positive rays (+)
 QUERIES (goals)  = Negative rays (-) with @focus
-RULES            = Stars linking negative to positive
+RULES            = Stars with a POSITIVE head (conclusion)
+                   and NEGATIVE premises
 EXECUTION        = Saturation via star fusion
 ```
 
 ### Typical Program Structure
 ```stellogen
 ' 1. Define facts/data (positive)
-(def facts { [(+fact1)] [(+fact2)] })
+(def facts {
+  [(+parent tom bob)]
+  [(+parent bob ann)]})
 
-' 2. Define rules (negative -> positive)
-(def rules { [(-goal X) (+fact X)] })
+' 2. Define rules (positive conclusion, negative premises)
+(def rules {
+  [(+grandparent X Z) (-parent X Y) (-parent Y Z)]})
 
-' 3. Define query (negative, focused)
-(def query @[(-goal X) (result X)])
-
-' 4. Execute
-(show (exec { #facts #rules #query }))
+' 3. Execute against a focused query (negative)
+(show (exec { #facts #rules } @[(-grandparent tom Z) (result Z)]))
+' => (result ann)
 ```
 
 ---
 
-*Last updated: 2026-01-24*
+*Last updated: 2026-07-06 — all code examples in this file are verified to run against the current implementation.*
 *For current implementation details, always refer to `BASICS.md`, the wiki, and source code as the language evolves rapidly.*
