@@ -460,17 +460,6 @@ let rec eval_sgen_expr (env : env) :
       Ok (new_env, nil_term)
     | Error (expr_err, loc) -> Error (ExprError (expr_err, loc)) )
 
-and expr_of_ray : ray -> Expression.expr = function
-  | Var (x, None) -> Expression.Var x
-  | Var (x, Some i) -> Expression.Var (x ^ Int.to_string i)
-  | Func (pf, []) -> Symbol (string_of_polsym pf)
-  | Func (pf, args) ->
-    Expression.List
-      ( { Expression.content = Symbol (string_of_polsym pf); loc = None }
-      :: List.map
-           ~f:(fun r -> { Expression.content = expr_of_ray r; loc = None })
-           args )
-
 and eval_program (p : program) =
   match eval_program_internal initial_env p with
   | Ok env -> Ok env

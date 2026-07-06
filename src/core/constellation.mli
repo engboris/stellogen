@@ -31,28 +31,10 @@ module StellarSig : sig
   val compatible : idfunc -> idfunc -> bool
 end
 
-(** Signature for matchable rays (ignores polarity in compatibility) *)
-module MatchableSig : sig
-  type idvar = string * int option
-
-  type idfunc = polarity * string
-
-  val string_of_idvar : idvar -> string
-
-  val equal_idvar : idvar -> idvar -> bool
-
-  val equal_idfunc : idfunc -> idfunc -> bool
-
-  val compatible : idfunc -> idfunc -> bool
-end
-
 (** {1 Unification Modules} *)
 
 (** Stellar rays with polarity-aware unification *)
 module StellarRays : module type of Unification.Make (StellarSig)
-
-(** Matchable rays for term matching (ignores polarity) *)
-module MatchableRays : module type of Unification.Make (MatchableSig)
 
 (** {1 Core Types} *)
 
@@ -184,7 +166,7 @@ val replace_indices : int -> ray -> ray
 (** Try to match two polarized rays, returning substitution if successful *)
 val raymatcher : ray -> ray -> StellarRays.substitution option
 
-(** Check if two terms can unify (ignoring polarity) *)
+(** Base observation for [~=]: structural unifiability, ignoring polarity *)
 val terms_unifiable : ray -> ray -> bool
 
 (** Find a fresh variable not in the given list *)

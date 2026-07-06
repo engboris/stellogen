@@ -85,6 +85,9 @@ For example:
 (~= (f X)  (g X))      '  =>  ❌ (they don't match because different head symbol)
 ```
 
+Note that `~=` checks *structural* unifiability and ignores polarity:
+`(~= (+f X) (+f a))` succeeds even though two positive rays cannot interact.
+
 A **ray** is a term with polarity:
 
 * `(+f X)` → positive

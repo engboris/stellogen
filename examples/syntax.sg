@@ -91,19 +91,23 @@
 '(== #x 1) ' it fails (uncomment to see error)
 
 'match (unifiability check)
-' Checks if two constellations can unify (requires opposite polarities)
+' Checks structural unifiability of two constellations.
+' Polarity is IGNORED: only head symbols and argument structure matter.
 (def term1 (+f a))
 (def term2 (-f X))
 (~= #term1 #term2)  'succeeds: they unify with X=a
 
-' Check if two patterns are compatible
+' Polarity plays no role: same-polarity terms can match too
+(~= (+f X) (+f a))  'succeeds: X unifies with a
+
+' Check if two patterns are unifiable
 (def pattern1 [(+add (s X) Y Z)])
 (def pattern2 [(-add N M R)])
 (~= #pattern1 #pattern2)  'succeeds: they unify
 
 ' This would fail (uncomment to see error):
 ' (~= (+f a) (-g b))  'different function symbols
-' (~= (+f a) (+f b))  'same polarity, cannot interact
+' (~= (+f a) (+f b))  'constants a and b do not unify
 
 'type checking
 (def 2 (+nat (s (s 0))))

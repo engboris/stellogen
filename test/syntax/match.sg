@@ -1,0 +1,18 @@
+' ~= is structural unifiability: polarity is ignored,
+' only head symbols and argument structure matter.
+
+' dual polarities, unifiable
+(~= (+f a) (-f X))
+
+' same polarity, still unifiable
+(~= (+f X) (+f a))
+
+' neutral against positive, unifiable
+(~= (f X) (+f a))
+
+' nested arguments
+(~= (+add (s X) Y Z) (-add N M R))
+
+' failures (would abort the program):
+' (~= (+f a) (-g b))  'different head symbols
+' (~= (+f a) (+f b))  'constants a and b do not unify

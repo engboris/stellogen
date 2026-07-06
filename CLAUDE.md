@@ -142,7 +142,7 @@ an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 - **Focus**: `@expr` - mark as state/evaluate
 - **Show**: `(show expr)` - display result
 - **Expect**: `(== expr1 expr2)` - assert syntactic equality
-- **Match**: `(~= ray1 ray2)` - check if rays are compatible
+- **Match**: `(~= r1 r2)` - check structural unifiability; polarity is IGNORED (e.g. `(~= (+f X) (+f a))` succeeds)
 - **Forall**: `(forall Galaxy X body)` - evaluate `body` once per member of a galaxy, binding each to `X` (used to run every test of a type)
 - **Then**: `(then c1 c2 ...)` - staged execution (built-in, see above)
 - **Macro**: `(macro pattern expansion)` - syntactic preprocessing; **fixed arity only** (no `...` variadic patterns; a name may have several patterns of different arities)
@@ -166,7 +166,7 @@ an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 - **Macro**: `(macro (pattern) (expansion))`
 - **Show**: `(show expr)` - display result
 - **Expect**: `(== expr1 expr2)` - assertion/testing (checks equality)
-- **Match**: `(~= c1 c2)` - checks unifiability of constellations
+- **Match**: `(~= c1 c2)` - checks unifiability of constellations (polarity-blind)
 
 ### Syntax Reference
 **See `examples/syntax.sg`** for comprehensive examples of all syntactic features including:
@@ -624,7 +624,7 @@ a bob 0         ' Constants
 ' Utilities
 (show expr)     ' Display result
 (== e1 e2)      ' Assert equality
-(~= r1 r2)      ' Check ray compatibility
+(~= r1 r2)      ' Check unifiability (ignores polarity)
 (forall G X e)  ' Evaluate e for each member of galaxy G bound to X
 
 ' Imports
