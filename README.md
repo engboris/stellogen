@@ -164,22 +164,9 @@ sgen trace <filename>
 
 Shows each fusion step with visual arrows pointing to the exact rays being connected. Press Enter to advance through each step.
 
-### `watch` - Development Mode (Linux)
-
-Automatically re-run your program when the file changes (great for development):
-
-```bash
-sgen.exe watch <filename>
-sgen.exe watch --timeout=5 <filename>  # Custom timeout in seconds
-```
-
-**Example workflow**:
-```bash
-# In one terminal
-sgen watch myprogram.sg
-
-# Edit myprogram.sg in your editor, it auto-reruns on save!
-```
+For re-running on file changes during development, use a general-purpose
+watcher such as `entr` or `watchexec`, e.g. `ls myprogram.sg | entr sgen run
+myprogram.sg`.
 
 ---
 

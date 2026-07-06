@@ -12,13 +12,10 @@ This guide walks you through the basics.
 
 Follow the install instructions in the README file of the repository.
 
-Open your favorite text editor and create a file `test.sg`. If you use Linux,
-you can open the watcher with `sgen watch test.sg` on your terminal. Otherwise,
-you can run your file with `sgen run test.sg`.
+Open your favorite text editor and create a file `test.sg`. You can run your
+file with `sgen run test.sg`.
 
-Check that everything works fine by writing and running the following program
-(if you use the watcher, it will run on change and display the result on your
-terminal):
+Check that everything works fine by writing and running the following program:
 
 ```
 (show "Hello, world")

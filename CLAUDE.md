@@ -400,7 +400,6 @@ dune exec sgen run -- <inputfile>
 # Other subcommands
 sgen preprocess <file>   # show code after macro expansion
 sgen trace <file>        # run with interactive execution trace
-sgen watch <file>        # re-run on file changes
 
 # Help
 sgen --help
