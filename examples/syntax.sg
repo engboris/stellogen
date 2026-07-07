@@ -1,51 +1,51 @@
 (use "milkyway/prelude.sg")
 
-'define ray
+;define ray
 (def a (-f X))
 
-'define star
+;define star
 (def b [(-f X)])
 
-'define constellation
+;define constellation
 (def c {
-  @[+a] 'focus
+  @[+a] ;focus
   [-a b]})
 
-'full focus
+;full focus
 (def f @{ [a] [b] [c] })
 
-'identifier
+;identifier
 (def x #a)
 
-'group
+;group
 (def x { #a #b })
 
-'string literals
+;string literals
 (def s "hello world")
 
-'cons
-' [0 1] == %cons(0 (%cons 1 %nil))
+;cons
+; [0 1] == %cons(0 (%cons 1 %nil))
 (def w (+w [0 1 0 1]))
 
-'nested terms
+;nested terms
 (def n (+nat (s (s 0))))
 
-'execution
+;execution
 (def x [(+f X) X])
 (def y (-f a))
-(def ex (fire @#x #y)) 'linear
-(def ex (exec @#x #y))    'non-linear
+(def ex (fire @#x #y)) ;linear
+(def ex (exec @#x #y))    ;non-linear
 
-'show constellation
+;show constellation
 (show #ex)
 (show { [a] [b] [c] })
 (show #s)
 
-'complex identifiers
+;complex identifiers
 (def (f a b) [(function a b)])
 (show #(f a b))
 
-'inequality constraints
+;inequality constraints
 (def ineq {
   [(+f a)]
   [(+f b)]
@@ -53,66 +53,66 @@
 (show #ineq)
 (show (exec #ineq))
 
-'staged execution (then): each step executes against
-'the previous result focused as state
-' (then a b) == @(exec b @a)
+;staged execution (then): each step executes against
+;the previous result focused as state
+; (then a b) == @(exec b @a)
 (def c (then
-  (+n0 0)                 'base constellation
-  [(-n0 X) (+n1 (s X))]   'interacts with previous
-  [(-n1 X) (+n2 (s X))])) 'interacts with previous
+  (+n0 0)                 ;base constellation
+  [(-n0 X) (+n1 (s X))]   ;interacts with previous
+  [(-n1 X) (+n2 (s X))])) ;interacts with previous
 (show #c)
 
-'constellation with fields
+;constellation with fields
 (def g {
   [(+field test1) [(+f a) ok]]
   [(+field test2) [(+f b) ok]]})
 (show #g)
 
-'field access and evaluation
+;field access and evaluation
 (def (get G X) (exec #G @[(-field X)]))
 (show #(get g test1))
 (show #(get g test2))
 
-'nested fields
+;nested fields
 (def g1 [
   [(+field test1) [
     [(+field test2) [(+f c) ok]]]]])
 (def g2 #(get g1 test1))
 (show #(get g2 test2))
 
-'define type (spec is a built-in for galaxies)
+;define type (spec is a built-in for galaxies)
 (spec nat
   {[(-nat 0) ok]
    [(-nat (s N)) (+nat N)]})
 
-'expect (equality check)
+;expect (equality check)
 (def x 0)
 (== #x 0)
-'(== #x 1) ' it fails (uncomment to see error)
+;(== #x 1) ; it fails (uncomment to see error)
 
-'match (unifiability check)
-' Checks structural unifiability of two constellations.
-' Polarity is IGNORED: only head symbols and argument structure matter.
+;match (unifiability check)
+; Checks structural unifiability of two constellations.
+; Polarity is IGNORED: only head symbols and argument structure matter.
 (def term1 (+f a))
 (def term2 (-f X))
-(~= #term1 #term2)  'succeeds: they unify with X=a
+(~= #term1 #term2)  ;succeeds: they unify with X=a
 
-' Polarity plays no role: same-polarity terms can match too
-(~= (+f X) (+f a))  'succeeds: X unifies with a
+; Polarity plays no role: same-polarity terms can match too
+(~= (+f X) (+f a))  ;succeeds: X unifies with a
 
-' Check if two patterns are unifiable
+; Check if two patterns are unifiable
 (def pattern1 [(+add (s X) Y Z)])
 (def pattern2 [(-add N M R)])
-(~= #pattern1 #pattern2)  'succeeds: they unify
+(~= #pattern1 #pattern2)  ;succeeds: they unify
 
-' This would fail (uncomment to see error):
-' (~= (+f a) (-g b))  'different function symbols
-' (~= (+f a) (+f b))  'constants a and b do not unify
+; This would fail (uncomment to see error):
+; (~= (+f a) (-g b))  ;different function symbols
+; (~= (+f a) (+f b))  ;constants a and b do not unify
 
-'type checking
+;type checking
 (def 2 (+nat (s (s 0))))
 (== @(exec @#2 #nat) ok)
 
-'import file and type assertion macro
+;import file and type assertion macro
 (use "milkyway/prelude.sg")
 (:: 2 nat)

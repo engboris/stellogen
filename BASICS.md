@@ -35,15 +35,15 @@ useful through this whole guide.
 ## Comments
 
 You can add comments to explain what your program does or to make it more
-readable.
+readable. A comment starts with `;` and runs to the end of the line. For
+longer comments, stack several lines.
 
 ```stellogen
-' single line
+; single line
 
-'''
-multi
-line
-'''
+; a longer comment
+; written on
+; several lines
 ```
 
 ## Everything is a term!
@@ -57,11 +57,11 @@ A **term** is either:
   lowercase or special symbol, followed by terms:
 
 ```
-' this program does nothing but you can check the validity of expressions
+; this program does nothing but you can check the validity of expressions
 (f a X)
 (:: x t)
 
-' several terms can be on the same line
+; several terms can be on the same line
 (add 2 2) (fact 3)
 ```
 
@@ -84,9 +84,9 @@ You can check if two terms are matchable with the term `(~= t u)` where `t` and
 For example:
 
 ```stellogen
-(~= (f X)  (f (h a)))    ' they match with {X := (h a)}
-' (~= (f X)  X)          ' ❌ fails with an error (circular)
-' (~= (f X)  (g X))      ' ❌ fails with an error (different head symbol)
+(~= (f X)  (f (h a)))    ; they match with {X := (h a)}
+; (~= (f X)  X)          ' ❌ fails with an error (circular)
+; (~= (f X)  (g X))      ' ❌ fails with an error (different head symbol)
 ```
 
 Note that `~=` checks *structural* unifiability and ignores polarity:
@@ -102,10 +102,8 @@ Two rays are **compatible** and can interact if they have opposite polarities
 **and** their terms unify.
 
 ```stellogen
-'''
-(+f X) and (-f (h a))  are compatible with {X := (h a)}
-(+f X) and (+f a)      are incompatible because they have same head polarity
-'''
+; (+f X) and (-f (h a))  are compatible with {X := (h a)}
+; (+f X) and (+f a)      are incompatible because they have same head polarity
 ```
 
 ---
@@ -136,8 +134,8 @@ There are shorthands to build complex but useful terms.
 Square brackets inside a term build a list:
 
 ```stellogen
-(show (list [a b c]))  ' [a b c] means (%cons a (%cons b (%cons c %nil))), a list containing a, b and c
-(show (list []))       ' [] means %nil, the empty list
+(show (list [a b c]))  ; [a b c] means (%cons a (%cons b (%cons c %nil))), a list containing a, b and c
+(show (list []))       ; [] means %nil, the empty list
 ```
 
 Beware: brackets are resolved by position. Inside a term they build a list,
@@ -146,8 +144,8 @@ but at the top level of a constellation they build a star (see below).
 ### Groups
 
 ```stellogen
-(show { a b c })  ' means (%group a b c)
-(show {})         ' means (%group), the empty group
+(show { a b c })  ; means (%group a b c)
+(show {})         ; means (%group), the empty group
 ```
 
 ---
@@ -186,19 +184,17 @@ When rays of two stars unify:
 Example of interaction:
 
 ```stellogen
-'''
-star 1: [(+f X) X]
-star 2: (-f a)
-
-' connexion
-(-f a) ------ (+f X) X
-
-' annihilation and merge with resolution {X:=a}
-X
-
-' propagation
-a         ' <-- this is the result of execution
-'''
+; star 1: [(+f X) X]
+; star 2: (-f a)
+;
+; ' connexion
+; (-f a) ------ (+f X) X
+;
+; ' annihilation and merge with resolution {X:=a}
+; X
+;
+; ' propagation
+; a         ' <-- this is the result of execution
 ```
 
 Note: this corresponds to the so-called Robinson's resolution rule in formal
@@ -215,8 +211,8 @@ The other stars are actions.
 For example:
 
 ```stellogen
-' state:  @[-c d]
-' action: [+a b]
+; state:  @[-c d]
+; action: [+a b]
 (def d { [+a b] @[-c d] })
 ```
 
@@ -245,10 +241,10 @@ interactions are possible. The result is a new constellation.
 (def x [(+f X) X])
 (def y (-f a))
 
-(def res1 (exec @#x #y))  ' normal execution
+(def res1 (exec @#x #y))  ; normal execution
 (show #res1)
 
-(def res2 (fire @#x #y))  ' actions are used exactly once
+(def res2 (fire @#x #y))  ; actions are used exactly once
 (show #res2)
 ```
 
@@ -295,7 +291,7 @@ A query asks for all values matching a pattern:
 
 ```stellogen
 (show (exec #edges @[(-edge a X) (res X)]))
-' => (res b)
+; => (res b)
 ```
 
 ### Rules
@@ -322,7 +318,7 @@ variables with its conclusion.
 (def hop [(-edge X Y) (-edge Y Z) (+hop X Z)])
 
 (show (exec { #edges #hop } @[(-hop a Z) (res Z)]))
-' => (res c)
+; => (res c)
 ```
 
 This asks: *where can we go from `a` in exactly two steps?*
@@ -338,8 +334,8 @@ This is a more strict version of the matching `~=` term which expects
 syntactic equality.
 
 ```stellogen
-(== a a)    ' does nothing
-' (== a b)  ' fails with an error
+(== a a)    ; does nothing
+; (== a b)  ' fails with an error
 ```
 
 ---
@@ -372,7 +368,7 @@ will replace `Q` by `q0` in `[(-i W) (+a W Q)]` so we get
 execution in a preprocessing phase:
 
 ```stellogen
-' replace (assert X Y) by (== X Y) everywhere in the code
+; replace (assert X Y) by (== X Y) everywhere in the code
 (macro (assert X Y) (== X Y))
 (assert a a)
 ```
@@ -442,13 +438,13 @@ It says that a `Tested` is of type `Test` when their interaction with focus on
 `Tested` is equal to `ok`.
 
 ```stellogen
-' passes the test
+; passes the test
 (def two (+nat (s (s 0))))
 (:: two nat)
 
-' does not pass the test
+; does not pass the test
 (def bad (+nat foo))
-' (:: bad nat)
+; (:: bad nat)
 ```
 
 Notice that a constellation can have several types providing it passes all

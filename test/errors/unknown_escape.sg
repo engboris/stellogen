@@ -1,2 +1,2 @@
-' Test unknown escape sequence
+; Test unknown escape sequence
 (def test "hello\xworld")

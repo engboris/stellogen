@@ -41,8 +41,8 @@ Example: `(+f X)` and `(-f (h a))` are compatible → unify with `{X := (h a)}`
 ### 4. Stars - Blocks of Rays
 A **star** is a block of rays in square brackets:
 ```stellogen
-[(+f X) (-g Y) (result X Y)]  ' A star with 3 rays
-(+f X)                         ' Single ray (brackets optional)
+[(+f X) (-g Y) (result X Y)]  ; A star with 3 rays
+(+f X)                         ; Single ray (brackets optional)
 ```
 
 **Important**: Variables are **local to each star** - different stars have separate variable scopes.
@@ -67,8 +67,8 @@ Stars are divided into two categories:
 
 ```stellogen
 {
-  [(+add 0 Y Y)]              ' Action star (rule)
-  @[(-add 2 2 R) R]           ' State star (data/query)
+  [(+add 0 Y Y)]              ; Action star (rule)
+  @[(-add 2 2 R) R]           ; State star (data/query)
 }
 ```
 
@@ -94,7 +94,7 @@ Star 2: [(-f a)]
 Step 1: (+f X) and (-f a) are compatible
 Step 2: Unify with {X := a}
 Step 3: Rays disappear, substitution propagates
-Result: [a]  ' The merged star
+Result: [a]  ; The merged star
 ```
 
 This is **Robinson's resolution** from formal logic!
@@ -106,8 +106,8 @@ This is **Robinson's resolution** from formal logic!
 (def x [(+f X) X])
 (def y [(-f a)])
 
-(exec @#x #y)   ' Non-linear: actions can be reused
-(fire @#x #y)   ' Linear: actions used exactly once
+(exec @#x #y)   ; Non-linear: actions can be reused
+(fire @#x #y)   ; Linear: actions used exactly once
 ```
 
 **Execution process**:
@@ -127,10 +127,10 @@ It is a left fold over execution: `(then a b)` = `@(exec b @a)`.
 No import needed:
 ```stellogen
 (def c (then
-  (+n0 0)                 ' base constellation
-  [(-n0 X) (+n1 (s X))]   ' interacts with previous result
-  [(-n1 X) (+n2 (s X))])) ' interacts with previous result
-(show #c)                 ' (+n2 (s (s 0)))
+  (+n0 0)                 ; base constellation
+  [(-n0 X) (+n1 (s X))]   ; interacts with previous result
+  [(-n1 X) (+n2 (s X))])) ; interacts with previous result
+(show #c)                 ; (+n2 (s (s 0)))
 ```
 `then` is only special as the head of an expression; it remains usable as
 an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
@@ -151,8 +151,7 @@ an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 ## Syntax Elements
 
 ### Comments
-- Single-line: `' comment text`
-- Multi-line: `''' comment text '''`
+- Single-line: `; comment text` (runs to end of line; stack several `;` lines for longer comments)
 
 ### Syntactic Sugar
 - **Cons lists**: `[a b c]` in **term position** is `(%cons a (%cons b (%cons c %nil)))`; `[1|Tail]` for head/tail construction
@@ -190,18 +189,18 @@ is judged by a base observation (`==`).
 
 Simple version (type = ONE test constellation):
 ```stellogen
-' Define nat type as a test constellation
+; Define nat type as a test constellation
 (def nat {
-  [(-nat 0) ok]                ' Base case: 0 is a nat
-  [(-nat (s N)) (+nat N)]})    ' Recursive: (s N) is nat if N is nat
+  [(-nat 0) ok]                ; Base case: 0 is a nat
+  [(-nat (s N)) (+nat N)]})    ; Recursive: (s N) is nat if N is nat
 
-' Macro for type checking: success = residue is exactly `ok`
+; Macro for type checking: success = residue is exactly `ok`
 (macro (:: Tested Test)
   (== @(exec @#Tested #Test) ok))
 
-' Use the type
+; Use the type
 (def two (+nat (s (s 0))))
-(:: two nat)  ' Type check passes - interaction yields ok
+(:: two nat)  ; Type check passes - interaction yields ok
 ```
 
 The real prelude (`examples/milkyway/prelude.sg`) is more general: a type
@@ -222,18 +221,18 @@ observations `==`/`~=`; every checking macro must bottom out in them.
 
 #### Pattern 1: Relational/Logic Programming (saturation-style, NOT Prolog)
 ```stellogen
-' Facts (positive rays)
+; Facts (positive rays)
 (def facts {
   [(+parent tom bob)]
   [(+parent bob ann)]})
 
-' Rule: POSITIVE head (conclusion), NEGATIVE premises
+; Rule: POSITIVE head (conclusion), NEGATIVE premises
 (def rules {
   [(+grandparent X Z) (-parent X Y) (-parent Y Z)]})
 
-' Query (negative ray with focus)
+; Query (negative ray with focus)
 (show (exec { #facts #rules } @[(-grandparent tom Z) (result Z)]))
-' => (result ann)
+; => (result ann)
 ```
 
 **Key**: Facts are `+`; rule heads are `+` and rule premises are `-`;
@@ -250,7 +249,7 @@ Simple joins don't need a rule at all — put several negative rays in the
 query star:
 ```stellogen
 (show (exec #facts @[(-parent tom Y) (-parent Y Z) (grandchild Z)]))
-' => (grandchild ann)
+; => (grandchild ann)
 ```
 
 Execution is **saturation** (all consequences at once, Datalog-like), not
@@ -259,16 +258,16 @@ branches leave stuck residue stars instead of silently backtracking.
 
 #### Pattern 2: Database Queries
 ```stellogen
-' Database (facts)
+; Database (facts)
 (def employees {
   [(+employee alice engineering)]
   [(+employee bob sales)]})
 
-' Query constellation (focused state)
+; Query constellation (focused state)
 (def query {
   @[(-employee Name engineering) (result Name)]})
 
-' Execute
+; Execute
 (show (exec #query #employees))
 ```
 
@@ -276,12 +275,12 @@ branches leave stuck residue stars instead of silently backtracking.
 
 #### Pattern 3: Recursive Computation
 ```stellogen
-' Addition on natural numbers
+; Addition on natural numbers
 (def add {
-  [(+add 0 Y Y)]                           ' Base case
-  [(-add X Y Z) (+add (s X) Y (s Z))]})    ' Recursive case
+  [(+add 0 Y Y)]                           ; Base case
+  [(-add X Y Z) (+add (s X) Y (s Z))]})    ; Recursive case
 
-' Query
+; Query
 (def query @[(-add (s (s 0)) (s (s 0)) R) R])
 
 (show (exec #add #query))
@@ -291,18 +290,18 @@ branches leave stuck residue stars instead of silently backtracking.
 
 #### Pattern 4: Using then for Pipelines
 ```stellogen
-(def c (then                ' then is a built-in, no import needed
-  (+n0 0)                 ' base constellation (becomes the state)
-  [(-n0 X) (+n1 (s X))]   ' step 1: consumes the previous result
-  [(-n1 X) (+n2 (s X))])) ' step 2: consumes step 1's result
-(show #c)                 ' => (+n2 (s (s 0)))
+(def c (then                ; then is a built-in, no import needed
+  (+n0 0)                 ; base constellation (becomes the state)
+  [(-n0 X) (+n1 (s X))]   ; step 1: consumes the previous result
+  [(-n1 X) (+n2 (s X))])) ; step 2: consumes step 1's result
+(show #c)                 ; => (+n2 (s (s 0)))
 ```
 Each step is executed with the accumulated result focused as state:
 `(then A B)` desugars to `@(exec B @A)`, chained left-associatively.
 
 #### Pattern 5: Inequality Constraints
 ```stellogen
-' Find different pairs
+; Find different pairs
 (def data {
   [(+item a)]
   [(+item b)]
@@ -414,35 +413,35 @@ run file.sg` — because `dune exec` wraps the process and defeats `timeout`.
 ## Example: Natural Number Addition
 
 ```stellogen
-' Define addition constellation
+; Define addition constellation
 (def add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
-' Query: 2 + 2 = R
+; Query: 2 + 2 = R
 (def query [(-add (s (s 0)) (s (s 0)) R) R])
 
-' Execute interaction
-(show (exec #add @#query))   ' => (s (s (s (s 0))))
+; Execute interaction
+(show (exec #add @#query))   ; => (s (s (s (s 0))))
 ```
 
 ## Example: Type Definition
 
 ```stellogen
-' spec is a built-in synonym of def (marks intent)
+; spec is a built-in synonym of def (marks intent)
 
-' Macro for type assertion
+; Macro for type assertion
 (macro (:: Tested Test)
   (== @(exec @#Tested #Test) ok))
 
-' Define nat type as interactive tests
+; Define nat type as interactive tests
 (spec nat {
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 
-' Define and check values
+; Define and check values
 (def 0 (+nat 0))
-(:: 0 nat)  ' succeeds
+(:: 0 nat)  ; succeeds
 ```
 
 ## Dependencies (OCaml)
@@ -521,50 +520,50 @@ dune test
 
 ❌ **Mistake 1**: Forgetting `@` on query/state stars
 ```stellogen
-' WRONG - query has no @
+; WRONG - query has no @
 (def query [(-employee Name Dept)])
-(exec #query #employees)  ' Returns {} - no state to interact with!
+(exec #query #employees)  ; Returns {} - no state to interact with!
 
-' CORRECT - query is focused
+; CORRECT - query is focused
 (def query @[(-employee Name Dept)])
-(exec #query #employees)  ' Works!
+(exec #query #employees)  ; Works!
 ```
 
 ❌ **Mistake 2**: Thinking variables are shared between stars
 ```stellogen
-' WRONG assumption: X is shared
+; WRONG assumption: X is shared
 {
-  [(+f X)]      ' This X is local to this star
-  [(-g X)]      ' This X is a DIFFERENT variable!
+  [(+f X)]      ; This X is local to this star
+  [(-g X)]      ; This X is a DIFFERENT variable!
 }
 
-' CORRECT - X shared within ONE star
+; CORRECT - X shared within ONE star
 {
-  [(+f X) (-g X)]  ' Same X - shared within this star
+  [(+f X) (-g X)]  ; Same X - shared within this star
 }
 ```
 
 ❌ **Mistake 3**: Wrong polarity direction
 ```stellogen
-' WRONG - both negative
+; WRONG - both negative
 {
   [(-data X)]
-  [(-result X)]   ' Nothing to provide data!
+  [(-result X)]   ; Nothing to provide data!
 }
 
-' CORRECT - provider (+) and requester (-)
+; CORRECT - provider (+) and requester (-)
 {
-  [(+data X)]     ' Provides
-  @[(-data X)]    ' Requests
+  [(+data X)]     ; Provides
+  @[(-data X)]    ; Requests
 }
 ```
 
 ❌ **Mistake 4**: Expecting clause-based execution (Prolog style)
 ```stellogen
-' Stellogen is NOT clause-based!
-' Constellations are UNORDERED sets of stars
-' Order doesn't determine execution flow
-' Use polarity and focus instead
+; Stellogen is NOT clause-based!
+; Constellations are UNORDERED sets of stars
+; Order doesn't determine execution flow
+; Use polarity and focus instead
 ```
 
 ### Debugging tips:
@@ -591,52 +590,51 @@ GPL-3.0-only
 
 ### Syntax Quick Lookup
 ```stellogen
-' Comments
-' single line
-''' multi-line '''
+; Comments
+; single line (stack ; lines for longer comments)
 
-' Terms
-X Y Z           ' Variables (uppercase)
-(f a b)         ' Function application
-a bob 0         ' Constants
+; Terms
+X Y Z           ; Variables (uppercase)
+(f a b)         ; Function application
+a bob 0         ; Constants
 
-' Rays
-(+f X)          ' Positive polarity (provides)
-(-f X)          ' Negative polarity (requests)
-(f X)           ' Neutral (no interaction)
+; Rays
+(+f X)          ; Positive polarity (provides)
+(-f X)          ; Negative polarity (requests)
+(f X)           ; Neutral (no interaction)
 
-' Stars and Constellations
-[ray1 ray2]     ' Star (block of rays)
-{ star1 star2 } ' Constellation (group of stars)
-@[...]          ' Focused star (state)
-[(+f X) || (!= X Y)]  ' Star with inequality constraint
+; Stars and Constellations
+[ray1 ray2]     ; Star (block of rays)
+{ star1 star2 } ; Constellation (group of stars)
+@[...]          ; Focused star (state)
+[(+f X) || (!= X Y)]  ; Star with inequality constraint
 
-' Definitions and Calls
-(def name value) ' Define
-#name           ' Call/reference
-@#name          ' Call and focus
+; Definitions and Calls
+(def name value) ; Define
+#name           ; Call/reference
+@#name          ; Call and focus
 
-' Execution
-(exec c1 c2)    ' Non-linear execution
-(fire c1 c2)    ' Linear execution
-(then c1 c2)    ' Staged execution (built-in): @(exec c2 @c1)
+; Execution
+(exec c1 c2)    ; Non-linear execution
+(fire c1 c2)    ; Linear execution
+(then c1 c2)    ; Staged execution (built-in): @(exec c2 @c1)
 
-' Utilities
-(show expr)     ' Display result
-(== e1 e2)      ' Assert equality
-(~= r1 r2)      ' Check unifiability (ignores polarity)
-(forall G X e)  ' Evaluate e for each member of galaxy G bound to X
+; Utilities
+(show expr)     ; Display result
+(== e1 e2)      ; Assert equality
+(~= r1 r2)      ; Check unifiability (ignores polarity)
+(forall G X e)  ; Evaluate e for each member of galaxy G bound to X
 
-' Imports
-(use "path")    ' Import definitions and macros (path relative to this file)
+; Imports
+(use "path")    ; Import definitions and macros (path relative to this file)
 
-' Syntactic Sugar
-[a b c]         ' In TERM position: list (%cons a (%cons b (%cons c %nil)))
-                ' At constellation level: a star of three rays!
-                ' No stacking sugar: write (s (s 0)) directly
-{ a b c }       ' Group: (%group a b c)
+; Syntactic Sugar
+[a b c]         ; In TERM position: list (%cons a (%cons b (%cons c %nil)))
+                ; At constellation level: a star of three rays!
+                ; No stacking sugar: write (s (s 0)) directly
+{ a b c }       ; Group: (%group a b c)
 
-' Macros
+; Macros
 (macro pattern expansion)
 ```
 
@@ -651,18 +649,18 @@ EXECUTION        = Saturation via star fusion
 
 ### Typical Program Structure
 ```stellogen
-' 1. Define facts/data (positive)
+; 1. Define facts/data (positive)
 (def facts {
   [(+parent tom bob)]
   [(+parent bob ann)]})
 
-' 2. Define rules (positive conclusion, negative premises)
+; 2. Define rules (positive conclusion, negative premises)
 (def rules {
   [(+grandparent X Z) (-parent X Y) (-parent Y Z)]})
 
-' 3. Execute against a focused query (negative)
+; 3. Execute against a focused query (negative)
 (show (exec { #facts #rules } @[(-grandparent tom Z) (result Z)]))
-' => (result ann)
+; => (result ann)
 ```
 
 ---

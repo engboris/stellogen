@@ -47,8 +47,8 @@ Lexical rules:
   occurrence stands for a fresh variable.
 - Any other token is a **symbol** (`a`, `bob`, `0`, `s`, `+add`, `%cons`).
   Symbols may contain any characters except whitespace, the delimiters
-  `( ) [ ] { }`, and `|`; they may not start with `'`, `"`, `@` or `#`.
-- `' ...` is a line comment, `''' ... '''` a block comment.
+  `( ) [ ] { }`, `|` and `;`; they may not start with `'`, `"`, `@` or `#`.
+- `; ...` is a line comment. There are no block comments; stack `;` lines.
 - `"chars"` is a string literal with escapes `\n \t \\ \"`.
 
 Grammar of terms:

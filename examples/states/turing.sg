@@ -15,30 +15,30 @@
 (def (if C1 on Q1 then Q2 , write C2 , left)
   [(-m Q1 [C|L] C1 R) (+m Q2 L C [C2|R])])
 
-' Turing machine accepting words with as many 'a' as 'b'
+; Turing machine accepting words with as many 'a' as 'b'
 (def mt {
   #(initial q0)
-  ' accept
+  ; accept
   #(accept qa)
   #(if q0 then qa)
-  ' reject
+  ; reject
   #(reject qr)
   #(if q2 then qr)
   #(if q3 then qr)
-  ' initial skip
+  ; initial skip
   #(skip right on q0 , sep)
-  'mark
+  ;mark
   #(if a on q0 then q2 , write sep , right)
   #(if b on q0 then q3 , write sep , right)
-  'skip
+  ;skip
   #(skip right on q2 , a)
   #(skip right on q2 , sep)
   #(skip right on q3 , b)
   #(skip right on q3 , sep)
-  'join
+  ;join
   #(if b on q2 then q1 , write sep , left)
   #(if a on q3 then q1 , write sep , left)
-  'return
+  ;return
   #(if a on q1 then q1 , write a , left)
   #(if b on q1 then q1 , write b , left)
   #(if sep on q1 then q1 , write sep , left)

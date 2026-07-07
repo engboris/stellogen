@@ -60,23 +60,12 @@ let rec comment lexbuf =
   last_token := Some tok;
   tok
 
-and comments lexbuf =
-  let tok =
-    match%sedlex lexbuf with
-    | "'''" | eof -> read lexbuf
-    | _ ->
-      ignore (Sedlexing.next lexbuf);
-      comments lexbuf
-  in
-  last_token := Some tok;
-  tok
-
 and read lexbuf =
   let get_pos () = fst (Sedlexing.lexing_positions lexbuf) in
   let tok =
     match%sedlex lexbuf with
-    | Compl (Chars "'\" \t\n\r()[]{}|@#"), Star (Compl (Chars " \t\n\r()[]{}|"))
-      -> (
+    | ( Compl (Chars "';\" \t\n\r()[]{}|@#")
+      , Star (Compl (Chars "; \t\n\r()[]{}|")) ) -> (
       let lexeme = Utf8.lexeme lexbuf in
       match lexeme.[0] with '_' | 'A' .. 'Z' -> VAR lexeme | _ -> SYM lexeme )
     | '(' ->
@@ -100,8 +89,7 @@ and read lexbuf =
     | '@' -> AT
     | '#' -> SHARP
     | '|' -> BAR
-    | '\'' -> comment lexbuf
-    | "'''" -> comments lexbuf
+    | ';' -> comment lexbuf
     | '"' -> string_literal lexbuf
     | space -> read lexbuf
     | newline ->

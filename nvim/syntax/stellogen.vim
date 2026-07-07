@@ -3,8 +3,7 @@ if exists("b:current_syntax")
 endif
 
 " Comments (must be early to take precedence)
-syn region sgCommentMulti start="'''" end="'''" contains=NONE
-syn match sgComment "'[^'].*$"
+syn match sgComment ";.*$"
 
 " Strings
 syn region sgString start=/\v"/ skip=/\v\\./ end=/\v"/
@@ -42,7 +41,6 @@ syn match sgIdRef "#([^)]\+)"
 hi link sgKeyword Keyword
 hi link sgConstant Constant
 hi link sgComment Comment
-hi link sgCommentMulti Comment
 hi link sgOperator Operator
 hi link sgSeparator Delimiter
 hi link sgString String

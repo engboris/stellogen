@@ -2,20 +2,20 @@
 
 (show (then
   #(init 0)
-  'push 1 then 0
+  ;push 1 then 0
   [(-stack 0 X) (+stack 1 [1|X])]
   [(-stack 1 X) (+stack 2 [0|X])]
 
-  'pop & save
+  ;pop & save
   [(-stack 2 [C|X]) (+stack 3 X) (+save C)]
 
-  'conditional duplication
+  ;conditional duplication
   [(-stack 3 [0|X]) (+stack 4 [0 0|X])]
   [(-stack 3 [1|X]) (+stack 4 [1 1|X])]
 
-  'freeze information
+  ;freeze information
   [(-save C) (save C)]
 
-  'clean
+  ;clean
   [(-stack 4 _)]
 ))
