@@ -27,25 +27,7 @@ module StellarSig = struct
     | _ -> false
 end
 
-module MatchableSig = struct
-  type idvar = string * int option
-
-  type idfunc = polarity * string
-
-  let string_of_idvar (s, index_opt) =
-    match index_opt with None -> s | Some j -> s ^ Int.to_string j
-
-  let equal_idvar x y = String.equal (string_of_idvar x) (string_of_idvar y)
-
-  let equal_idfunc (p1, f1) (p2, f2) =
-    equal_polarity p1 p2 && String.equal f1 f2
-
-  (* Matchable: only checks function name equality, ignores polarity *)
-  let compatible (_p1, f1) (_p2, f2) = String.equal f1 f2
-end
-
 module StellarRays = Unification.Make (StellarSig)
-module MatchableRays = Unification.Make (MatchableSig)
 open StellarRays
 
 (* ---------------------------------------
@@ -106,27 +88,20 @@ let is_polarised r : bool =
   let aux = function Pos, _ | Neg, _ -> true | _ -> false in
   exists_func aux r
 
-let inject i : StellarSig.idvar -> StellarSig.idvar = function
-  | x, None -> (x, Some i)
-  | x, Some i -> (x, Some i)
-
 let replace_indices (i : int) : ray -> ray =
   map Fn.id (fun (x, _) -> Var (x, Some i))
 
 let raymatcher r r' : substitution option =
   if is_polarised r && is_polarised r' then solution [ (r, r') ] else None
 
-(* Convert StellarRays.term to MatchableRays.term *)
-let rec to_matchable_term : StellarRays.term -> MatchableRays.term = function
-  | StellarRays.Var x -> MatchableRays.Var x
-  | StellarRays.Func (f, ts) ->
-    MatchableRays.Func (f, List.map ~f:to_matchable_term ts)
+(* Base observation for ~= : structural unifiability, ignoring polarity.
+   Polarities are normalized to Null so that the regular unification
+   decides matchability (Null/Null symbols are compatible). *)
+let strip_polarities : ray -> ray =
+  map (fun (_, f) -> (Null, f)) (fun v -> Var v)
 
-(* Check if two rays can unify using term unification (ignoring polarity) *)
 let terms_unifiable r r' =
-  let r_match = to_matchable_term r in
-  let r'_match = to_matchable_term r' in
-  MatchableRays.solution [ (r_match, r'_match) ] |> Option.is_some
+  solution [ (strip_polarities r, strip_polarities r') ] |> Option.is_some
 
 let fresh_var vars =
   let rec find_fresh_index i =

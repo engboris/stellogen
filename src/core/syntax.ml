@@ -25,7 +25,7 @@ type sgen_expr =
   | Show of sgen_expr list * source_location option
   | Expect of sgen_expr * sgen_expr * ident * source_location option
   | Match of sgen_expr * sgen_expr * ident * source_location option
-  | Use of ident
+  | Use of ident * source_location option
 
 type err =
   | ExpectError of

@@ -17,3 +17,6 @@ Galaxy and forall test:
   $ sgen run syntax/galaxy.sg
   [(-check a) ok]
   [(-check b) ok]
+
+Match (~=) is polarity-blind structural unifiability:
+  $ sgen run syntax/match.sg

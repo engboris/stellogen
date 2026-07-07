@@ -11,33 +11,8 @@ See `evaluation_and_directions.md` (same directory) for the full rationale.
 That document is self-contained; the former research corpus it once referenced
 has been deleted and its durable findings are preserved in its Appendix A.
 
-v3 removes the completed items; only their one-line record is kept below.
-Numbering of the remaining items is unchanged from v2 so cross-references
-stay valid.
-
----
-
-## Done so far (record, 2026-07-06)
-
-- **Phase 1 complete.** Deleted broken `circuits.sg` (analysis preserved in
-  evaluation doc A.1); removed the `watch` CLI command (use
-  `entr`/`watchexec`); removed incremental parsing + error recovery
-  (fail-fast parse, same diagnostics, ~180 lines gone). Exercises were kept
-  and rewritten in current syntax with a cram test (`test/exercises.t`);
-  the speculative doc corpus was deleted and distilled into the evaluation
-  doc.
-- **2.1 done, amended:** `process` renamed **`then`** (the old name
-  over-promised; the construct is sequencing sugar, `(then A B)` =
-  `@(exec B @A)`). Built-in as a pure desugaring in `sgen_expr_of_expr`
-  (left fold over existing `Focus`/`Exec`/`Group` nodes): no new AST node,
-  no evaluator change. `then` remains an ordinary symbol in ray/term
-  position; only the expression-position head is claimed.
-- **2.2 done:** variadic macro support removed from `expression.ml`
-  (splicing, arity ranges, the `...` allowance). Macros are fixed-arity
-  only; a self-referencing fixed-arity macro has no base case to dispatch
-  to, so the macro layer is total-in-practice by construction. `stack` and
-  `chain` dropped from the prelude (write `(s (s 0))` directly); all call
-  sites rewritten; `CLAUDE.md` updated.
+Completed items are removed from this plan (git history keeps the record).
+Numbering of the remaining items is unchanged so cross-references stay valid.
 
 ---
 
@@ -76,20 +51,6 @@ Proposals on the table:
 paragraph: one operation, mode = structural discipline of actions,
 staging = derived fold.
 
-### 2.3 Merge `use-macros` into `use` — **pending**
-- **Why:** Two import mechanisms is confusing; `collect_macro_imports` has 8
-  near-identical match arms.
-- **Action:** `use` imports both macros and definitions; remove `use-macros`
-  from parser, `expression.ml`, `stellogen_parsing.ml`.
-
-### 2.4 Eliminate `MatchableRays` duplication — **pending**
-- **Why:** A separate unification module instantiation exists solely so `~=`
-  can ignore polarity, duplicating the unification pipeline.
-- **Action:** Strip polarities before calling regular `StellarRays.solution`;
-  remove `MatchableSig`, `MatchableRays`, `to_matchable_term`,
-  `terms_unifiable`.
-- **Files:** `constellation.ml`, `evaluator.ml`
-
 ### 2.5 Fold `constellation_eval.ml` into `tracer.ml` — **pending**
 - **Why:** Thin wrapper re-exporting from `executor.ml`/`tracer.ml`;
   indirection without value.
@@ -106,7 +67,7 @@ staging = derived fold.
   document listing every form the evaluator accepts, with the rule: *if a
   feature can be defined as a macro, it must not be in the kernel; if it
   can't and isn't essential, remove it.*
-- **Action:** Write `KERNEL.md` after 2.3–2.6 land, **in two parts**:
+- **Action:** Write `KERNEL.md` after 2.5–2.6 land, **in two parts**:
   the *object kernel* (stellar resolution proper: terms, rays, stars,
   constellations, focus, `||` constraints) and the *meta kernel* (the
   functional glue: `def`, `#`, fixed-arity `macro`, `exec`/`fire`/`then`,
@@ -119,13 +80,15 @@ staging = derived fold.
   Document the judgment contract: checking macros (`::`, `::lin`, …) must
   expand to `==`/`~=` assertions — the fixed base observations are the
   trusted layer; success conventions stay user-space (see
-  evaluation_and_directions.md §5.3). State the `forall` contract: it is the
-  ∀ of orthogonality (each test in its own interaction space), the third
-  base observation next to `==`/`~=`; pin down what "member" means for it.
-  Verify the meta-language is total now that variadic macros are gone
-  (expansion terminates structurally; no recursive definition references).
-  Target: the OCaml core reads in an afternoon and maps one-to-one onto the
-  formal definition of stellar resolution plus the kernel list.
+  evaluation_and_directions.md §5.3). State the base-observation contracts:
+  `==` is syntactic equality of results; `~=` is **polarity-blind structural
+  unifiability** (settled 2026-07-06; pinned by `test/syntax/match.sg`);
+  `forall` is the ∀ of orthogonality (each test in its own interaction
+  space) — pin down what "member" means for it. Verify the meta-language is
+  total now that variadic macros are gone (expansion terminates
+  structurally; no recursive definition references). Target: the OCaml core
+  reads in an afternoon and maps one-to-one onto the formal definition of
+  stellar resolution plus the kernel list.
 
 ---
 
@@ -201,7 +164,7 @@ deferral recorded so it is not re-litigated from scratch. Rationale:
 
 ### 3.5 Clean up `examples/macro_demo.sg` — **pending**
 - **Action:** Remove the dubious nested `def`-inside-`exec`; show macros
-  building logical notation only; fixed-arity only (2.2 landed).
+  building logical notation only (fixed-arity).
 
 ### 3.6 Rewrite `BASICS.md` logic section — **pending**
 - **Action:** Use Stellogen's own vocabulary: axioms (positive stars),
@@ -268,7 +231,7 @@ logics/
 
 | Category | Items |
 |----------|-------|
-| **Simplify** | `use-macros` merge (2.3), `MatchableRays` (2.4), `constellation_eval.ml` (2.5), trace hack (2.6) |
+| **Simplify** | `constellation_eval.ml` (2.5), trace hack (2.6) |
 | **Decide** | execution-variant factorization (2.2b) |
 | **Document** | `KERNEL.md` incl. code-as-term encoding contract (2.7, 2.5.2), file-shape house style, `BASICS.md` rewrite |
 | **Rename/reframe** | `prolog/`→`relational/`, `family.sg`, `hello.sg`, `stack.sg`, `macro_demo.sg` |

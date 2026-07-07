@@ -221,7 +221,7 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
     Expect (map_ray env ~f e1, map_ray env ~f e2, f msg, loc)
   | Match (e1, e2, msg, loc) ->
     Match (map_ray env ~f e1, map_ray env ~f e2, f msg, loc)
-  | Use id -> Use (f id)
+  | Use (id, loc) -> Use (f id, loc)
 
 let pp_err error : (string, err) Result.t =
   (* Convert internal location to Terminal.location *)
@@ -435,12 +435,19 @@ let rec eval_sgen_expr (env : env) :
         (MatchError
            { term1 = const1_marked; term2 = const2_marked; message; location }
         )
-  | Use path -> (
+  | Use (path, location) -> (
     let open Constellation.StellarRays in
     let filename =
       match path with
       | Func ((Null, f), [ s ]) when String.equal f "%string" -> string_of_ray s
       | _ -> string_of_ray path ^ ".sg"
+    in
+    (* Resolve relative to the importing file, like macro imports do *)
+    let filename =
+      match location with
+      | Some { filename = importer; _ } ->
+        Stellogen_parsing.resolve_path importer filename
+      | None -> filename
     in
     let create_start_pos fname =
       { Lexing.pos_fname = fname; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
@@ -459,17 +466,6 @@ let rec eval_sgen_expr (env : env) :
       let* new_env = eval_program_internal env program in
       Ok (new_env, nil_term)
     | Error (expr_err, loc) -> Error (ExprError (expr_err, loc)) )
-
-and expr_of_ray : ray -> Expression.expr = function
-  | Var (x, None) -> Expression.Var x
-  | Var (x, Some i) -> Expression.Var (x ^ Int.to_string i)
-  | Func (pf, []) -> Symbol (string_of_polsym pf)
-  | Func (pf, args) ->
-    Expression.List
-      ( { Expression.content = Symbol (string_of_polsym pf); loc = None }
-      :: List.map
-           ~f:(fun r -> { Expression.content = expr_of_ray r; loc = None })
-           args )
 
 and eval_program (p : program) =
   match eval_program_internal initial_env p with

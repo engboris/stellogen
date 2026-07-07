@@ -19,4 +19,4 @@ Read these files for reference patterns before writing code.
 
 ## Prelude
 
-- **`examples/milkyway/prelude.sg`** — Standard macros: `::` (type assertion), `stack` (nested application), `process` (sequential execution), `chain` (left-associative fold).
+- **`examples/milkyway/prelude.sg`** — Standard macros: `::` (type assertion).
