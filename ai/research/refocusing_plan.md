@@ -47,9 +47,10 @@ Proposals on the table:
    the §4.2 reader hazard; (iii) keep `exec`/`fire` + `then` — least churn,
    current choice pending the decision.
 
-`KERNEL.md` (2.7) should state whichever factorization wins in one
-paragraph: one operation, mode = structural discipline of actions,
-staging = derived fold.
+`KERNEL.md` (section 1.5, written 2026-07-07) states the current
+factorization in exactly these terms: one operation, mode = structural
+discipline of actions, staging = derived fold. Update that section when
+the naming decision lands.
 
 ### 2.5 Fold `constellation_eval.ml` into `tracer.ml` — **pending**
 - **Why:** Thin wrapper re-exporting from `executor.ml`/`tracer.ml`;
@@ -62,33 +63,67 @@ staging = derived fold.
 - **Action:** Pass trace config explicitly through the evaluation context.
 - **Files:** `evaluator.ml`
 
-### 2.7 Kernel audit: write `KERNEL.md` — **pending**
-- **Why:** "Pure substrate" must be a checkable claim, not a mood. One short
-  document listing every form the evaluator accepts, with the rule: *if a
-  feature can be defined as a macro, it must not be in the kernel; if it
-  can't and isn't essential, remove it.*
-- **Action:** Write `KERNEL.md` after 2.5–2.6 land, **in two parts**:
-  the *object kernel* (stellar resolution proper: terms, rays, stars,
-  constellations, focus, `||` constraints) and the *meta kernel* (the
-  functional glue: `def`, `#`, fixed-arity `macro`, `exec`/`fire`/`then`,
-  `show`, `==`, `~=`, `forall`, `use`). Sorting rule: anything that computes
-  belongs in the object language; meta constructs justify themselves as glue
-  (assemble/run/compare) or are demoted/removed. Demote `spec` to a prelude
-  macro — audit settled: the builtin is identical to `def`
-  (same match arm in `expression.ml`), so intent-marking moves to the
-  notation layer. Confirm fields/records remain a user-space pattern.
-  Document the judgment contract: checking macros (`::`, `::lin`, …) must
-  expand to `==`/`~=` assertions — the fixed base observations are the
-  trusted layer; success conventions stay user-space (see
-  evaluation_and_directions.md §5.3). State the base-observation contracts:
-  `==` is syntactic equality of results; `~=` is **polarity-blind structural
-  unifiability** (settled 2026-07-06; pinned by `test/syntax/match.sg`);
-  `forall` is the ∀ of orthogonality (each test in its own interaction
-  space) — pin down what "member" means for it. Verify the meta-language is
-  total now that variadic macros are gone (expansion terminates
-  structurally; no recursive definition references). Target: the OCaml core
-  reads in an afternoon and maps one-to-one onto the formal definition of
-  stellar resolution plus the kernel list.
+### 2.7 Kernel audit: write `KERNEL.md` — **done 2026-07-07**
+Removed from the plan per the convention above; two findings from the
+audit differ from what this plan predicted and are recorded here so they
+are not re-litigated:
+
+- **`spec` stays a builtin.** The settled demotion was overturned:
+  fixed-arity macros cannot faithfully alias the variadic `def` (a call
+  beyond the covered arities would fall through silently to a raw term).
+  Verified: per-arity macro patterns do reproduce the builtin exactly
+  (parametric identifiers, eager galaxy formation, `forall` iteration);
+  the rejection is about the arity cap and its silent failure. Demotion
+  path recorded 2026-07-07: head-symbol aliasing, a `macro` whose pattern
+  is a bare symbol (`(macro spec def)`) rewriting the head at any arity,
+  in the Racket rename-transformer style; implement when a second
+  intent-marker (`axiom`, `lemma`, ...) is wanted, and `spec` demotes
+  with it. Details in the evaluation doc §5.3 update note.
+- **The meta-language is not total as implemented.** Cyclic macro
+  references still diverge at preprocessing (verified with
+  `(macro (loop X) (loop X))`); `KERNEL.md` §2.5 therefore specifies
+  totality as conditional on acyclic macro references, an obligation on
+  the user. Adding an expansion-depth guard with a proper error would
+  discharge it; do this during 2.6-adjacent evaluator cleanup or as a
+  standalone small task.
+
+### 2.8 Macro-system hardening — **design note recorded 2026-07-07**
+- **Why:** Terms-by-default means notation errors cannot surface as
+  unbound identifiers (no such thing exists); notation out of scope
+  silently becomes data. The `spec` demotion failure (2.7) exposed the
+  general problem.
+- **Design:** `ai/research/macro_system.md`. Four pillars: errors on
+  meaningless positions rather than unknown names (dead top-level
+  expressions; inert action stars entering interaction spaces), arity
+  near-miss diagnostics at any depth, a head-symbol alias map
+  (`(macro a b)`, also the natural carrier for import prefixing), and
+  variable freshening as the entirety of hygiene.
+- **Actions (ordered):** dead-spine diagnostic; arity near-miss
+  diagnostic; expansion cycle/depth guard (also in the 2.7 note above);
+  bare-symbol aliases (implement with the second intent-marker; `spec`
+  demotes then); variable freshening (after a deliberate-capture audit
+  of existing macros).
+
+### 2.9 Meta-kernel census and reflection — **design note recorded 2026-07-07**
+- **Why:** The meta-kernel is a glue language with a fixed menu; macros
+  can rearrange it but cannot create new execution disciplines or
+  judgments (`::lin` exists only because `fire` is on the menu). Serious
+  practices will keep hitting this ceiling.
+- **Design:** `ai/research/meta_kernel.md`. An admission rule (a form is
+  admitted only if inexpressible by lower strata plus macros;
+  observation additions cost the most), a census of the fourteen forms
+  (`then` is kernel debt like `spec`; `~=` earns its seat but its
+  any-ray-pair existential semantics looks accidental; `forall` is the
+  galaxy eliminator whose content is separation of interaction spaces,
+  not a quantifier), and the direction: lift the ceiling by reflection
+  (Maude META-LEVEL precedent), not by growing the menu or turning the
+  glue into a programming language.
+- **Actions (ordered):** decide internal polarities (5.4, gates the
+  encoding contract 2.5.2); sharpen KERNEL.md entries for `~=`/`forall`
+  and note `then` as debt; `quote` (reify execution results into the
+  %-encoding; demotes `~=`, dissolves negative assertions, inverts the
+  trust trend); fuel axis with the 2.2b factorization; `eval` only with
+  its first strategy/tactic client and a written trust story.
 
 ---
 
@@ -125,10 +160,10 @@ deferral recorded so it is not re-litigated from scratch. Rationale:
   `%`-constructors), examples already store code as data (fields pattern),
   and a term→code `eval` existed until it was removed on 2025-11-16 (commit
   `3025e62`) — correctly, for kernel purity.
-- **Action:** (1) Document the exact reified-term shape in `KERNEL.md` as a
-  stable contract for checkers. (2) Verify a macro can splice a definition
-  body into both code position and term position; add thin `quote` notation
-  only if some surface form (`@`, `#`, `{}`) fails to embed. (3) Keep `eval`
+- **Action:** (1) done 2026-07-07: the encoding is documented in
+  `KERNEL.md` part III. (2) partially done: `@`, `#` and `{}` verified to
+  embed in term position (noted in `KERNEL.md` 3.1); the working
+  `in-acyclic` splice test below remains. (3) Keep `eval`
   removed until a concrete need (tactics, staged proof construction)
   justifies deliberate reintroduction with a written staging/trust story.
 - **Acceptance test:** a working `(in-acyclic Name Body)` macro that defines
@@ -232,8 +267,10 @@ logics/
 | Category | Items |
 |----------|-------|
 | **Simplify** | `constellation_eval.ml` (2.5), trace hack (2.6) |
-| **Decide** | execution-variant factorization (2.2b) |
-| **Document** | `KERNEL.md` incl. code-as-term encoding contract (2.7, 2.5.2), file-shape house style, `BASICS.md` rewrite |
+| **Harden** | macro-system diagnostics, expansion guard, aliases, freshening (2.8) |
+| **Decide** | execution-variant factorization (2.2b); internal polarities (gates encoding contract and `quote`, 2.9) |
+| **Reflect** | `quote` for execution results, fuel axis, `eval` gated on first client (2.9) |
+| **Document** | file-shape house style, `BASICS.md` rewrite (`KERNEL.md` written 2026-07-07; keep it in sync) |
 | **Rename/reframe** | `prolog/`→`relational/`, `family.sg`, `hello.sg`, `stack.sg`, `macro_demo.sg` |
 | **New content** | `logics/` library + flagship MLL tutorial, exercise extensions |
 
@@ -246,7 +283,7 @@ states the project's identity — with zero additions to the object kernel.
 ## Execution Order
 
 ```
-Phase 2 (short term)     → Import merge and dedups; write KERNEL.md
+Phase 2 (short term)     → constellation_eval fold (2.5); trace config (2.6)
 Phase 2.5 (design work)  → Encoding contract (blocks Phase 4); scoping deferred
 Phase 3 (ongoing)        → Reframe examples and docs
 Phase 4 (the point)      → logics/ library + flagship MLL demonstration

@@ -556,6 +556,13 @@ from implementation detail to contract**:
    as a convenience. Full computational reflection (self-modifying
    constellations, fexpr-style tricks) stays out regardless.
 
+*(Update 2026-07-07: extended by `meta_kernel.md`, which covers what
+this section does not: reification of execution __results__, not just
+code. A `quote` form over results makes observations user-definable
+(demoting `~=`, dissolving negative assertions) and names eval's likely
+first client, a strategy/tactic practice, per the staging story required
+above. Point 3's conclusion is unchanged.)*
+
 **Why this matters here specifically:** types-as-tests (`::`) observes
 *behaviour* — what code does under interaction. Systems (§3.3) check *shape*
 — what code is — and shape-checking constellations receive code as a term to
@@ -649,6 +656,25 @@ unknown at expansion time.
    multi-expression galaxy case identically). Intent-marking is a
    notation-layer job: `(macro (spec X Y ...) (def X Y ...))` in the
    prelude. One less name in the trusted kernel — goes on the §7.2 list.
+   [Update 2026-07-07: **overturned**. The sketch above is variadic, and
+   variadic macros no longer exist; `def` is variadic (that is how
+   galaxies are formed), so a faithful `spec` macro is impossible. A
+   per-arity pattern set works for today's repo but a call exceeding the
+   covered arities falls through silently to a raw term instead of
+   erroring, which is unacceptable for a typing construct. `spec` stays
+   a builtin, justified in `KERNEL.md` (part II) as intent-marking on a
+   variadic form. The demotion path, when wanted, is identifier-level
+   aliasing in the Racket rename-transformer style, not a call-pattern
+   macro: a `macro` whose pattern is a bare symbol, `(macro spec def)`,
+   rewrites the head symbol at any arity. It is trivially terminating (a
+   finite symbol-to-symbol map; cycles detectable at definition time) and
+   makes intent vocabulary (`axiom`, `lemma`, practice variants of `spec`)
+   cheap user-space notation; the same symbol-map mechanism is the natural
+   carrier for import-time prefixing (§5.1's escalation path). Implement
+   it when a second intent-marker is wanted, and `spec` demotes with it.
+   Caveat: aliasing does not remove the silent-fallthrough hazard; under
+   terms-by-default a `spec` call without the alias in scope still
+   becomes an inert term.]
 2. **Invest the "typing must be well-designed" budget in diagnostics, not
    mechanism** (§7.3). When `(:: two nat)` fails today the user sees a raw
    `==` failure on macro-expanded code — not "*two* failed test 2 of
@@ -820,6 +846,8 @@ abandoned general-purpose ambitions. Remove:
    (`expression.ml:622`); demote to a prelude macro
    `(macro (spec X Y ...) (def X Y ...))`. Intent-marking is
    notation-layer work, not kernel work.
+   [Overturned 2026-07-07: fixed-arity macros cannot alias the variadic
+   `def`; `spec` stays a builtin. See the §5.3 update note.]
 6. **Depth-inversion polarity matching** (§5.4) — restrict polarity
    duality to ray heads; at depth, polarized symbols become part of
    symbol identity (inert). A semantics *restriction*, not an addition:
