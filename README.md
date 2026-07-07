@@ -108,10 +108,15 @@ dune build
 
 **Option D: Build with Nix**
 ```bash
-nix develop
-dune build
-```
+nix build
 
+```
+If you wish, you can explicitly specify the derivation, like `nix build .#default`:
+- `default`/`stellogen`: The default binary
+- `stellogen-minimal`: Minimal version without documentation and JavaScript
+- `stellogen-web`: JavaScript version
+- `playground`: Playground files you can host with e.g. `python3 -m http.server` or directly with `nix run .#playground`
+- `docs`: Documentation
 ### 2. Run Your First Program
 
 Assuming the executable is named `sgen` and that it is in your PATH:
