@@ -33,16 +33,11 @@ let trace input_file =
   in
   match Expression.program_of_expr preprocessed with
   | Ok program ->
-    (* Enable trace mode by setting __trace__ in the environment *)
-    let trace_marker = Syntax.Raw (Constellation.func "%nil" []) in
-    let initial_env =
-      { Syntax.objs =
-          (Constellation.const "__trace__", trace_marker)
-          :: Syntax.initial_env.objs
-      }
-    in
+    let trace_cfg = Some (Tracer.make_trace_config true) in
     let (_ : (Syntax.env, Syntax.err) Result.t) =
-      match Evaluator.eval_program_internal initial_env program with
+      match
+        Evaluator.eval_program_internal ~trace_cfg Syntax.initial_env program
+      with
       | Ok env -> Ok env
       | Error e ->
         let open Base.Result in

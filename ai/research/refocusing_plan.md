@@ -52,17 +52,6 @@ factorization in exactly these terms: one operation, mode = structural
 discipline of actions, staging = derived fold. Update that section when
 the naming decision lands.
 
-### 2.5 Fold `constellation_eval.ml` into `tracer.ml` — **pending**
-- **Why:** Thin wrapper re-exporting from `executor.ml`/`tracer.ml`;
-  indirection without value.
-- **Action:** Move trace configuration into `tracer.ml`; update imports.
-
-### 2.6 Clean up trace configuration — **pending**
-- **Why:** Trace mode is enabled via a magic `__trace__` binding checked on
-  every `exec`.
-- **Action:** Pass trace config explicitly through the evaluation context.
-- **Files:** `evaluator.ml`
-
 ### 2.7 Kernel audit: write `KERNEL.md` — **done 2026-07-07**
 Removed from the plan per the convention above; two findings from the
 audit differ from what this plan predicted and are recorded here so they
@@ -266,7 +255,6 @@ logics/
 
 | Category | Items |
 |----------|-------|
-| **Simplify** | `constellation_eval.ml` (2.5), trace hack (2.6) |
 | **Harden** | macro-system diagnostics, expansion guard, aliases, freshening (2.8) |
 | **Decide** | execution-variant factorization (2.2b); internal polarities (gates encoding contract and `quote`, 2.9) |
 | **Reflect** | `quote` for execution results, fuel axis, `eval` gated on first client (2.9) |
