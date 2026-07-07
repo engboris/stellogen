@@ -21,6 +21,10 @@ Check that everything works fine by writing and running the following program:
 (show "Hello, world")
 ```
 
+It displays `(%string Hello, world)`. Do not worry about the shape of the
+output: in Stellogen even strings are terms, and `show` displays the term
+hidden behind the double quotes notation.
+
 ## Show
 
 The `show` command is used to display an expression on the screen. It will be
@@ -80,9 +84,9 @@ You can check if two terms are matchable with the term `(~= t u)` where `t` and
 For example:
 
 ```stellogen
-(~= (f X)  (f (h a)))  '  =>  they match with {X := (h a)}
-(~= (f X)  X)          '  =>  ❌ (circular)
-(~= (f X)  (g X))      '  =>  ❌ (they don't match because different head symbol)
+(~= (f X)  (f (h a)))    ' they match with {X := (h a)}
+' (~= (f X)  X)          ' ❌ fails with an error (circular)
+' (~= (f X)  (g X))      ' ❌ fails with an error (different head symbol)
 ```
 
 Note that `~=` checks *structural* unifiability and ignores polarity:
@@ -94,13 +98,13 @@ A **ray** is a term with polarity:
 * `(-f X)` → negative
 * `(f X)`  → neutral (does not interact)
 
-Two rays and **compatible** and can interact if they have opposite polarities
+Two rays are **compatible** and can interact if they have opposite polarities
 **and** their terms unify.
 
 ```stellogen
 '''
-(+f X) and (-f (h a)))  are compatible with {X := (h a)}
-(+f X) and (+f a))      are incompatible because they have same head polarity
+(+f X) and (-f (h a))  are compatible with {X := (h a)}
+(+f X) and (+f a)      are incompatible because they have same head polarity
 '''
 ```
 
@@ -129,10 +133,15 @@ There are shorthands to build complex but useful terms.
 
 ### Cons lists
 
+Square brackets inside a term build a list:
+
 ```stellogen
-(show [a b c])  ' means (%cons a (%cons b %nil)), a list containing a and b
-(show [])       ' means %nil, the empty list
+(show (list [a b c]))  ' [a b c] means (%cons a (%cons b (%cons c %nil))), a list containing a, b and c
+(show (list []))       ' [] means %nil, the empty list
 ```
+
+Beware: brackets are resolved by position. Inside a term they build a list,
+but at the top level of a constellation they build a star (see below).
 
 ### Groups
 
@@ -147,13 +156,13 @@ There are shorthands to build complex but useful terms.
 
 Stars and constellations are special terms which can interact with each other.
 
-* A **star** block of rays:
+* A **star** is a block of rays:
 
 ```stellogen
 [(+f X) (-f (h a)) (+g Y)]
 ```
 
-Square brackets are omitted when there is a single ray.
+Square brackets can be omitted when there is a single ray.
 
 * A **constellation** is a group of stars:
 
@@ -162,7 +171,7 @@ Square brackets are omitted when there is a single ray.
 ```
 
 Variables are local to each star. So, in the above example, the `X` in `(+f X)`
-and the one in `[(-f X) (+g a)]` are not bound.
+and the one in `[(-f X) (+g a)]` are two distinct variables.
 
 ## Principles of Star Fusion
 
@@ -243,6 +252,9 @@ interactions are possible. The result is a new constellation.
 (show #res2)
 ```
 
+You can watch fusion happen step by step with `sgen trace test.sg`. It is a
+precious tool to understand what happens during an execution.
+
 ---
 
 ## Inequality Constraints
@@ -263,49 +275,60 @@ This prevents `X` and `Y` from unifying to the same concrete value.
 
 ---
 
-## Logic Programming
+## Relational Programming
 
-Constellations can act like logic programs (à la Prolog).
+Constellations can act like relational databases: facts are positive rays and
+queries are focused stars with negative rays.
 
 ### Facts
 
 ```stellogen
-(def facts {
-  [(+childOf a b)]
-  [(+childOf a c)]
-  [(+childOf c d)]
+(def edges {
+  [(+edge a b)]
+  [(+edge b c)]
 })
-```
-
-### Rule
-
-```stellogen
-(def rules { (-childOf X Y) (-childOf Y Z) (+grandParentOf Z X) })
 ```
 
 ### Query
 
+A query asks for all values matching a pattern:
+
 ```stellogen
-[(-childOf X b) (res X)]
+(show (exec #edges @[(-edge a X) (res X)]))
+' => (res b)
 ```
+
+### Rules
+
+A rule is a single star with a positive conclusion and negative premises:
+
+```stellogen
+(def hop [(-edge X Y) (-edge Y Z) (+hop X Z)])
+```
+
+It reads: if there is an edge from `X` to `Y` and an edge from `Y` to `Z`,
+then there is a hop from `X` to `Z`. Beware: since variables are local to
+each star, a rule must be one star, otherwise its premises cannot share
+variables with its conclusion.
 
 ### Putting it together
 
 ```stellogen
-(def facts {
-  [(+childOf a b)]
-  [(+childOf a c)]
-  [(+childOf c d)]
-  [(-childOf X Y) (-childOf Y Z) (+grandParentOf Z X)]
+(def edges {
+  [(+edge a b)]
+  [(+edge b c)]
 })
 
-(def rules { (-childOf X Y) (-childOf Y Z) (+grandParentOf Z X) })
+(def hop [(-edge X Y) (-edge Y Z) (+hop X Z)])
 
-(def query [(-childOf X b) (res X)])
-(show (exec { #facts #rules @#query }))
+(show (exec { #edges #hop } @[(-hop a Z) (res Z)]))
+' => (res c)
 ```
 
-This asks: *Who are the children of `b`?*
+This asks: *where can we go from `a` in exactly two steps?*
+
+Note that execution computes all answers at once by saturation. There is no
+clause order, no search and no backtracking.
 
 ---
 
@@ -348,27 +371,31 @@ will replace `Q` by `q0` in `[(-i W) (+a W Q)]` so we get
 **Macros** work like definitions except that are applied before actual
 execution in a preprocessing phase:
 
-```
-' replace (spec X Y) by (def X Y) everywhere in the code
-(macro (spec X Y) (def X Y))
+```stellogen
+' replace (assert X Y) by (== X Y) everywhere in the code
+(macro (assert X Y) (== X Y))
+(assert a a)
 ```
 
 Notice that they do not involve any call with `#`, they replace terms.
 
+You can display your code after macro expansion with `sgen preprocess test.sg`
+to check what your macros actually do.
+
 ### Nested phantom constellations
 
-Some terms like `:=`, `show` or `==` are not interactive terms which can
-be executed as constellations but they have an effect on the environement.
+Some terms like `def`, `show` or `==` are not interactive terms which can
+be executed as constellations but they have an effect on the environment.
 
 In fact, they can occur anywhere in the code and produce an effect when
-evaluated but they and considered like empty constellations `{}`.
+evaluated but they are considered like empty constellations `{}`.
 
 For example:
 
 ```stellogen
-(exec [(+f X) X] (-f a) (def x "Hello1"))
+(exec [(+f X) X] (-f a) (def x hello1))
 (show #x)
-(def y (show "Hello2"))
+(def y (show hello2))
 #y
 ```
 
@@ -393,10 +420,12 @@ In Stellogen, **types are sets of tests** that a constellation must pass to be
 of that type.
 
 For example, we define a type for natural numbers which is simply a
-constellation corresponding to a "test":
+constellation corresponding to a "test". We use `spec` instead of `def`: it
+works exactly the same but marks the intent that the definition is a
+specification:
 
 ```stellogen
-(def nat {
+(spec nat {
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 ```
@@ -412,16 +441,14 @@ We then define the behavior of type assertions with a macro:
 It says that a `Tested` is of type `Test` when their interaction with focus on
 `Tested` is equal to `ok`.
 
-A constellation can have one or several types:
-
 ```stellogen
 ' passes the test
-(def 2 (+nat (s (s 0))))
-(:: 2 nat)
+(def two (+nat (s (s 0))))
+(:: two nat)
 
 ' does not pass the test
-(def 2 (+nat 2)
-' (:: 2 nat)
+(def bad (+nat foo))
+' (:: bad nat)
 ```
 
 Notice that a constellation can have several types providing it passes all
