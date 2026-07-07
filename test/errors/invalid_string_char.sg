@@ -1,2 +1,2 @@
-' Test invalid escape in string
+; Test invalid escape in string
 (def test "valid\qinvalid")

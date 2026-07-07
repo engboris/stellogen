@@ -293,21 +293,19 @@
                 <div id="line-numbers" aria-hidden="true"></div>
                 <div class="editor-wrapper">
                     <div id="highlight-layer" aria-hidden="true"></div>
-                    <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">'''
-Terms
-'''
-X             ' variable (uppercase)
-a             ' constant (lowercase & symbols)
-$             ' another constant
-(f X a)       ' function (constant) with terms as arguments
-(+f X)        ' function with positive polarity
-(-f X)        ' function with negative polarity
-(-f (+f X) Y) ' nested functions
-' Every Stellogen expression have these shapes (directly or indirectly)
+                    <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">; Terms
 
-'''
-Term with effect: display terms
-'''
+X             ; variable (uppercase)
+a             ; constant (lowercase & symbols)
+$             ; another constant
+(f X a)       ; function (constant) with terms as arguments
+(+f X)        ; function with positive polarity
+(-f X)        ; function with negative polarity
+(-f (+f X) Y) ; nested functions
+; Every Stellogen expression have these shapes (directly or indirectly)
+
+; Term with effect: display terms
+
 (show hello)
 (show hello world !)</textarea>
                 </div>
@@ -382,18 +380,8 @@ Term with effect: display terms
             while (pos < code.length) {
                 let matched = false;
 
-                // Comments (multi-line first)
-                if (code.substr(pos, 3) === "'''") {
-                    const end = code.indexOf("'''", pos + 3);
-                    if (end !== -1) {
-                        tokens.push({ type: 'comment', text: code.substring(pos, end + 3) });
-                        pos = end + 3;
-                        matched = true;
-                    }
-                }
-
-                // Single-line comments
-                if (!matched && code[pos] === "'" && (pos === 0 || code[pos-1] !== "'")) {
+                // Comments
+                if (!matched && code[pos] === ";") {
                     const end = code.indexOf('\n', pos);
                     const commentEnd = end === -1 ? code.length : end;
                     tokens.push({ type: 'comment', text: code.substring(pos, commentEnd) });

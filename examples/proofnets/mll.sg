@@ -1,85 +1,85 @@
 (use "../milkyway/prelude.sg")
 
-''' ============================================ '''
-''' MULTIPLICATIVE LINEAR LOGIC PROOF-STRUCTURES '''
-''' ============================================ '''
-' MLL proof-structures is a representation of mathematical proofs
-' for an elementary fragment of logic dealing with the most
-' elementary mechanisms of logical implication.
-'
-' They are graphs with natural numbers as vertices which are linked
-' by the following constructors:
-'
-'     ax
-'     __     (axiom)                 (cut)
-'    /  \                    \__/
-'                             cut
-'
-'
-'     \ /                    \ /
-'      ⊗     (tensor)         ⅋      (par)
-'      |                      |
-'
-'
-' Proof-structures can be executed by a graph-contraction
-' procedure called "cut-elimination" using two rules:
-'
-'     ax
-'     __   2
-'    /  \__/       ~~ax/cut~~>   1
-'    1   cut
-'
-'    contracting two vertices
-'
-'    1 2    3  4               1 2    3  4
-'    \ /     \ /               | |    |  |
-'     ⅋       ⊗    ~~⅋/⊗~~>    \ \____/__/
-'      \_____/                  \    / cut
-'        cut                     \__/
-'                                cut
-'
-'   rewiring the connections upward (left input with
-'   left input and right with right).
+;  ============================================
+;  MULTIPLICATIVE LINEAR LOGIC PROOF-STRUCTURES
+;  ============================================
+; MLL proof-structures is a representation of mathematical proofs
+; for an elementary fragment of logic dealing with the most
+; elementary mechanisms of logical implication.
+;
+; They are graphs with natural numbers as vertices which are linked
+; by the following constructors:
+;
+;     ax
+;     __     (axiom)                 (cut)
+;    /  \                    \__/
+;                             cut
+;
+;
+;     \ /                    \ /
+;      ⊗     (tensor)         ⅋      (par)
+;      |                      |
+;
+;
+; Proof-structures can be executed by a graph-contraction
+; procedure called "cut-elimination" using two rules:
+;
+;     ax
+;     __   2
+;    /  \__/       ~~ax/cut~~>   1
+;    1   cut
+;
+;    contracting two vertices
+;
+;    1 2    3  4               1 2    3  4
+;    \ /     \ /               | |    |  |
+;     ⅋       ⊗    ~~⅋/⊗~~>    \ \____/__/
+;      \_____/                  \    / cut
+;        cut                     \__/
+;                                cut
+;
+;   rewiring the connections upward (left input with
+;   left input and right with right).
 
-''' ======================================================== '''
-''' ENCODING '''
-''' ======================================================== '''
-' The idea is that an axiom between a and b will be a
-' binary positive star:
+;  ========================================================
+;  ENCODING
+;  ========================================================
+; The idea is that an axiom between a and b will be a
+; binary positive star:
 [(+a X) (+b X)]
 
-' A cut between vertices a and b will be binary negative star:
+; A cut between vertices a and b will be binary negative star:
 [(-a X) (-b X)]
 
-' A proof of (a ⅋ b) coming from a proof v is obtained by turning rays
+; A proof of (a ⅋ b) coming from a proof v is obtained by turning rays
 (+a X) (+b X)
-' of the constellation corresponding to v into
+; of the constellation corresponding to v into
 (+(⅋ a b) [l|X]) (+(⅋ a b) [r|X])
 
-' A proof of (a ⅋ b) coming from proofs va and vb is obtained by turning rays
+; A proof of (a ⅋ b) coming from proofs va and vb is obtained by turning rays
 (+a X)
-' of the constellation corresponding to va into
+; of the constellation corresponding to va into
 (+(⊗ a b) [l|X])
-' and turning rays
+; and turning rays
 (+b X)
-' of the constellation corresponding to vb into
+; of the constellation corresponding to vb into
 (+(⊗ a b) [r|X])
 
 
-''' ======================================================== '''
-''' EXAMPLE '''
-''' ======================================================== '''
-'
-'   ax   ax   ax
-'   _    __   __
-'  / \  /  \ /  \
-'  1 2  3  4 5  6
-'  \ /     \ /
-'   ⅋       ⊗
-'   |_______|
-'      cut
+;  ========================================================
+;  EXAMPLE
+;  ========================================================
+;
+;   ax   ax   ax
+;   _    __   __
+;  / \  /  \ /  \
+;  1 2  3  4 5  6
+;  \ /     \ /
+;   ⅋       ⊗
+;   |_______|
+;      cut
 
-'    becomes
+;    becomes
 
 (def x {
   [(+(⅋ 1 2) [l|X]) (+(⅋ 1 2) [r|X])]
@@ -88,75 +88,75 @@
   [(-(⅋ 1 2) X) (-(⊗ 4 5) X)]
 })
 
-' by cut-elimination, it is evaluated into
-'
-'   ax    ax    ax
-'   __    __    __
-'  /  \  /  \  /  \
-'  1  2  3  4  5  6
-'  \   \____/__/
-'   \   cut/
-'    \____/
-'     cut
-'
-'    then
-'
-'   [1, 2]  [3, 4]  [5, 6]
-'    \   \______/____/
-'     \________/
-'
-'    then
-'
-'   [1, 6]  [3, 4]
-'    \          /
-'     \________/
-'
-'    then
-'
-'   [3, 6]
-'
-' This corresponds to the following execution in stellogen
-' in which [] is a way to initiate a starting point in computation
+; by cut-elimination, it is evaluated into
+;
+;   ax    ax    ax
+;   __    __    __
+;  /  \  /  \  /  \
+;  1  2  3  4  5  6
+;  \   \____/__/
+;   \   cut/
+;    \____/
+;     cut
+;
+;    then
+;
+;   [1, 2]  [3, 4]  [5, 6]
+;    \   \______/____/
+;     \________/
+;
+;    then
+;
+;   [1, 6]  [3, 4]
+;    \          /
+;     \________/
+;
+;    then
+;
+;   [3, 6]
+;
+; This corresponds to the following execution in stellogen
+; in which [] is a way to initiate a starting point in computation
 (def comp (exec #x @[(-3 X) (+3 X)]))
 (def res { [(+3 X) (+6 X)] })
 (~= #comp #res)
 
-' as for the proof of identity (A ⊗ B) -o (A ⊗ B):
-'
-'   ax   ax
-'   _    _
-'  / \  / \
-'  1 2  3 4
-'  \ /  \ /
-'   ⅋    ⊗
-'   |____|
-'     cut
-'
-'   it becomes
+; as for the proof of identity (A ⊗ B) -o (A ⊗ B):
+;
+;   ax   ax
+;   _    _
+;  / \  / \
+;  1 2  3 4
+;  \ /  \ /
+;   ⅋    ⊗
+;   |____|
+;     cut
+;
+;   it becomes
 (def proof? {
   [(+(⅋ 1 2) [l|X]) (+(⊗ 3 4) [l|X])]
   [(+(⅋ 1 2) [r|X]) (+(⊗ 3 4) [r|X])]
 })
 
-' Actually, all rays could have a unique natural number as head symbol and
-' it would still work the same
+; Actually, all rays could have a unique natural number as head symbol and
+; it would still work the same
 
-''' ======================================================== '''
-''' SUCCESSFUL TYPING '''
-''' ======================================================== '''
-' We want to check that we have a proof of identity
-' (A ⊗ B) -o (A ⊗ B)
-' with the previous constellation
+;  ========================================================
+;  SUCCESSFUL TYPING
+;  ========================================================
+; We want to check that we have a proof of identity
+; (A ⊗ B) -o (A ⊗ B)
+; with the previous constellation
 #proof?
 
-' We do it in two steps.
-' 1. checking the structure of the candidate
-' 2. checking that the duality of variables is coherent
+; We do it in two steps.
+; 1. checking the structure of the candidate
+; 2. checking that the duality of variables is coherent
 
-' Specification with tests returning [ok] when interacting
-' with a constellation having the shape of a proof of
-' (_ ⊗ _) ⊸ (_ ⊗ _)
-' Each test is a separate constellation in the galaxy.
+; Specification with tests returning [ok] when interacting
+; with a constellation having the shape of a proof of
+; (_ ⊗ _) ⊸ (_ ⊗ _)
+; Each test is a separate constellation in the galaxy.
 (spec (⊸ (⊗ A B) (⊗ C D))
   {@[(- (var A)) (- (var B)) (+ (⊗ A B))]
    [(- (var C))] [(- (var D)) (+ (⅋ C D))]
@@ -175,7 +175,7 @@
    [(- (⊗ A B))] [+concl (- (⅋ C D))]
    [-concl ok]})
 
-' Check if proof? satisfies the test-based specification
+; Check if proof? satisfies the test-based specification
 (def adapters {
   [(-(⅋ 1 2) [l|X]) (+ (var 1))]
   [(-(⅋ 1 2) [r|X]) (+ (var 2))]
@@ -184,19 +184,19 @@
 })
 (def proof?+adapters (exec @#proof? #adapters))
 
-' Linear type assertion: proof is action, test has its own focus
+; Linear type assertion: proof is action, test has its own focus
 (macro (::lin Tested Test)
   (forall Test T
     (== @(fire #Tested #T) ok)))
 
 (::lin proof?+adapters (⊸ (⊗ 1 2) (⊗ 3 4)))
 
-' Check if duality is coherent
-' TODO
+; Check if duality is coherent
+; TODO
 
-''' ======================================================== '''
-''' FAILING TYPING '''
-''' ======================================================== '''
+;  ========================================================
+;  FAILING TYPING
+;  ========================================================
 
 (spec (⊗ A B)
   {@[(- (var A)) (- (var B)) (+ (⊗ A B))]
@@ -205,15 +205,15 @@
 (def proof? [(+1 X) (+2 X)])
 (def adapters { [(-1 X) (+ (var 1))] [(-2 X) (+ (var 2))] })
 (def proof?+adapters (exec @#proof? #adapters))
-'(::lin proof?+adapters (⊗ 1 2)) ' does not typecheck
+;(::lin proof?+adapters (⊗ 1 2)) ; does not typecheck
 
-''' ======================================================== '''
-''' COMPRESSED TESTS '''
-''' ======================================================== '''
-' Actually, constellations corresponding to proofs
-' have internal connections which could be compressed
-' by pre-executing them, thus avoiding unecessary computation.
-' The two specifications above become:
+;  ========================================================
+;  COMPRESSED TESTS
+;  ========================================================
+; Actually, constellations corresponding to proofs
+; have internal connections which could be compressed
+; by pre-executing them, thus avoiding unecessary computation.
+; The two specifications above become:
 
 (spec (comp-o (⊗ A B) (⊗ C D))
   {@[(- (var A)) (- (var B)) +concl] [(- (var C))] [(- (var D))]

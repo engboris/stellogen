@@ -13,7 +13,7 @@
 
 (def x (+ok a)) (:: x result)
 
-'pattern matching
+;pattern matching
 (def get_ok {
   [(-ok X) X]
   [(-error X) (+error X)]})

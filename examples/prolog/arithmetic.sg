@@ -1,15 +1,11 @@
-'''
-Note: Stellogen is NOT clause-based so it does not work like
-Datalog or Prolog although it can reproduce some programs
-(for instance, programs with single recursive argument or
-multiple non-recursive arguments).
+; Note: Stellogen is NOT clause-based so it does not work like
+; Datalog or Prolog although it can reproduce some programs
+; (for instance, programs with single recursive argument or
+; multiple non-recursive arguments).
+;
+; Having mechanisms to simulate the behavior of Prolog are needed.
 
-Having mechanisms to simulate the behavior of Prolog are needed.
-'''
-
-'''
-ARITHMETIC FUNCTIONS
-'''
+; ARITHMETIC FUNCTIONS
 
 (def add {
   [(+add 0 Y Y)]
@@ -19,37 +15,33 @@ ARITHMETIC FUNCTIONS
   [(-sub X Y Z) (+sub (s X) (s Y) Z)]})
 (def knowledge { #add #sub })
 
-'''
-UNARY ADDITION
-'''
+; UNARY ADDITION
 
 (def (add_query X Y R)
   [(-add X Y R) (result of X + Y = R)])
 
-' Query: 0 + 0 = ?
+; Query: 0 + 0 = ?
 (show (exec #knowledge @#(add_query 0 0 R)))
 
-' Query: 0 + 4 = ?
+; Query: 0 + 4 = ?
 (show (exec #knowledge @#(add_query 0 (s (s (s (s 0)))) R)))
 
-' Query: 2 + 2 = ?
+; Query: 2 + 2 = ?
 (show (exec #knowledge @#(add_query (s (s 0)) (s (s 0)) R)))
 
-' Query: 2 + ? = 4
+; Query: 2 + ? = 4
 (show (exec #knowledge @#(add_query (s (s 0)) R (s (s (s (s 0)))))))
 
-'''
-UNARY SUBSTRACTION
-'''
+; UNARY SUBSTRACTION
 
 (def (sub_query X Y R)
   [(-sub X Y R) (result of X - Y = R)])
 
-' Query: 0 - 0 = ?
+; Query: 0 - 0 = ?
 (show (exec #knowledge @#(sub_query 0 0 R)))
 
-' Query: 4 - 2 = ?
+; Query: 4 - 2 = ?
 (show (exec #knowledge @#(sub_query (s (s (s (s 0)))) (s (s 0)) R)))
 
-' Query: ? - 2 = 2
+; Query: ? - 2 = 2
 (show (exec #knowledge @#(sub_query R (s (s 0)) (s (s 0)))))

@@ -1,2 +1,2 @@
-' Test mismatched parentheses
+; Test mismatched parentheses
 (def test (foo bar]

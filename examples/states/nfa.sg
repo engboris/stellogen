@@ -5,7 +5,7 @@
    [(-i [0|X]) (+i X)]
    [(-i [1|X]) (+i X)]})
 
-'input words
+;input words
 (def e (+i []))        (:: e binary)
 (def 0 (+i [0]))       (:: 0 binary)
 (def 000 (+i [0 0 0])) (:: 000 binary)
@@ -16,9 +16,7 @@
 (def (accept Q) [(-a [] Q) accept])
 (def (if read C1 on Q1 then Q2) [(-a [C1|W] Q1) (+a W Q2)])
 
-'''
-automaton accepting words ending with 00
-'''
+; automaton accepting words ending with 00
 (def a1 {
   #(initial q0)
   #(accept q2)

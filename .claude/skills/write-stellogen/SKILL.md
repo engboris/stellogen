@@ -57,6 +57,6 @@ If the program needs the `::` type assertion macro, start with:
 
 ## Output
 
-Write clean, commented Stellogen code. Use `'` comments to explain the structure. Group related definitions together. Test with `show` and `==` where appropriate.
+Write clean, commented Stellogen code. Use `;` comments to explain the structure. Group related definitions together. Test with `show` and `==` where appropriate.
 
 If $ARGUMENTS is provided, treat it as the description of what to write.

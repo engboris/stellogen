@@ -3,57 +3,57 @@
 ## Syntax Quick Reference
 
 ```stellogen
-' Comments (single line)
-''' Multi-line comments '''
+; Comments (single line)
+;  Multi-line comments
 
-' Terms
-X Y Z              ' Variables (uppercase, local to each star)
-a bob 0            ' Constants (lowercase/digits)
-(f X a)            ' Function application
-(+f X)             ' Positive polarity (provides)
-(-f X)             ' Negative polarity (requests)
+; Terms
+X Y Z              ; Variables (uppercase, local to each star)
+a bob 0            ; Constants (lowercase/digits)
+(f X a)            ; Function application
+(+f X)             ; Positive polarity (provides)
+(-f X)             ; Negative polarity (requests)
 
-' Structures
-[ray1 ray2 ...]    ' Star (block of rays)
-{ star1 star2 }    ' Constellation (group of stars)
-@[...]             ' Focused star (state — REQUIRED for execution targets)
-@{...}             ' Focus all stars in constellation
+; Structures
+[ray1 ray2 ...]    ; Star (block of rays)
+{ star1 star2 }    ; Constellation (group of stars)
+@[...]             ; Focused star (state — REQUIRED for execution targets)
+@{...}             ; Focus all stars in constellation
 
-' Definitions & calls
-(def name value)          ' Definition
-(def (name A B) value)    ' Parameterised definition
-#name                     ' Call/reference
-#(name a b)               ' Call parameterised definition
-@#name                    ' Call and focus
+; Definitions & calls
+(def name value)          ; Definition
+(def (name A B) value)    ; Parameterised definition
+#name                     ; Call/reference
+#(name a b)               ; Call parameterised definition
+@#name                    ; Call and focus
 
-' Execution
-(exec actions @states)    ' Non-linear (actions reusable)
-(fire actions @states)    ' Linear (actions consumed once)
-(then c1 c2 c3)           ' Chain: exec c2 on c1, then c3 on result (built-in)
+; Execution
+(exec actions @states)    ; Non-linear (actions reusable)
+(fire actions @states)    ; Linear (actions consumed once)
+(then c1 c2 c3)           ; Chain: exec c2 on c1, then c3 on result (built-in)
 
-' Testing & display
-(show expr)               ' Display result
-(== e1 e2)                ' Assert syntactic equality
-(~= r1 r2)                ' Check unifiability (polarity is ignored)
+; Testing & display
+(show expr)               ; Display result
+(== e1 e2)                ; Assert syntactic equality
+(~= r1 r2)                ; Check unifiability (polarity is ignored)
 
-' Syntactic sugar
-[a b c]                   ' Cons list: (%cons a (%cons b (%cons c %nil)))
-[a|Tail]                  ' Cons with tail variable
+; Syntactic sugar
+[a b c]                   ; Cons list: (%cons a (%cons b (%cons c %nil)))
+[a|Tail]                  ; Cons with tail variable
 
-' Constraints
-[rays... || (!= X Y)]    ' Inequality constraint on star
+; Constraints
+[rays... || (!= X Y)]    ; Inequality constraint on star
 
-' Types (galaxy-based)
-(spec typename { tests }) ' Define type as galaxy of tests
-(:: value typename)       ' Assert value passes all tests (needs prelude)
-(forall Galaxy G body)    ' Iterate over galaxy entries
+; Types (galaxy-based)
+(spec typename { tests }) ; Define type as galaxy of tests
+(:: value typename)       ; Assert value passes all tests (needs prelude)
+(forall Galaxy G body)    ; Iterate over galaxy entries
 
-' Macros
+; Macros
 (macro (pattern) (expansion))
 (macro (pattern A B ...) (expansion using A B ...))
 
-' Imports
-(use "path.sg")           ' Import definitions and macros
+; Imports
+(use "path.sg")           ; Import definitions and macros
 ```
 
 ## Fundamental Mechanics
@@ -97,7 +97,7 @@ All automata share the same core idea: a state term consumed (-) and produced (+
 
 **Finite automaton (NFA)** — state + input consumption:
 ```stellogen
-' State term: (+a InputWord CurrentState)
+; State term: (+a InputWord CurrentState)
 (def (initial Q) [(-i W) (+a W Q)])
 (def (accept Q) [(-a [] Q) accept])
 (def (if read C on Q1 then Q2) [(-a [C|W] Q1) (+a W Q2)])
@@ -105,7 +105,7 @@ All automata share the same core idea: a state term consumed (-) and produced (+
 
 **Pushdown automaton (NPDA)** — adds an auxiliary stack:
 ```stellogen
-' State term: (+a InputWord Stack CurrentState)
+; State term: (+a InputWord Stack CurrentState)
 (def (initial Q) [(-i W) (+a W [] Q)])
 (def (accept Q) [(-a [] [] Q) accept])
 (def (if read C on Q1 then Q2 and push D) [(-a [C|W] S Q1) (+a W [D|S] Q2)])
@@ -115,9 +115,9 @@ All automata share the same core idea: a state term consumed (-) and produced (+
 
 **Turing machine** — two stacks simulate a tape (left of head + right of head):
 ```stellogen
-' State term: (+m State LeftTape CurrentSymbol RightTape)
-' Moving right = push current onto left, pop from right
-' Moving left  = push current onto right, pop from left
+; State term: (+m State LeftTape CurrentSymbol RightTape)
+; Moving right = push current onto left, pop from right
+; Moving left  = push current onto right, pop from left
 (def (initial Q) {
   [(-i [C|W]) (+m Q [e e] C W)]
   [(-i [])    (+m Q e e e)]})
@@ -163,20 +163,20 @@ MLL proof-structures are graphs with axiom links, cuts, tensor (⊗), and par (�
 
 **Axioms** — binary positive stars linking two atoms by their addresses:
 ```stellogen
-' Axiom between atoms with addresses from conclusions 1 and 2
+; Axiom between atoms with addresses from conclusions 1 and 2
 [(+1 X) (+2 X)]
 
-' Axiom above a par (conclusion 7), left and right paths
+; Axiom above a par (conclusion 7), left and right paths
 [(+7 [l|X]) (+7 [r|X])]
 
-' Axiom with left path to tensor (conclusion 8)
+; Axiom with left path to tensor (conclusion 8)
 [(+3 X) (+8 [l|X])]
 ```
 
 **Cuts** — binary negative stars connecting two conclusions:
 ```stellogen
-[-7 -8]             ' First-order MLL (no connectives)
-[(-7 X) (-8 X)]    ' Full MLL (with connectives, addresses flow through)
+[-7 -8]             ; First-order MLL (no connectives)
+[(-7 X) (-8 X)]    ; Full MLL (with connectives, addresses flow through)
 ```
 
 **Cut-elimination** = stellar execution. When a par/tensor cut is eliminated, the cut star duplicates into two cuts connecting the left and right subpaths respectively, because `[l|X]` unifies with `[l|X]` and `[r|X]` with `[r|X]`.
@@ -204,16 +204,16 @@ Linear lambda terms are encoded as MLL proof nets. Each lambda term translates t
 
 **Identity function** `λx.x` — one axiom above a par:
 ```stellogen
-' Two addresses from same conclusion (par): left = bound var, right = body
+; Two addresses from same conclusion (par): left = bound var, right = body
 (def id [(+id [l|X]) (+id [r|X])])
 ```
 
 **Application** `(M N)` — a linker with a cut between function and argument:
 ```stellogen
-' Argument term (e.g. another id, or a variable)
+; Argument term (e.g. another id, or a variable)
 (def id_arg [(ida [l|X]) (+arg [l r|X])])
 
-' Cut connecting function to argument, with focused output
+; Cut connecting function to argument, with focused output
 (def linker [
   [(-id X) (-arg X)]
   @[(+arg [r|X]) (out X)]])
@@ -225,18 +225,18 @@ Linear lambda terms are encoded as MLL proof nets. Each lambda term translates t
 ```stellogen
 (spec (larrow a a)
   {[+test1 [
-    [(-x X) (+parxy X)]    ' left switching: x active
+    [(-x X) (+parxy X)]    ; left switching: x active
     [(-y X)]
     @[(-parxy X) ok]]]}
   {[+test2 [
     [(-x X)]
-    [(-y X) (+parxy X)]    ' right switching: y active
+    [(-y X) (+parxy X)]    ; right switching: y active
     @[(-parxy X) ok]]]})
 
-' Adapt proof-net conclusions to type variable names
+; Adapt proof-net conclusions to type variable names
 (def adapter {
-  [(-id [l|X]) (+x X)]     ' left of par = bound variable
-  [(-id [r|X]) (+y X)]})   ' right of par = body/output
+  [(-id [l|X]) (+x X)]     ; left of par = bound variable
+  [(-id [r|X]) (+y X)]})   ; right of par = body/output
 ```
 
 See `examples/lambda/linear_lambda.sg` and `examples/proofnets/mll.sg` for complete examples.
@@ -245,7 +245,7 @@ See `examples/lambda/linear_lambda.sg` and `examples/proofnets/mll.sg` for compl
 Types are galaxies (collections of constellations) of interactive tests:
 ```stellogen
 (spec typename { test1 test2 ... })
-(:: value typename)   ' Passes if every test yields ok
+(:: value typename)   ; Passes if every test yields ok
 ```
 
 ## Cleaning Results

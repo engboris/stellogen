@@ -256,7 +256,7 @@ macros plus test constellations; membership is checked by *interaction*, as
 `::` already does:
 
 ```stellogen
-' systems/nat.sg — a "system" in embryo
+; systems/nat.sg — a "system" in embryo
 (spec nat {
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
@@ -271,17 +271,17 @@ to a checker as a term; the checker is an ordinary constellation that walks
 the *code*:
 
 ```stellogen
-' Sketch: an acyclicity checker receives the constellation reified as a term
-' (in the canonical %-encoding) and tests its dependency structure.
-(def acyclic-check { ... })   ' ordinary stars walking the code term
+; Sketch: an acyclicity checker receives the constellation reified as a term
+; (in the canonical %-encoding) and tests its dependency structure.
+(def acyclic-check { ... })   ; ordinary stars walking the code term
 
-' "Locking" a definition into the system — the macro splices Body twice:
-' once in code position (the def), once in term position (the check).
+; "Locking" a definition into the system — the macro splices Body twice:
+; once in code position (the def), once in term position (the check).
 (macro (in-acyclic Name Body)
   { (def Name Body)
     (== @(exec @(quote Body) #acyclic-check) ok) })
-' `quote` here is thin notation for the existing encoding (§5.2),
-' possibly a no-op — not a new evaluator mechanism.
+; `quote` here is thin notation for the existing encoding (§5.2),
+; possibly a no-op — not a new evaluator mechanism.
 ```
 
 `(in-acyclic double {...})` then *is* the lock: the definition is admitted
@@ -412,7 +412,7 @@ it carries noise that contradicts the "pure substrate" goal.
 6. **Fields/records** (`(+field k) v` + a `get` macro) are a *pattern*, and a
    good one — they already live in user space. Keep them out of the kernel;
    resist any richer record machinery.
-7. **Comment syntax** (`'` and `'''`) is unusual (quote-like) but harmless.
+7. **Comment syntax** (`'` and `'''`) is unusual (quote-like) but harmless. *(Update 2026-07-07: switched to Lisp-style `;` line comments, freeing `'` for a possible future quote marker.)*
    Not worth churn.
 
 ### 4.3 The shape of a good Stellogen file
@@ -421,11 +421,11 @@ Programs in the repo have converged on a natural shape worth codifying as the
 house style — it is also the shape of a "logic file" in the §3.5 sense:
 
 ```stellogen
-(use "...")          ' 1. notation/system imports
-(def ...)            ' 2. the objects (constellations)
-(spec ...)           ' 3. the tests (types/correctness criteria)
-(:: ... ...)         ' 4. assertions: objects pass tests
-(show (exec ...))    ' 5. demonstrations
+(use "...")          ; 1. notation/system imports
+(def ...)            ; 2. the objects (constellations)
+(spec ...)           ; 3. the tests (types/correctness criteria)
+(:: ... ...)         ; 4. assertions: objects pass tests
+(show (exec ...))    ; 5. demonstrations
 ```
 
 Definitions, then tests, then assertions, then demonstrations. Every example
@@ -452,15 +452,15 @@ wiring* cross-talk the moment they are merged into one interaction space:
 
 ```stellogen
 (def libA {
-  [(+fooA X) (-tmp X)]    ' `tmp` is libA's private wiring
+  [(+fooA X) (-tmp X)]    ; `tmp` is libA's private wiring
   [(+tmp a)]})
 (def libB {
-  [(+fooB X) (-tmp X)]    ' libB coincidentally also wires with `tmp`
+  [(+fooB X) (-tmp X)]    ; libB coincidentally also wires with `tmp`
   [(+tmp b)]})
 
 (show (exec { #libA #libB } @[(-fooA X) X]))
-' today: { [a] [b] } — libB's private [+tmp b] answered a query
-' it was never meant to see. Expected: a.
+; today: { [a] [b] } — libB's private [+tmp b] answered a query
+; it was never meant to see. Expected: a.
 ```
 
 Compatibility is decided purely by symbol + polarity + unifiability,

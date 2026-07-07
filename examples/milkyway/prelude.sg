@@ -1,7 +1,7 @@
-' Stellogen Prelude
-' Common macros for type system and testing
+; Stellogen Prelude
+; Common macros for type system and testing
 
-' Macro for type assertion (iterates over galaxy of tests)
+; Macro for type assertion (iterates over galaxy of tests)
 (macro (:: Tested Test)
   (forall Test T
     (== @(exec @#Tested #T) ok)))

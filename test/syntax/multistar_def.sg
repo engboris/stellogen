@@ -1,18 +1,18 @@
-' Test: def with multiple stars (no braces needed)
+; Test: def with multiple stars (no braces needed)
 
-' Define addition with stars directly
+; Define addition with stars directly
 (def add
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))])
 
-' Test it works: 2 + 2 = 4
+; Test it works: 2 + 2 = 4
 (== @(exec @[(-add (s (s 0)) (s (s 0)) R) R] #add) (s (s (s (s 0)))))
 
-' Single star def still works
+; Single star def still works
 (def single [(+f a)])
 (== #single (+f a))
 
-' Equivalent to braces version
+; Equivalent to braces version
 (def add2 {
   [(+add2 0 Y Y)]
   [(-add2 X Y Z) (+add2 (s X) Y (s Z))]})

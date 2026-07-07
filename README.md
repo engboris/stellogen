@@ -60,21 +60,21 @@ Stellogen's constellation-based model supports multiple programming paradigms:
 ## Quick Example
 
 ```stellogen
-' Define variable x as positive first-order term +f(a)
+; Define variable x as positive first-order term +f(a)
 (def x (+f a))
 
-' Define variable y as block of terms containing +f(X) and X
+; Define variable y as block of terms containing +f(X) and X
 (def y [(-f X) X])
 
-' Display [(-f X) X] on screen
+; Display [(-f X) X] on screen
 (show #y)
 
-' Make x and y interact along (+f a) and (-f X)
-' The conflict is resolved and propagated to the other term X
-' It results in [a]
+; Make x and y interact along (+f a) and (-f X)
+; The conflict is resolved and propagated to the other term X
+; It results in [a]
 (def result (exec #x @#y))
 
-' Display result [a] on screen
+; Display result [a] on screen
 (show #result)
 ```
 

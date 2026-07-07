@@ -51,22 +51,22 @@ Exactly stellar resolution as in the thesis — no additions. The full
 grammar fits in a dozen lines:
 
 ```
-term   ::=  VAR                        ' uppercase: X, Result
-         |  fun                        ' constant: a, 0, bob
-         |  (fun term ...)             ' application: (s (s 0))
-         |  [term ...]                 ' sugar: cons list, %cons/%nil
-         |  "chars"                    ' sugar: string as term
+term   ::=  VAR                        ; uppercase: X, Result
+         |  fun                        ; constant: a, 0, bob
+         |  (fun term ...)             ; application: (s (s 0))
+         |  [term ...]                 ; sugar: cons list, %cons/%nil
+         |  "chars"                    ; sugar: string as term
 
-ray    ::=  term | +term | -term      ' polarity on the head symbol
+ray    ::=  term | +term | -term      ; polarity on the head symbol
 
 star   ::=  [ray ...]
-         |  [ray ... || constraint ...]     ' e.g. || (!= X Y)
+         |  [ray ... || constraint ...]     ; e.g. || (!= X Y)
 
-cell   ::=  star | @star                    ' @ = focus: state vs action
+cell   ::=  star | @star                    ; @ = focus: state vs action
 
 const  ::=  cell
          |  { cell ... }
-         |  @{ cell ... }                   ' focus everything inside
+         |  @{ cell ... }                   ; focus everything inside
 ```
 
 That is the whole object language. Things that are *not* in it, and never
@@ -109,8 +109,8 @@ Every surface expression already *is* a first-order term (`ray_of_expr`):
 
 ```
 [a b]        ⇝  (%cons a (%cons b %nil))
-{ s1 s2 }    ⇝  (%group s1' s2')
-(f a b)      ⇝  (f a b)                 ' applications are themselves
+{ s1 s2 }    ⇝  (%group s1; s2')
+(f a b)      ⇝  (f a b)                 ; applications are themselves
 "hi"         ⇝  (%string ...)
 ```
 
@@ -184,23 +184,23 @@ The entire ideal prelude. Small enough to read over coffee; everything in
 it is a fixed-arity macro over layers 0–1:
 
 ```stellogen
-' prelude.sg — standard notation. No computation, only spelling.
+; prelude.sg — standard notation. No computation, only spelling.
 
-' Type assertion: run every test in the galaxy, expect ok.
+; Type assertion: run every test in the galaxy, expect ok.
 (macro (:: Tested Test)
   (forall Test T
     (== @(exec @#Tested #T) ok)))
 
-' A spec is a def with intent: the thing defined is a test suite.
+; A spec is a def with intent: the thing defined is a test suite.
 (macro (spec Name Tests)
   (def Name Tests))
 
-' Field access over the fields *pattern* (records stay user space).
+; Field access over the fields *pattern* (records stay user space).
 (macro (get G X)
   (exec #G @[(-field X)]))
 
-' Term-position marker for reified code. Elaborates to the canonical
-' %-encoding of E — possibly the identity, but the reader sees intent.
+; Term-position marker for reified code. Elaborates to the canonical
+; %-encoding of E — possibly the identity, but the reader sees intent.
 (macro (quote E)
   E)
 ```
@@ -229,23 +229,23 @@ mode.
 ### 5.1 A shape system: `systems/acyclic.sg`
 
 ```stellogen
-' systems/acyclic.sg
-' GUARANTEE (thesis, Ch. 9): constellations whose dependency graph is
-' acyclic terminate under exec. The checker accepts only such code.
+; systems/acyclic.sg
+; GUARANTEE (thesis, Ch. 9): constellations whose dependency graph is
+; acyclic terminate under exec. The checker accepts only such code.
 
 (use "prelude.sg")
 
-' The checker: ordinary stars that walk a %-encoded constellation,
-' extract (symbol, polarity) pairs per star, build the dependency
-' graph, and search for a cycle. Interaction yields `ok` iff none.
-' Internal wiring symbols are prefixed (acyclic-...) by convention (§2.1).
+; The checker: ordinary stars that walk a %-encoded constellation,
+; extract (symbol, polarity) pairs per star, build the dependency
+; graph, and search for a cycle. Interaction yields `ok` iff none.
+; Internal wiring symbols are prefixed (acyclic-...) by convention (§2.1).
 (def acyclic-check
   {[(-check Code) (+acyclic-walk Code %nil)]
-   ' ... graph construction and cycle search, ~20 stars ...
+   ; ... graph construction and cycle search, ~20 stars ...
    })
 
-' The lock: splice Body twice — in code position (the def) and in
-' term position (the checker's input).
+; The lock: splice Body twice — in code position (the def) and in
+; term position (the checker's input).
 (macro (in-acyclic Name Body)
   { (def Name Body)
     (== @(exec @[(-check (quote Body))] #acyclic-check) ok) })
@@ -259,10 +259,10 @@ Using it:
 (in-acyclic add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
-' Admitted only if the checker accepts the *shape* of the code.
-' By the paper theorem, (exec #add ...) terminates. That sentence —
-' checker accepted, therefore property holds — is the entire meaning
-' of "type system" here.
+; Admitted only if the checker accepts the *shape* of the code.
+; By the paper theorem, (exec #add ...) terminates. That sentence —
+; checker accepted, therefore property holds — is the entire meaning
+; of "type system" here.
 ```
 
 Note what did *not* happen: no compiler flag, no new judgment in the
@@ -276,22 +276,22 @@ is needed.
 The flagship (§8 of the evaluation doc). Same triple, richer content:
 
 ```stellogen
-' logics/mll.sg
-' GUARANTEE (paper): proof structures accepted by the correctness
-' checker are exactly the MLL-sequentializable ones (Danos–Regnier).
+; logics/mll.sg
+; GUARANTEE (paper): proof structures accepted by the correctness
+; checker are exactly the MLL-sequentializable ones (Danos–Regnier).
 
 (use "prelude.sg")
 
-' Notation: macros for building proof structures as constellations —
-' (ax A) (cut S1 S2) (tensor S1 S2) (par S) ...
+; Notation: macros for building proof structures as constellations —
+; (ax A) (cut S1 S2) (tensor S1 S2) (par S) ...
 
-' Checker: the switching/trip criterion as a test galaxy — each test
-' is one switching; correctness = every interaction yields ok.
-(spec mll-correct { ' one star-block per switching test ... 
+; Checker: the switching/trip criterion as a test galaxy — each test
+; is one switching; correctness = every interaction yields ok.
+(spec mll-correct { ; one star-block per switching test ... 
   })
 
-' A proof net is then certified the same way a nat is typed:
-' (:: my-proof-structure mll-correct)
+; A proof net is then certified the same way a nat is typed:
+; (:: my-proof-structure mll-correct)
 ```
 
 The pattern generalizes: `logics/` grows one file per certified fragment
@@ -306,7 +306,7 @@ common case:
 
 ```stellogen
 #system mll
-' sugar for: (use "logics/mll.sg") + wrap top-level defs in the lock
+; sugar for: (use "logics/mll.sg") + wrap top-level defs in the lock
 ```
 
 A pragma, not a second reader. It is listed here only to mark the ceiling
@@ -321,29 +321,29 @@ The house style — definitions, then tests, then assertions, then
 demonstrations — with every layer visible:
 
 ```stellogen
-' peano.sg — natural numbers, certified terminating.
+; peano.sg — natural numbers, certified terminating.
 
-(use "prelude.sg")                              ' layer 2: notation
-(use "systems/acyclic.sg")                      ' layer 3: a system
+(use "prelude.sg")                              ; layer 2: notation
+(use "systems/acyclic.sg")                      ; layer 3: a system
 
-' ── objects ────────────────────────────────────────────── layer 0
+; ── objects ────────────────────────────────────────────── layer 0
 (in-acyclic add {
   [(+add 0 Y Y)]
   [(-add X Y Z) (+add (s X) Y (s Z))]})
 
-' ── tests ──────────────────────────────────────────────── layer 0
+; ── tests ──────────────────────────────────────────────── layer 0
 (spec nat {
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 
-' ── assertions ─────────────────────────────────────────── layer 2→1
+; ── assertions ─────────────────────────────────────────── layer 2→1
 (def two (+nat (s (s 0))))
 (:: two nat)
 
 (def four [(-add (s (s 0)) (s (s 0)) R) R])
 (== @(exec #add @#four) [(s (s (s (s 0))))])
 
-' ── demonstrations ─────────────────────────────────────── layer 1
+; ── demonstrations ─────────────────────────────────────── layer 1
 (show (exec #add @#four))
 ```
 
@@ -357,10 +357,10 @@ exactly the concepts that cross the boundary.
 And the workbench session around it:
 
 ```
-$ sgen run peano.sg          ' assertions checked, shows printed
-$ sgen preprocess peano.sg   ' the same file, layers 2–3 elaborated away:
-                             ' pure layer 0–1 forms — the trust witness
-$ sgen trace peano.sg        ' fusion-by-fusion account of one exec
+$ sgen run peano.sg          ; assertions checked, shows printed
+$ sgen preprocess peano.sg   ; the same file, layers 2–3 elaborated away:
+                             ; pure layer 0–1 forms — the trust witness
+$ sgen trace peano.sg        ; fusion-by-fusion account of one exec
 ```
 
 ---
@@ -369,7 +369,7 @@ $ sgen trace peano.sg        ' fusion-by-fusion account of one exec
 
 | Item | Today | Ideal | Action |
 |---|---|---|---|
-| S-expressions, `'` comments | ✓ | ✓ | keep |
+| S-expressions, `;` comments | ✓ | ✓ | keep |
 | Sigils `+ - @ #` | ✓ | ✓ | keep |
 | `[...]` stars / `{...}` constellations | ✓ | ✓ | keep |
 | `[a b]` cons sugar in term position | ✓, undocumented hazard | ✓, documented rule (§2.3) | document |

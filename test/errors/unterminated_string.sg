@@ -1,2 +1,2 @@
-' Test unterminated string literal
+; Test unterminated string literal
 (def test "unterminated
