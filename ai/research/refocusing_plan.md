@@ -162,44 +162,34 @@ deferral recorded so it is not re-litigated from scratch. Rationale:
 
 ## Phase 3: Reframe and Rebuild Content
 
-### 3.1 Rename `examples/prolog/` to `examples/relational/` — **pending**
-- **Why:** The name frames Stellogen as a Prolog imitator; no formal
-  correspondence with SLD semantics exists (thesis Ch. 9).
-- **Action:** `mv examples/prolog examples/relational`; update `use`
-  references; note in each file: relational reasoning by interaction, not
-  Prolog emulation.
-
-### 3.2 Fix `family.sg` grandparent limitation — **pending (approach settled)**
-- Resolved without any kernel feature: rewrite the rule with both subgoals
-  negative — `[(+grandparent X of Z) (-parent X of Y) (-parent Y of Z)]` —
-  verified working (`bob`; `{[ann] [pat]}` plus a stuck star for the
-  childless branch). The rule as currently written diverges (its
-  `+parent`/`-parent` pair feeds itself across copies). Reframe the file as
-  saturation-style relational reasoning per 3.1, and note the stuck-star
-  residue as expected behaviour, not failure.
-
-### 3.3 Reframe `examples/hello.sg` — **pending**
+### 3.1 Reframe `examples/hello.sg` — **pending**
 - **Action:** Add a minimal fact + query + execution so the first thing a
   user sees is stellar resolution in action, not term printing.
 
-### 3.4 Reframe `examples/stack.sg` — **pending**
+### 3.2 Reframe `examples/stack.sg` — **pending**
 - **Action:** Frame as "encoding a stack machine's operational semantics;
   each rule is a transition."
 
-### 3.5 Clean up `examples/macro_demo.sg` — **pending**
+### 3.3 Clean up `examples/macro_demo.sg` — **pending**
 - **Action:** Remove the dubious nested `def`-inside-`exec`; show macros
   building logical notation only (fixed-arity).
 
-### 3.6 Rewrite `BASICS.md` logic section — **pending**
+### 3.4 Rewrite `BASICS.md` logic section — **pending**
 - **Action:** Use Stellogen's own vocabulary: axioms (positive stars),
   inference rules (negative-to-positive stars), goals (focused negative
   stars), theories (constellations). Promote types-as-tests.
+- Include the divergence caveat found while reworking `examples/relational/`:
+  a rule whose negative premise shares its own conclusion's predicate
+  (e.g. transitive closure) can diverge under `exec` — nothing forces the
+  free variables toward a ground base case, and there is no fixpoint/
+  memoization to cut it off. Contrast with `arithmetic.sg`'s recursion,
+  which terminates because its argument structurally shrinks.
 
-### 3.7 Extend exercises — **pending**
+### 3.5 Extend exercises — **pending**
 - Base set exists (00–03, solutions, cram test). Extend with: types-as-tests,
   automata word-acceptance, and (post-Phase 4) a small MLL proof exercise.
 
-### 3.8 Codify the standard file shape — **pending**
+### 3.6 Codify the standard file shape — **pending**
 - **Action:** Document the house style (imports → definitions → tests →
   assertions → demonstrations) in `BASICS.md`; align all examples with it.
   It is the file-level expression of "encode + test."
