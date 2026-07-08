@@ -1,0 +1,25 @@
+; A macro pattern is replaced by its expansion wherever it is called.
+(macro (double X) (add X X))
+
+(def two (double 1))          ; expands to (add 1 1)
+
+; Macros can call other macros - expansion keeps going until no macro
+; head remains.
+(macro (triple X) (add X (double X)))
+
+(show (triple 5))             ; expands to (add 5 (add 5 5))
+
+; A macro's expansion can be any expression, so it can expand into a
+; constellation used directly in an interaction.
+(def compute {
+  [(+calc X) (result (double X))]
+  [(-calc Y) (output (triple Y))]
+})
+
+; A macro can also expand to a whole declaration, not just a term.
+(macro (deftype Name Body) (def Name Body))
+
+(deftype mytype {
+  [(-check 0) ok]
+  [(-check (s N)) (+check N)]
+})
