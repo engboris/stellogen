@@ -162,22 +162,11 @@ deferral recorded so it is not re-litigated from scratch. Rationale:
 
 ## Phase 3: Reframe and Rebuild Content
 
-### 3.1 Rewrite `BASICS.md` logic section — **pending**
-- **Action:** Use Stellogen's own vocabulary: axioms (positive stars),
-  inference rules (negative-to-positive stars), goals (focused negative
-  stars), theories (constellations). Promote types-as-tests.
-- Include the divergence caveat found while reworking `examples/relational/`:
-  a rule whose negative premise shares its own conclusion's predicate
-  (e.g. transitive closure) can diverge under `exec` — nothing forces the
-  free variables toward a ground base case, and there is no fixpoint/
-  memoization to cut it off. Contrast with `arithmetic.sg`'s recursion,
-  which terminates because its argument structurally shrinks.
-
-### 3.2 Extend exercises — **pending**
+### 3.1 Extend exercises — **pending**
 - Base set exists (00–03, solutions, cram test). Extend with: types-as-tests,
   automata word-acceptance, and (post-Phase 4) a small MLL proof exercise.
 
-### 3.3 Codify the standard file shape — **pending**
+### 3.2 Codify the standard file shape — **pending**
 - **Action:** Document the house style (imports → definitions → tests →
   assertions → demonstrations) in `BASICS.md`; align all examples with it.
   It is the file-level expression of "encode + test."
@@ -236,7 +225,7 @@ logics/
 | **Harden** | macro-system diagnostics, expansion guard, aliases, freshening (2.8) |
 | **Decide** | execution-variant factorization (2.2b); internal polarities (gates encoding contract and `quote`, 2.9) |
 | **Reflect** | `quote` for execution results, fuel axis, `eval` gated on first client (2.9) |
-| **Document** | file-shape house style, `BASICS.md` rewrite (`KERNEL.md` written 2026-07-07; keep it in sync) |
+| **Document** | file-shape house style in `BASICS.md` (`KERNEL.md` written 2026-07-07; keep it in sync) |
 | **New content** | `logics/` library + flagship MLL tutorial, exercise extensions |
 
 **Net effect:** a kernel small enough to read in an afternoon, an encoding
