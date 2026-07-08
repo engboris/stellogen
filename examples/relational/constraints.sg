@@ -1,0 +1,11 @@
+; RELATIONAL PROGRAMMING: CONSTRAINTS
+;
+; `|| (!= X Y)` attaches an inequality constraint to a star. Saturation
+; still tries every binding of X and Y; a binding that would make the
+; constraint incoherent (X = Y) is simply dropped, not searched around
+; like a Prolog backtracking failure.
+
+(def numbers { [(+num 1)] [(+num 2)] [(+num 3)]})
+
+; every ordered pair of distinct numbers
+(show (exec #numbers @[(-num X) (-num Y) (pair X Y) || (!= X Y)]))

@@ -80,7 +80,7 @@ addition. The object kernel therefore gets *zero* additions.)
 | `proofnets/mll.sg` (+ `fomll.sg`, `mall.sg`) | The flagship. Cut-elimination is literally star fusion; a type is a galaxy of test constellations checked by interaction. The clearest realization of transcendental syntax as software. |
 | `states/nfa.sg`, `npda.sg`, `turing.sg` | NFA, PDA, and Turing machine where each transition is a star and macros provide readable notation (`if read C on Q then Q'`). Legible, working, and already a demonstration of the "tower" model: user-space macros creating domain notation over the raw substrate. |
 | Types-as-tests (`naive_nat.sg`, `sumtypes.sg`, the `::` macro) | Types are not annotations but executable test constellations — a genuinely novel, user-definable type discipline. |
-| `prolog/arithmetic.sg` | Relations run backwards (`2 + ? = 4`) via pure unification; honest header about where the Prolog analogy breaks. |
+| `relational/arithmetic.sg` | Relations run backwards (`2 + ? = 4`) via pure unification; honest header about where the Prolog analogy breaks. |
 | Rewritten exercises + `test/exercises.t` | Current-syntax, CI-tested learning materials. |
 | Ragot 2025 result | Formal proof that stellar resolution simulates interaction nets/combinators in linear time, with functorial, confluence-preserving translations. The project's only rigorous external validation; it directly supports the workbench story (see Appendix A.4). |
 

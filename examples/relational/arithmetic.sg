@@ -1,9 +1,15 @@
-; Note: Stellogen is NOT clause-based so it does not work like
-; Datalog or Prolog although it can reproduce some programs
-; (for instance, programs with single recursive argument or
-; multiple non-recursive arguments).
+; Note: this is relational reasoning by interaction, not Prolog
+; emulation. Stellogen is not clause-based: there is no clause order,
+; no cut, no backtracking search. Execution is saturation - every
+; possible fusion fires. Relations happen to run backwards here
+; (`2 + ? = 4` below) simply because unification does not care which
+; argument is the "output".
 ;
-; Having mechanisms to simulate the behavior of Prolog are needed.
+; This shape - one recursive argument that shrinks by one constructor
+; per step down to a ground base case - is what saturation can chase
+; without diverging. A relation that recurses on itself with no
+; argument getting more concrete (e.g. graph reachability with a free
+; endpoint) will not terminate this way.
 
 ; ARITHMETIC FUNCTIONS
 

@@ -1,0 +1,23 @@
+; RELATIONAL PROGRAMMING: JOINS
+;
+; Facts are positive rays. A query is a focused star with several
+; negative rays that must all fuse at once - a join. Execution is
+; saturation, not Prolog's ordered backtracking search: every matching
+; combination comes out together, not one at a time.
+
+(def link {
+  [(+link a b)]
+  [(+link b c)]
+  [(+link b d)]})
+
+; a rule: one positive conclusion, negative premises pulling in facts
+(def two_hop {
+  [(+two_hop X Z) (-link X Y) (-link Y Z)]})
+
+(def knowledge { #link #two_hop })
+
+; direct links from b
+(show (exec #link @[(-link b Y) Y]))
+
+; who is two hops away from a?
+(show (exec #knowledge @[(-two_hop a Z) Z]))
