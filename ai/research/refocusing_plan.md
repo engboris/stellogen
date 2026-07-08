@@ -162,11 +162,7 @@ deferral recorded so it is not re-litigated from scratch. Rationale:
 
 ## Phase 3: Reframe and Rebuild Content
 
-### 3.1 Clean up `examples/macro_demo.sg` — **pending**
-- **Action:** Remove the dubious nested `def`-inside-`exec`; show macros
-  building logical notation only (fixed-arity).
-
-### 3.2 Rewrite `BASICS.md` logic section — **pending**
+### 3.1 Rewrite `BASICS.md` logic section — **pending**
 - **Action:** Use Stellogen's own vocabulary: axioms (positive stars),
   inference rules (negative-to-positive stars), goals (focused negative
   stars), theories (constellations). Promote types-as-tests.
@@ -177,11 +173,11 @@ deferral recorded so it is not re-litigated from scratch. Rationale:
   memoization to cut it off. Contrast with `arithmetic.sg`'s recursion,
   which terminates because its argument structurally shrinks.
 
-### 3.3 Extend exercises — **pending**
+### 3.2 Extend exercises — **pending**
 - Base set exists (00–03, solutions, cram test). Extend with: types-as-tests,
   automata word-acceptance, and (post-Phase 4) a small MLL proof exercise.
 
-### 3.4 Codify the standard file shape — **pending**
+### 3.3 Codify the standard file shape — **pending**
 - **Action:** Document the house style (imports → definitions → tests →
   assertions → demonstrations) in `BASICS.md`; align all examples with it.
   It is the file-level expression of "encode + test."
@@ -241,7 +237,6 @@ logics/
 | **Decide** | execution-variant factorization (2.2b); internal polarities (gates encoding contract and `quote`, 2.9) |
 | **Reflect** | `quote` for execution results, fuel axis, `eval` gated on first client (2.9) |
 | **Document** | file-shape house style, `BASICS.md` rewrite (`KERNEL.md` written 2026-07-07; keep it in sync) |
-| **Rename/reframe** | `macro_demo.sg` |
 | **New content** | `logics/` library + flagship MLL tutorial, exercise extensions |
 
 **Net effect:** a kernel small enough to read in an afternoon, an encoding
