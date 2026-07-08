@@ -232,3 +232,46 @@ let format_html state =
     add_line "</div>" );
 
   Buffer.contents buffer
+
+(* ============================================================
+   Trace Configuration (evaluator-facing entry point)
+   ============================================================ *)
+
+type trace_config =
+  { enabled : bool
+  ; mutable trace_state : trace_state option
+  ; mutable current_location : source_location option
+  }
+
+let make_trace_config ?(web_mode = false) enabled =
+  let mode =
+    if web_mode then WebMode else if enabled then Interactive else Silent
+  in
+  { enabled; trace_state = Some (create ~mode ()); current_location = None }
+
+let set_trace_location cfg loc =
+  cfg.current_location <- loc;
+  match cfg.trace_state with Some state -> set_location state loc | None -> ()
+
+let get_trace_steps cfg =
+  match cfg.trace_state with Some state -> state.collected_steps | None -> []
+
+let format_trace_steps_html steps =
+  let state = create ~mode:WebMode () in
+  state.collected_steps <- steps;
+  format_html state
+
+(* Run a constellation, routing fusion events to [trace]'s handler when one
+   is given and enabled. *)
+let exec ?(linear = false) ?(trace = None) mcs : constellation =
+  match trace with
+  | None -> Executor.exec ~linear mcs
+  | Some cfg when cfg.enabled -> (
+    match cfg.trace_state with
+    | Some state ->
+      Option.iter cfg.current_location ~f:(fun loc ->
+        set_location state (Some loc) );
+      let handler = make_handler state in
+      Executor.exec ~linear ~on_event:handler mcs
+    | None -> Executor.exec ~linear mcs )
+  | Some _ -> Executor.exec ~linear mcs

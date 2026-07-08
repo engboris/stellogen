@@ -2,7 +2,6 @@ open Base
 open Stdio
 open Constellation
 open Pretty
-open Constellation_eval
 open Syntax
 open Expression_error
 
@@ -138,9 +137,6 @@ and ban_of_term (t : StellarRays.term) : ban =
                 (string_of_ray t) )
          , None ) )
 
-(* Global trace config for CLI trace mode *)
-let cli_trace_config : Constellation_eval.trace_config option ref = ref None
-
 let constellations_matchable c1 c2 =
   (* Check if two constellations are matchable for Match (~=) *)
   (* Uses term unification (ignoring polarity, only checking function name equality) *)
@@ -177,20 +173,6 @@ let rec find_with_solution env x =
 and add_obj env key expr = List.Assoc.add ~equal:unifiable env.objs key expr
 
 and get_obj env identifier = find_with_solution env identifier
-
-and get_trace_config env =
-  match
-    List.Assoc.find ~equal:unifiable env.objs (Constellation.const "__trace__")
-  with
-  | Some (Raw _) -> (
-    (* Create trace config once and reuse it *)
-    match !cli_trace_config with
-    | Some cfg -> Some cfg
-    | None ->
-      let cfg = Constellation_eval.make_trace_config true in
-      cli_trace_config := Some cfg;
-      Some cfg )
-  | _ -> None
 
 and map_term_ray ~(f : ray -> ray) (t : StellarRays.term) : StellarRays.term =
   let open StellarRays in
@@ -309,8 +291,8 @@ let pp_err error : (string, err) Result.t =
       ~hint:(Some hint)
     |> Result.return
 
-let rec eval_sgen_expr (env : env) :
-  sgen_expr -> (env * StellarRays.term, err) Result.t = function
+let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
+  (env : env) : sgen_expr -> (env * StellarRays.term, err) Result.t = function
   | Raw t -> Ok (env, t)
   | Call x ->
     begin match get_obj env x with
@@ -321,7 +303,7 @@ let rec eval_sgen_expr (env : env) :
           map_ray env ~f:(StellarRays.subst [ (xfrom, xto) ]) g_acc
           |> Result.return )
       in
-      Result.bind result ~f:(eval_sgen_expr env)
+      Result.bind result ~f:(eval_sgen_expr ~trace_cfg env)
     end
   | Group es ->
     (* Evaluate each expression and combine the resulting terms into a %group *)
@@ -330,32 +312,31 @@ let rec eval_sgen_expr (env : env) :
         ~init:(Ok (env, []))
         ~f:(fun acc e ->
           let* env_acc, results = acc in
-          let* env_new, result = eval_sgen_expr env_acc e in
+          let* env_new, result = eval_sgen_expr ~trace_cfg env_acc e in
           Ok (env_new, result :: results) )
     in
     Ok (env', func "%group" (List.rev eval_terms))
   | Exec (b, e, loc) ->
-    let* env', eval_e = eval_sgen_expr env e in
+    let* env', eval_e = eval_sgen_expr ~trace_cfg env e in
     let eval_constellation = constellation_of_term eval_e in
-    let trace_cfg = get_trace_config env' in
     (* Set location in trace config if available *)
     ( match (trace_cfg, loc) with
     | Some cfg, Some location ->
       let lsc_loc =
-        { Constellation_eval.filename = location.filename
+        { Tracer.filename = location.filename
         ; line = location.line
         ; column = location.column
         }
       in
-      Constellation_eval.set_trace_location cfg (Some lsc_loc)
+      Tracer.set_trace_location cfg (Some lsc_loc)
     | _ -> () );
     let result_constellation =
-      exec ~linear:b ~trace:trace_cfg eval_constellation
+      Tracer.exec ~linear:b ~trace:trace_cfg eval_constellation
       |> Marked.make_action_all
     in
     Ok (env', term_of_constellation result_constellation)
   | Focus e ->
-    let* env', eval_e = eval_sgen_expr env e in
+    let* env', eval_e = eval_sgen_expr ~trace_cfg env e in
     let focused_constellation =
       constellation_of_term eval_e |> Marked.remove_all |> Marked.make_state_all
     in
@@ -370,20 +351,20 @@ let rec eval_sgen_expr (env : env) :
           ~init:(Ok (env, []))
           ~f:(fun acc e ->
             let* env_acc, results = acc in
-            let* env_new, result = eval_sgen_expr env_acc e in
+            let* env_new, result = eval_sgen_expr ~trace_cfg env_acc e in
             Ok (env_new, result :: results) )
       in
       let galaxy_term = StellarRays.Func (galaxy_sym, List.rev eval_terms) in
       Ok ({ objs = add_obj env' identifier (Raw galaxy_term) }, nil_term) )
   | Forall (galaxy_id, bind_var, body) ->
-    let* _, galaxy_term = eval_sgen_expr env (Call galaxy_id) in
+    let* _, galaxy_term = eval_sgen_expr ~trace_cfg env (Call galaxy_id) in
     let constellation_terms = constellations_of_galaxy galaxy_term in
     List.fold_left constellation_terms
       ~init:(Ok (env, nil_term))
       ~f:(fun acc const_term ->
         let* env_acc, _ = acc in
         let local_env = { objs = add_obj env_acc bind_var (Raw const_term) } in
-        let* _, _ = eval_sgen_expr local_env body in
+        let* _, _ = eval_sgen_expr ~trace_cfg local_env body in
         Ok (env_acc, nil_term) )
   | Show (exprs, show_loc) ->
     (* Evaluate all expressions and collect results *)
@@ -407,13 +388,15 @@ let rec eval_sgen_expr (env : env) :
           | Exec (b, e, None) -> Exec (b, e, show_loc)
           | other -> other
         in
-        let* env', evaluated = eval_sgen_expr env_acc expr_with_loc in
+        let* env', evaluated =
+          eval_sgen_expr ~trace_cfg env_acc expr_with_loc
+        in
         eval_all env' (evaluated :: results) rest
     in
     eval_all env [] exprs
   | Expect (expr1, expr2, message, location) ->
-    let* env1, eval1 = eval_sgen_expr env expr1 in
-    let* env2, eval2 = eval_sgen_expr env1 expr2 in
+    let* env1, eval1 = eval_sgen_expr ~trace_cfg env expr1 in
+    let* env2, eval2 = eval_sgen_expr ~trace_cfg env1 expr2 in
     let const1 = constellation_of_term eval1 in
     let const2 = constellation_of_term eval2 in
     let normalized1 = Marked.normalize_all const1 in
@@ -423,8 +406,8 @@ let rec eval_sgen_expr (env : env) :
     else
       Error (ExpectError { got = const1; expected = const2; message; location })
   | Match (expr1, expr2, message, location) ->
-    let* env1, eval1 = eval_sgen_expr env expr1 in
-    let* env2, eval2 = eval_sgen_expr env1 expr2 in
+    let* env1, eval1 = eval_sgen_expr ~trace_cfg env expr1 in
+    let* env2, eval2 = eval_sgen_expr ~trace_cfg env1 expr2 in
     let const1 = constellation_of_term eval1 |> List.map ~f:Marked.remove in
     let const2 = constellation_of_term eval2 |> List.map ~f:Marked.remove in
     if constellations_matchable const1 const2 then Ok (env2, nil_term)
@@ -463,7 +446,7 @@ let rec eval_sgen_expr (env : env) :
     in
     match Expression.program_of_expr preprocessed with
     | Ok program ->
-      let* new_env = eval_program_internal env program in
+      let* new_env = eval_program_internal ~trace_cfg env program in
       Ok (new_env, nil_term)
     | Error (expr_err, loc) -> Error (ExprError (expr_err, loc)) )
 
@@ -475,10 +458,11 @@ and eval_program (p : program) =
     Out_channel.output_string Out_channel.stderr pp;
     Error e
 
-and eval_program_internal (env : env) (p : program) =
+and eval_program_internal ?(trace_cfg : Tracer.trace_config option = None)
+  (env : env) (p : program) =
   List.fold_left
     ~f:(fun acc x ->
       let* acc_env = acc in
-      let* new_env, _ = eval_sgen_expr acc_env x in
+      let* new_env, _ = eval_sgen_expr ~trace_cfg acc_env x in
       Ok new_env )
     ~init:(Ok env) p
