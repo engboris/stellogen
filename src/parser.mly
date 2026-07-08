@@ -31,19 +31,22 @@ let braces(x) == ~=delimited(LBRACE, x, RBRACE); <>
 
 let expr_file :=
   | EOF; { [] }
-  | es=positioned_expr+; EOF; { es }
-
-let positioned_expr :=
-  | e=expr; {
-      let pos_start = { $startpos with Lexing.pos_fname = !(Parser_context.current_filename) } in
-      let pos_end = { $endpos with Lexing.pos_fname = !(Parser_context.current_filename) } in
-      Positioned (e, pos_start, pos_end)
-    }
+  | es=expr+; EOF; { es }
 
 let params :=
   | BAR; BAR; ~=expr+; <>
 
+(* Every expr, not just top-level declarations, is wrapped with its own
+   source span. Nested exec/fire/then stages need their own location to be
+   traceable line by line, not just the declaration that encloses them. *)
 let expr :=
+  | e=raw_expr; {
+      let pos_start = { $startpos(e) with Lexing.pos_fname = !(Parser_context.current_filename) } in
+      let pos_end = { $endpos(e) with Lexing.pos_fname = !(Parser_context.current_filename) } in
+      Positioned (e, pos_start, pos_end)
+    }
+
+let raw_expr :=
   | ~=pars(expr+); <List>
   | ~=bracks(revlist(expr)); <Cons>
   | ~=braces(revlist(expr)); <Group>
