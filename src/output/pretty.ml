@@ -40,6 +40,7 @@ let rec string_of_ray = function
   | Func ((Null, "%params"), [ rays; bans ]) ->
     (* Star with constraints *)
     Printf.sprintf "%s || %s" (string_of_ray rays) (string_of_ray bans)
+  | Func ((Null, "%string"), [ content ]) -> string_of_ray content
   | Func (pf, terms) ->
     Printf.sprintf "(%s %s)" (string_of_polsym pf)
       (List.map terms ~f:string_of_ray |> String.concat ~sep:" ")
