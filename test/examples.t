@@ -10,6 +10,10 @@ Binary4 example:
   { [(+b r 1 1)] [(+b r 2 1)] [(+b r 3 1)] [(+b r 4 0)] }
   { [(+b r2 1 1)] [(+b r2 2 1)] [(+b r2 3 1)] [(+b r2 4 0)] }
 
+Hello world example:
+  $ sgen run ../examples/hello.sg
+  (hello world)
+
 Lambda calculus example:
   $ sgen run ../examples/lambda/lambda.sg
   [(out [r X7]) (ida (exp [l X7] d))]
@@ -40,8 +44,8 @@ NPDA (non-deterministic pushdown automaton) example:
   accept
   {}
 
-Prolog-style arithmetic examples:
-  $ sgen run ../examples/prolog/arithmetic.sg
+Relational arithmetic example:
+  $ sgen run ../examples/relational/arithmetic.sg
   (result of 0 + 0 = 0)
   (result of 0 + (s (s (s (s 0)))) = (s (s (s (s 0)))))
   (result of (s (s 0)) + (s (s 0)) = (s (s (s (s 0)))))
@@ -50,10 +54,15 @@ Prolog-style arithmetic examples:
   (result of (s (s (s (s 0)))) - (s (s 0)) = (s (s 0)))
   (result of (s (s (s (s 0)))) - (s (s 0)) = (s (s 0)))
 
-Prolog-style family examples:
-  $ sgen run ../examples/prolog/family.sg
-  bob
-  { [ann] [pat] }
+Relational joins example:
+  $ sgen run ../examples/relational/joins.sg
+  { [c] [d] }
+  { [c] [d] }
+
+Relational constraints example:
+  $ sgen run ../examples/relational/constraints.sg
+  { [(pair 1 2) || (!= 1 2)] [(pair 1 3) || (!= 1 3)] [(pair 2 1) || (!= 2 1)] [(pair 2 3) || (!= 2 3)]...
+  [(pair 3 1) || (!= 3 1)] [(pair 3 2) || (!= 3 2)] }
 
 Stack example:
   $ sgen run ../examples/stack.sg

@@ -1,21 +1,28 @@
-(def (init C) (+stack 0 []))
+; This encodes a small stack machine's operational semantics. A
+; configuration is (state N Data): N is the control state, Data is the
+; stack contents. Each star below is a transition rule taking one
+; configuration to the next one. The `then` pipeline runs the machine:
+; every stage consumes the previous configuration and produces the next.
+
+(def (init C) (+state 0 []))
 
 (show (then
   #(init 0)
-  ;push 1 then 0
-  [(-stack 0 X) (+stack 1 [1|X])]
-  [(-stack 1 X) (+stack 2 [0|X])]
 
-  ;pop & save
-  [(-stack 2 [C|X]) (+stack 3 X) (+save C)]
+  ; state 0 to 1 to 2: push 1, then push 0
+  [(-state 0 X) (+state 1 [1|X])]
+  [(-state 1 X) (+state 2 [0|X])]
 
-  ;conditional duplication
-  [(-stack 3 [0|X]) (+stack 4 [0 0|X])]
-  [(-stack 3 [1|X]) (+stack 4 [1 1|X])]
+  ; state 2 to 3: pop the top of the stack into C and remember it
+  [(-state 2 [C|X]) (+state 3 X) (+save C)]
 
-  ;freeze information
+  ; state 3 to 4: duplicate whatever is now on top of the stack
+  [(-state 3 [0|X]) (+state 4 [0 0|X])]
+  [(-state 3 [1|X]) (+state 4 [1 1|X])]
+
+  ; keep the remembered value around so it survives to the result
   [(-save C) (save C)]
 
-  ;clean
-  [(-stack 4 _)]
+  ; state 4 is final: discard the remaining stack
+  [(-state 4 _)]
 ))
