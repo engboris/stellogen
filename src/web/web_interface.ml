@@ -73,7 +73,7 @@ let run_from_string (code : string) : (string, string) Result.t =
     (* Convert to program *)
     match Expression.program_of_expr preprocessed with
     | Error (expr_error, loc) -> (
-      match Evaluator.pp_err (Syntax.ExprError (expr_error, loc)) with
+      match Evaluator.pp_err (Syntax.ExprError (expr_error, loc, [])) with
       | Ok error_msg -> Error error_msg
       | Error _ -> Error "Parse error" )
     | Ok program -> (

@@ -206,6 +206,24 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
     Match (map_ray env ~f e1, map_ray env ~f e2, f msg, loc)
   | Use (id, loc) -> Use (f id, loc)
 
+let trace_of_err : err -> frame list = function
+  | ExpectError { trace; _ } -> trace
+  | MatchError { trace; _ } -> trace
+  | UnknownID (_, _, trace) -> trace
+  | ExprError (_, _, trace) -> trace
+
+(* Render the chain of #calls that were unwound to reach where the error
+   originated, outermost call first. Empty when the error surfaced without
+   passing through any named call (e.g. a bare top-level ==). *)
+let format_trace (trace : frame list) : string =
+  let to_terminal_loc (loc : source_location) : Terminal.location =
+    { Terminal.filename = loc.filename; line = loc.line; column = loc.column }
+  in
+  List.map trace ~f:(fun { called; location } ->
+    Terminal.format_trace_line ~called:(string_of_ray called)
+      ~location:(Option.map location ~f:to_terminal_loc) )
+  |> String.concat ~sep:""
+
 let pp_err error : (string, err) Result.t =
   (* Convert internal location to Terminal.location *)
   let to_terminal_loc (loc : source_location) : Terminal.location =
@@ -213,84 +231,81 @@ let pp_err error : (string, err) Result.t =
   in
 
   let open Constellation.StellarRays in
-  match error with
-  | ExpectError { got; expected; message = Func ((Null, f), []); location }
-    when String.equal f "default" ->
-    let expected_str =
-      expected |> Marked.remove_all |> string_of_constellation
-    in
-    let got_str = got |> Marked.remove_all |> string_of_constellation in
-    Terminal.format_comparison_error ~message:"assertion failed"
-      ~location:(Option.map location ~f:to_terminal_loc)
-      ~label1:"Expected" ~value1:expected_str ~label2:"     Got" ~value2:got_str
-    |> Result.return
-  | ExpectError { message = Func ((Null, f), [ term ]); location; _ }
-    when String.equal f "error" ->
-    Terminal.format_error_at_location_opt ~message:(string_of_ray term)
-      ~location:(Option.map location ~f:to_terminal_loc)
-      ~hint:None
-    |> Result.return
-  | ExpectError { message; location; _ } ->
-    Terminal.format_error_at_location_opt ~message:(string_of_ray message)
-      ~location:(Option.map location ~f:to_terminal_loc)
-      ~hint:None
-    |> Result.return
-  | MatchError { term1; term2; message = Func ((Null, f), []); location }
-    when String.equal f "default" ->
-    let term1_str = term1 |> Marked.remove_all |> string_of_constellation in
-    let term2_str = term2 |> Marked.remove_all |> string_of_constellation in
-    Terminal.format_comparison_error ~message:"unification failed"
-      ~location:(Option.map location ~f:to_terminal_loc)
-      ~label1:"Term 1" ~value1:term1_str ~label2:"Term 2" ~value2:term2_str
-    |> Result.return
-  | MatchError { message; location; _ } ->
-    Terminal.format_error_at_location_opt ~message:(string_of_ray message)
-      ~location:(Option.map location ~f:to_terminal_loc)
-      ~hint:None
-    |> Result.return
-  | UnknownID (identifier, location) ->
-    let hint =
-      Some (Printf.sprintf "The identifier '%s' was not defined." identifier)
-    in
-    Terminal.format_error_at_location_opt ~message:"identifier not found"
-      ~location:(Option.map location ~f:to_terminal_loc)
-      ~hint
-    |> Result.return
-  | ExprError (expr_error, location) ->
-    let error_msg, hint =
-      match expr_error with
-      | EmptyRay ->
-        ("rays cannot be empty", "Remove the empty ray or add content to it.")
-      | NonConstantRayHeader expr ->
-        ( Printf.sprintf "ray '%s' must start with a constant function symbol"
-            expr
-        , "Rays must begin with a function symbol, not a variable." )
-      | InvalidBan expr ->
-        ( Printf.sprintf "invalid ban expression '%s'" expr
-        , "Ban expressions must use != or 'slice'." )
-      | InvalidRaylist expr ->
-        ( Printf.sprintf "expression '%s' is not a valid star" expr
-        , "Check the syntax of your star expression." )
-      | InvalidDeclaration expr ->
-        ( Printf.sprintf "expression '%s' is not a valid declaration" expr
-        , "Declarations must use def, show, ==, or use." )
-      | InvalidMacroArgument msg ->
-        ( Printf.sprintf "invalid macro argument: %s" msg
-        , "Macro arguments must be variables (start with uppercase)." )
-      | InvalidBanStructure msg ->
-        ( Printf.sprintf "invalid ban structure: %s" msg
-        , "Ban expressions must use != or 'slice' with two arguments." )
-      | CircularImport path ->
-        ( Printf.sprintf "circular import detected: %s" path
-        , "Check your import chain for cycles." )
-      | FileLoadError { filename; message } ->
-        ( Printf.sprintf "failed to load file '%s': %s" filename message
-        , "Check that the file exists and is readable." )
-    in
-    Terminal.format_error_at_location_opt ~message:error_msg
-      ~location:(Option.map location ~f:to_terminal_loc)
-      ~hint:(Some hint)
-    |> Result.return
+  let message =
+    match error with
+    | ExpectError { got; expected; message = Func ((Null, f), []); location; _ }
+      when String.equal f "default" ->
+      let expected_str =
+        expected |> Marked.remove_all |> string_of_constellation
+      in
+      let got_str = got |> Marked.remove_all |> string_of_constellation in
+      Terminal.format_comparison_error ~message:"assertion failed"
+        ~location:(Option.map location ~f:to_terminal_loc)
+        ~label1:"Expected" ~value1:expected_str ~label2:"     Got"
+        ~value2:got_str
+    | ExpectError { message = Func ((Null, f), [ term ]); location; _ }
+      when String.equal f "error" ->
+      Terminal.format_error_at_location_opt ~message:(string_of_ray term)
+        ~location:(Option.map location ~f:to_terminal_loc)
+        ~hint:None
+    | ExpectError { message; location; _ } ->
+      Terminal.format_error_at_location_opt ~message:(string_of_ray message)
+        ~location:(Option.map location ~f:to_terminal_loc)
+        ~hint:None
+    | MatchError { term1; term2; message = Func ((Null, f), []); location; _ }
+      when String.equal f "default" ->
+      let term1_str = term1 |> Marked.remove_all |> string_of_constellation in
+      let term2_str = term2 |> Marked.remove_all |> string_of_constellation in
+      Terminal.format_comparison_error ~message:"unification failed"
+        ~location:(Option.map location ~f:to_terminal_loc)
+        ~label1:"Term 1" ~value1:term1_str ~label2:"Term 2" ~value2:term2_str
+    | MatchError { message; location; _ } ->
+      Terminal.format_error_at_location_opt ~message:(string_of_ray message)
+        ~location:(Option.map location ~f:to_terminal_loc)
+        ~hint:None
+    | UnknownID (identifier, location, _) ->
+      let hint =
+        Some (Printf.sprintf "The identifier '%s' was not defined." identifier)
+      in
+      Terminal.format_error_at_location_opt ~message:"identifier not found"
+        ~location:(Option.map location ~f:to_terminal_loc)
+        ~hint
+    | ExprError (expr_error, location, _) ->
+      let error_msg, hint =
+        match expr_error with
+        | EmptyRay ->
+          ("rays cannot be empty", "Remove the empty ray or add content to it.")
+        | NonConstantRayHeader expr ->
+          ( Printf.sprintf "ray '%s' must start with a constant function symbol"
+              expr
+          , "Rays must begin with a function symbol, not a variable." )
+        | InvalidBan expr ->
+          ( Printf.sprintf "invalid ban expression '%s'" expr
+          , "Ban expressions must use != or 'slice'." )
+        | InvalidRaylist expr ->
+          ( Printf.sprintf "expression '%s' is not a valid star" expr
+          , "Check the syntax of your star expression." )
+        | InvalidDeclaration expr ->
+          ( Printf.sprintf "expression '%s' is not a valid declaration" expr
+          , "Declarations must use def, show, ==, or use." )
+        | InvalidMacroArgument msg ->
+          ( Printf.sprintf "invalid macro argument: %s" msg
+          , "Macro arguments must be variables (start with uppercase)." )
+        | InvalidBanStructure msg ->
+          ( Printf.sprintf "invalid ban structure: %s" msg
+          , "Ban expressions must use != or 'slice' with two arguments." )
+        | CircularImport path ->
+          ( Printf.sprintf "circular import detected: %s" path
+          , "Check your import chain for cycles." )
+        | FileLoadError { filename; message } ->
+          ( Printf.sprintf "failed to load file '%s': %s" filename message
+          , "Check that the file exists and is readable." )
+      in
+      Terminal.format_error_at_location_opt ~message:error_msg
+        ~location:(Option.map location ~f:to_terminal_loc)
+        ~hint:(Some hint)
+  in
+  message ^ format_trace (trace_of_err error) |> Result.return
 
 (* Back-fill a missing error location, e.g. so a failure inside a `forall`
    body (whose own location is lost during macro expansion) is reported at
@@ -300,16 +315,24 @@ let fill_error_location (loc : source_location) : err -> err = function
     ExpectError { r with location = Some loc }
   | MatchError ({ location = None; _ } as r) ->
     MatchError { r with location = Some loc }
-  | UnknownID (id, None) -> UnknownID (id, Some loc)
-  | ExprError (e, None) -> ExprError (e, Some loc)
+  | UnknownID (id, None, trace) -> UnknownID (id, Some loc, trace)
+  | ExprError (e, None, trace) -> ExprError (e, Some loc, trace)
   | other -> other
+
+(* Prepend the frame for a #call that's about to be unwound, so an error
+   originating deeper in the call chain carries the path that reached it. *)
+let push_frame (frame : frame) : err -> err = function
+  | ExpectError r -> ExpectError { r with trace = frame :: r.trace }
+  | MatchError r -> MatchError { r with trace = frame :: r.trace }
+  | UnknownID (id, loc, trace) -> UnknownID (id, loc, frame :: trace)
+  | ExprError (e, loc, trace) -> ExprError (e, loc, frame :: trace)
 
 let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
   (env : env) : sgen_expr -> (env * StellarRays.term, err) Result.t = function
   | Raw t -> Ok (env, t)
   | Call (x, location) ->
     begin match get_obj env x with
-    | None -> Error (UnknownID (string_of_ray x, location))
+    | None -> Error (UnknownID (string_of_ray x, location, []))
     | Some (g, subst) ->
       let result =
         List.fold_result subst ~init:g ~f:(fun g_acc (xfrom, xto) ->
@@ -317,6 +340,7 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
           |> Result.return )
       in
       Result.bind result ~f:(eval_sgen_expr ~trace_cfg env)
+      |> Result.map_error ~f:(push_frame { called = x; location })
     end
   | Group es ->
     (* Evaluate each expression and combine the resulting terms into a %group *)
@@ -425,7 +449,9 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
     if Marked.equal_constellation normalized1 normalized2 then
       Ok (env2, nil_term)
     else
-      Error (ExpectError { got = const1; expected = const2; message; location })
+      Error
+        (ExpectError
+           { got = const1; expected = const2; message; location; trace = [] } )
   | Match (expr1, expr2, message, location) ->
     let* env1, eval1 = eval_sgen_expr ~trace_cfg env expr1 in
     let* env2, eval2 = eval_sgen_expr ~trace_cfg env1 expr2 in
@@ -437,8 +463,12 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
       let const2_marked = constellation_of_term eval2 in
       Error
         (MatchError
-           { term1 = const1_marked; term2 = const2_marked; message; location }
-        )
+           { term1 = const1_marked
+           ; term2 = const2_marked
+           ; message
+           ; location
+           ; trace = []
+           } )
   | Use (path, location) -> (
     let open Constellation.StellarRays in
     let filename =
@@ -469,7 +499,7 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
     | Ok program ->
       let* new_env = eval_program_internal ~trace_cfg env program in
       Ok (new_env, nil_term)
-    | Error (expr_err, loc) -> Error (ExprError (expr_err, loc)) )
+    | Error (expr_err, loc) -> Error (ExprError (expr_err, loc, [])) )
 
 and eval_program (p : program) =
   match eval_program_internal initial_env p with
