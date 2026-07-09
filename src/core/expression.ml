@@ -550,7 +550,7 @@ let rec sgen_expr_of_expr expr : (sgen_expr, expr_err) Result.t =
     let* galaxy_id = ray_of_expr galaxy_expr.content in
     let bind_id = const bind_var in
     let* body_expr = sgen_expr_of_expr body.content in
-    Forall (galaxy_id, bind_id, body_expr) |> Result.return
+    Forall (galaxy_id, bind_id, body_expr, None) |> Result.return
   | List ({ content = Symbol "show"; _ } :: args) when List.length args > 0 ->
     let* sgen_exprs =
       List.map args ~f:(fun arg -> sgen_expr_of_expr arg.content) |> Result.all
@@ -577,6 +577,7 @@ let attach_location (sgen : sgen_expr) (loc : source_location option) :
   | Show (e, _) -> Show (e, loc)
   | Exec (b, e, _) -> Exec (b, e, loc)
   | Use (id, _) -> Use (id, loc)
+  | Forall (g, b, body, _) -> Forall (g, b, body, loc)
   | other -> other
 
 let sgen_expr_of_expr_loc (expr : expr loc) :

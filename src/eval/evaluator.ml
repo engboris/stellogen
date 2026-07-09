@@ -197,7 +197,8 @@ and map_ray env ~f : sgen_expr -> sgen_expr = function
     let map_e = map_ray env ~f e in
     Focus map_e
   | Def (id, es) -> Def (f id, List.map ~f:(map_ray env ~f) es)
-  | Forall (gid, bind, body) -> Forall (f gid, f bind, map_ray env ~f body)
+  | Forall (gid, bind, body, loc) ->
+    Forall (f gid, f bind, map_ray env ~f body, loc)
   | Show (exprs, loc) -> Show (List.map ~f:(map_ray env ~f) exprs, loc)
   | Expect (e1, e2, msg, loc) ->
     Expect (map_ray env ~f e1, map_ray env ~f e2, f msg, loc)
@@ -291,6 +292,18 @@ let pp_err error : (string, err) Result.t =
       ~hint:(Some hint)
     |> Result.return
 
+(* Back-fill a missing error location, e.g. so a failure inside a `forall`
+   body (whose own location is lost during macro expansion) is reported at
+   the `forall`/`::` call site instead of as <unknown location>. *)
+let fill_error_location (loc : source_location) : err -> err = function
+  | ExpectError ({ location = None; _ } as r) ->
+    ExpectError { r with location = Some loc }
+  | MatchError ({ location = None; _ } as r) ->
+    MatchError { r with location = Some loc }
+  | UnknownID (id, None) -> UnknownID (id, Some loc)
+  | ExprError (e, None) -> ExprError (e, Some loc)
+  | other -> other
+
 let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
   (env : env) : sgen_expr -> (env * StellarRays.term, err) Result.t = function
   | Raw t -> Ok (env, t)
@@ -356,7 +369,7 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
       in
       let galaxy_term = StellarRays.Func (galaxy_sym, List.rev eval_terms) in
       Ok ({ objs = add_obj env' identifier (Raw galaxy_term) }, nil_term) )
-  | Forall (galaxy_id, bind_var, body) ->
+  | Forall (galaxy_id, bind_var, body, location) ->
     let* _, galaxy_term = eval_sgen_expr ~trace_cfg env (Call galaxy_id) in
     let constellation_terms = constellations_of_galaxy galaxy_term in
     List.fold_left constellation_terms
@@ -364,7 +377,13 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
       ~f:(fun acc const_term ->
         let* env_acc, _ = acc in
         let local_env = { objs = add_obj env_acc bind_var (Raw const_term) } in
-        let* _, _ = eval_sgen_expr ~trace_cfg local_env body in
+        let* _, _ =
+          eval_sgen_expr ~trace_cfg local_env body
+          |> Result.map_error ~f:(fun err ->
+            match location with
+            | Some loc -> fill_error_location loc err
+            | None -> err )
+        in
         Ok (env_acc, nil_term) )
   | Show (exprs, show_loc) ->
     (* Evaluate all expressions and collect results *)
