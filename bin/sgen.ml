@@ -22,7 +22,7 @@ let run input_file =
     in
     ()
   | Error (expr_error, loc) -> (
-    match Evaluator.pp_err (ExprError (expr_error, loc)) with
+    match Evaluator.pp_err (ExprError (expr_error, loc, [])) with
     | Ok error_msg -> Stdlib.Printf.eprintf "%s" error_msg
     | Error _ -> () )
 
@@ -47,7 +47,7 @@ let trace input_file =
     in
     ()
   | Error (expr_error, loc) -> (
-    match Evaluator.pp_err (ExprError (expr_error, loc)) with
+    match Evaluator.pp_err (ExprError (expr_error, loc, [])) with
     | Ok error_msg -> Stdlib.Printf.eprintf "%s" error_msg
     | Error _ -> () )
 

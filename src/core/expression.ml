@@ -464,43 +464,49 @@ let rec constellation_of_expr :
    Stellogen expr of Expr
    --------------------------------------- *)
 
-(* Each case attaches [e.loc] - the location of *this* list node - to the
-   constructs that carry a source_location, rather than the location of
-   whatever declaration happens to enclose it. This is what lets a `then`
-   pipeline (each stage its own nested `exec`) or an inline `exec`/`fire`
-   report the line it is actually running, instead of inheriting a stale
-   or absent location from an ancestor. *)
-let rec sgen_expr_of_expr (e : expr loc) : (sgen_expr, expr_err) Result.t =
-  match e.content with
+(* The parser attaches a real source position to every parsed expr node,
+   not just top-level declarations (see the `expr` rule in parser.mly), so
+   [expr.loc] is normally already the right line - e.g. a `then` pipeline
+   (each stage its own nested `exec`) or an inline `exec`/`fire` reports
+   the line it is actually running, not the location of the whole
+   enclosing form. Synthetic nodes (introduced by macro expansion) can
+   still be born with loc = None, so each node falls back to the nearest
+   enclosing location this recursion has already resolved. *)
+let rec sgen_expr_of_expr ?(enclosing_loc : source_location option = None)
+  (expr : expr loc) : (sgen_expr, expr_err * source_location option) Result.t =
+  let loc = match expr.loc with Some _ -> expr.loc | None -> enclosing_loc in
+  let wrap_error result = Result.map_error result ~f:(fun err -> (err, loc)) in
+  let recur e = sgen_expr_of_expr ~enclosing_loc:loc e in
+  match expr.content with
   | List [ { content = Symbol op; _ }; arg ] when String.equal op call_op ->
-    let* ray = ray_of_expr arg.content in
-    Call ray |> Result.return
+    let* ray = ray_of_expr arg.content |> wrap_error in
+    Call (ray, loc) |> Result.return
   | List [ { content = Symbol op; _ }; arg ] when String.equal op focus_op ->
-    let* sgen_expr = sgen_expr_of_expr arg in
+    let* sgen_expr = recur arg in
     Focus sgen_expr |> Result.return
   | List [ { content = Symbol op; _ }; rays_expr; bans_expr ]
     when String.equal op params_op ->
     (* (params rays_list bans_list) → create %params term structure *)
-    let* rays_term = ray_of_expr rays_expr.content in
-    let* bans_list = bans_of_expr_list bans_expr.content in
+    let* rays_term = ray_of_expr rays_expr.content |> wrap_error in
+    let* bans_list = bans_of_expr_list bans_expr.content |> wrap_error in
     let bans_term = bans_list_to_term bans_list in
     Raw (func "%params" [ rays_term; bans_term ]) |> Result.return
   | List ({ content = Symbol op; _ } :: args) when String.equal op group_op ->
     (* {a b c} → Group [a; b; c] *)
-    let* sgen_exprs = List.map args ~f:sgen_expr_of_expr |> Result.all in
+    let* sgen_exprs = List.map args ~f:recur |> Result.all in
     Group sgen_exprs |> Result.return
   | List ({ content = Symbol "exec"; _ } :: args) ->
-    let* sgen_exprs = List.map args ~f:sgen_expr_of_expr |> Result.all in
+    let* sgen_exprs = List.map args ~f:recur |> Result.all in
     let combined =
       match sgen_exprs with [ single ] -> single | multiple -> Group multiple
     in
-    Exec (false, combined, e.loc) |> Result.return
+    Exec (false, combined, loc) |> Result.return
   | List ({ content = Symbol "fire"; _ } :: args) ->
-    let* sgen_exprs = List.map args ~f:sgen_expr_of_expr |> Result.all in
+    let* sgen_exprs = List.map args ~f:recur |> Result.all in
     let combined =
       match sgen_exprs with [ single ] -> single | multiple -> Group multiple
     in
-    Exec (true, combined, e.loc) |> Result.return
+    Exec (true, combined, loc) |> Result.return
   | List ({ content = Symbol "then"; _ } :: first :: rest) ->
     (* (then c1 c2 ... cn): staged execution. Left fold where each step
        executes against the previous result focused as state:
@@ -512,11 +518,12 @@ let rec sgen_expr_of_expr (e : expr loc) : (sgen_expr, expr_err) Result.t =
        like any other exec result (usable later either as state, with an
        explicit @, or as an action) instead of permanently baking in
        focus. *)
-    let* first_expr = sgen_expr_of_expr first in
+    let* first_expr = recur first in
     let* step_exprs =
       List.map rest ~f:(fun step ->
-        let* step_expr = sgen_expr_of_expr step in
-        Result.return (step.loc, step_expr) )
+        let* step_expr = recur step in
+        let step_loc = match step.loc with Some _ -> step.loc | None -> loc in
+        Result.return (step_loc, step_expr) )
       |> Result.all
     in
     begin match List.rev step_exprs with
@@ -524,47 +531,46 @@ let rec sgen_expr_of_expr (e : expr loc) : (sgen_expr, expr_err) Result.t =
     | (last_loc, last_step) :: rev_init_steps ->
       let init_steps = List.rev rev_init_steps in
       let focused_acc =
-        List.fold_left init_steps ~init:first_expr ~f:(fun acc (loc, step) ->
-          Focus (Exec (false, Group [ step; Focus acc ], loc)) )
+        List.fold_left init_steps ~init:first_expr
+          ~f:(fun acc (step_loc, step) ->
+          Focus (Exec (false, Group [ step; Focus acc ], step_loc)) )
       in
       Exec (false, Group [ last_step; Focus focused_acc ], last_loc)
       |> Result.return
     end
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op expect_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1 in
-    let* sgen_expr2 = sgen_expr_of_expr expr2 in
-    Expect (sgen_expr1, sgen_expr2, const "default", e.loc) |> Result.return
+    let* sgen_expr1 = recur expr1 in
+    let* sgen_expr2 = recur expr2 in
+    Expect (sgen_expr1, sgen_expr2, const "default", loc) |> Result.return
   | List [ { content = Symbol op; _ }; expr1; expr2; message ]
     when String.equal op expect_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1 in
-    let* sgen_expr2 = sgen_expr_of_expr expr2 in
-    let* message_ray = ray_of_expr message.content in
-    Expect (sgen_expr1, sgen_expr2, message_ray, e.loc) |> Result.return
+    let* sgen_expr1 = recur expr1 in
+    let* sgen_expr2 = recur expr2 in
+    let* message_ray = ray_of_expr message.content |> wrap_error in
+    Expect (sgen_expr1, sgen_expr2, message_ray, loc) |> Result.return
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op match_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1 in
-    let* sgen_expr2 = sgen_expr_of_expr expr2 in
-    Match (sgen_expr1, sgen_expr2, const "default", e.loc) |> Result.return
+    let* sgen_expr1 = recur expr1 in
+    let* sgen_expr2 = recur expr2 in
+    Match (sgen_expr1, sgen_expr2, const "default", loc) |> Result.return
   | List [ { content = Symbol op; _ }; expr1; expr2; message ]
     when String.equal op match_op ->
-    let* sgen_expr1 = sgen_expr_of_expr expr1 in
-    let* sgen_expr2 = sgen_expr_of_expr expr2 in
-    let* message_ray = ray_of_expr message.content in
-    Match (sgen_expr1, sgen_expr2, message_ray, e.loc) |> Result.return
+    let* sgen_expr1 = recur expr1 in
+    let* sgen_expr2 = recur expr2 in
+    let* message_ray = ray_of_expr message.content |> wrap_error in
+    Match (sgen_expr1, sgen_expr2, message_ray, loc) |> Result.return
   | List ({ content = Symbol op; _ } :: identifier :: values)
     when (String.equal op def_op || String.equal op spec_op)
          && not (List.is_empty values) ->
-    let* id_ray = ray_of_expr identifier.content in
+    let* id_ray = ray_of_expr identifier.content |> wrap_error in
     let* value_exprs =
       match values with
       | [ single ] ->
-        let* v = sgen_expr_of_expr single in
+        let* v = recur single in
         Ok [ v ]
       | multiple ->
-        let* sgen_exprs =
-          List.map multiple ~f:sgen_expr_of_expr |> Result.all
-        in
+        let* sgen_exprs = List.map multiple ~f:recur |> Result.all in
         let all_groups =
           List.for_all sgen_exprs ~f:(fun e ->
             match e with Group _ -> true | _ -> false )
@@ -579,29 +585,25 @@ let rec sgen_expr_of_expr (e : expr loc) : (sgen_expr, expr_err) Result.t =
       ; body
       ]
     when String.equal op forall_op ->
-    let* galaxy_id = ray_of_expr galaxy_expr.content in
+    let* galaxy_id = ray_of_expr galaxy_expr.content |> wrap_error in
     let bind_id = const bind_var in
-    let* body_expr = sgen_expr_of_expr body in
-    Forall (galaxy_id, bind_id, body_expr, e.loc) |> Result.return
+    let* body_expr = recur body in
+    Forall (galaxy_id, bind_id, body_expr, loc) |> Result.return
   | List ({ content = Symbol "show"; _ } :: args) when List.length args > 0 ->
-    let* sgen_exprs = List.map args ~f:sgen_expr_of_expr |> Result.all in
-    Show (sgen_exprs, e.loc) |> Result.return
+    let* sgen_exprs = List.map args ~f:recur |> Result.all in
+    Show (sgen_exprs, loc) |> Result.return
   | List [ { content = Symbol "use"; _ }; path ] ->
-    let* path_ray = ray_of_expr path.content in
-    Use (path_ray, e.loc) |> Result.return
+    let* path_ray = ray_of_expr path.content |> wrap_error in
+    Use (path_ray, loc) |> Result.return
   | _ ->
     (* Everything else is a raw term *)
-    let* ray = ray_of_expr e.content in
+    let* ray = ray_of_expr expr.content |> wrap_error in
     Raw ray |> Result.return
 
 (* ---------------------------------------
    Stellogen program of Expr
    --------------------------------------- *)
 
-let sgen_expr_of_expr_loc (expr : expr loc) :
-  (sgen_expr, expr_err * source_location option) Result.t =
-  sgen_expr_of_expr expr |> Result.map_error ~f:(fun err -> (err, expr.loc))
-
-let program_of_expr e = List.map ~f:sgen_expr_of_expr_loc e |> Result.all
+let program_of_expr e = List.map ~f:sgen_expr_of_expr e |> Result.all
 
 let preprocess e = e |> List.map ~f:expand_macro |> unfold_decl_def []

@@ -647,7 +647,7 @@ unknown at expansion time.
   `==`, which is meta-level; the criterion belongs in the practice's
   macro, not in the type's data.
 
-**Two actions fall out:**
+**One action falls out:**
 
 1. **Demote `spec` (a removal).** It is still a kernel builtin — and it is
    *literally* `def`: `src/core/expression.ml:622` matches `def_op` and
@@ -675,14 +675,6 @@ unknown at expansion time.
    Caveat: aliasing does not remove the silent-fallthrough hazard; under
    terms-by-default a `spec` call without the alias in scope still
    becomes an inert term.]
-2. **Invest the "typing must be well-designed" budget in diagnostics, not
-   mechanism** (§7.3). When `(:: two nat)` fails today the user sees a raw
-   `==` failure on macro-expanded code — not "*two* failed test 2 of
-   *nat*: residue was `[(+nat 0)]`, expected `ok`". Since `forall` is a
-   primitive, it is the natural carrier of that context (which galaxy
-   member, under which binding). For a language whose pitch is "typing is
-   testing," the quality of a failed test's explanation *is* the user
-   experience of the type system.
 
 Optional refinement, zero-cost and user-space: a prelude vocabulary of
 named base judgments — `(macro (passes-ok R) (== @R ok))`,
@@ -871,15 +863,9 @@ The highest-leverage UX work, in order:
 1. **Empty-result diagnostics.** When `exec` yields `{}`, say why: no focused
    star? no opposite-polarity pair? unification failure (and on which rays)?
    These are the three universal beginner walls.
-2. **Typing-failure reports** (§5.3). A failed `(:: two nat)` should read
-   "*two* failed test 2 of *nat*: residue was `[(+nat 0)]`, expected `ok`",
-   not a raw `==` failure on macro-expanded code. `forall` (a primitive)
-   carries the needed context: which galaxy member, under which binding.
-   Since typing-as-testing is the pitch, the failed-test explanation *is*
-   the UX of the type system.
-3. **`(trace expr)`** as a language form (currently tracing is all-or-nothing
+2. **`(trace expr)`** as a language form (currently tracing is all-or-nothing
    via the CLI).
-4. **REPL** — essential for the workbench feel; define a connective, try a
+3. **REPL** — essential for the workbench feel; define a connective, try a
    proof, watch it reduce.
 
 ---

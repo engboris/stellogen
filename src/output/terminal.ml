@@ -94,6 +94,18 @@ let format_error_at_location_opt ~message ~location ~hint =
     let loc_str = "<unknown location>" in
     format_error ~message ~location:loc_str ~source:"" ~hint
 
+(* Format one frame of a call trace: the identifier that was called and
+   where that call happened *)
+let format_trace_line ~called ~location =
+  let loc_str =
+    match location with
+    | Some loc ->
+      format_location ~filename:loc.filename ~line:loc.line ~column:loc.column
+    | None -> "<unknown location>"
+  in
+  Printf.sprintf "  %s %s %s %s\n" (dim "called") (bold called) (dim "at")
+    loc_str
+
 (* Format comparison errors (e.g., expected vs got) *)
 let format_comparison_error ~message ~location ~label1 ~value1 ~label2 ~value2 =
   let loc_str =
