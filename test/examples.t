@@ -9,6 +9,7 @@ Binary4 example:
   { [(+b r 1 0)] [(+b r 2 0)] [(+b r 3 1)] [(+b r 4 1)] }
   { [(+b r 1 1)] [(+b r 2 1)] [(+b r 3 1)] [(+b r 4 0)] }
   { [(+b r2 1 1)] [(+b r2 2 1)] [(+b r2 3 1)] [(+b r2 4 0)] }
+  { [(+b r3 1 0)] [(+b r3 2 0)] [(+b r3 3 1)] [(+b r3 4 0)] }
 
 Hello world example:
   $ sgen run ../examples/hello.sg

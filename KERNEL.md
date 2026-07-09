@@ -254,11 +254,13 @@ with contraction; `(fire ...)` does the same without contraction. The
 result is an unfocused constellation.
 
 `(then c1 c2 ... cn)` is elaborated at read time into a left fold:
-`(then a b)` becomes `@(exec b @a)`, and each further step executes
-against the previous result focused as state. It exists because ordering
-runs is glue that fixed-arity macros cannot express variadically; it is
-only special in head position (`then` remains an ordinary symbol inside
-terms).
+`(then a b)` becomes `(exec b @a)`, and each further step executes
+against the previous result focused as state. Only the accumulator
+between steps is refocused; the final step is left unfocused, so the
+overall result is unfocused too, like any other `exec` result. It exists
+because ordering runs is glue that fixed-arity macros cannot express
+variadically; it is only special in head position (`then` remains an
+ordinary symbol inside terms).
 
 ### 2.3 `forall`
 
