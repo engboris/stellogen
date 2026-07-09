@@ -41,5 +41,6 @@
 (def rnand (then #b1 #(and b1 b2 r1) #b2 #(not r1 r2)))
 (show #rnand)
 
-; (def rxor (then #rnand #(and r2 r r3) #ror))
-; (show #rxor)
+(def rxor (then #rnand #(and r2 r r3) #ror))
+(show #rxor)
+(== #rxor #(make_bin r3 0 0 1 0))

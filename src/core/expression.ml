@@ -496,11 +496,24 @@ let rec sgen_expr_of_expr ?(enclosing_loc : source_location option = None)
   | List ({ content = Symbol "then"; _ } :: first :: rest) ->
     (* (then c1 c2 ... cn): staged execution. Left fold where each step
        executes against the previous result focused as state:
-       (then a b) = @(exec b @a) *)
+       (then a b) = (exec b @a)
+       Every step but the last is re-focused so it can feed the next
+       stage; the last step is left bare so the overall result behaves
+       like any other exec result (usable later either as state, with an
+       explicit @, or as an action) instead of permanently baking in
+       focus. *)
     let* first_expr = recur first in
-    List.fold_result rest ~init:first_expr ~f:(fun acc step ->
-      let* step_expr = recur step in
-      Result.return (Focus (Exec (false, Group [ step_expr; Focus acc ], loc))) )
+    let* step_exprs = List.map rest ~f:recur |> Result.all in
+    begin match List.rev step_exprs with
+    | [] -> Result.return first_expr
+    | last_step :: rev_init_steps ->
+      let init_steps = List.rev rev_init_steps in
+      let focused_acc =
+        List.fold_left init_steps ~init:first_expr ~f:(fun acc step ->
+          Focus (Exec (false, Group [ step; Focus acc ], loc)) )
+      in
+      Exec (false, Group [ last_step; Focus focused_acc ], loc) |> Result.return
+    end
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op expect_op ->
     let* sgen_expr1 = recur expr1 in
