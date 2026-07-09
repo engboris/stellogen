@@ -16,7 +16,7 @@ type source_location =
 
 type sgen_expr =
   | Raw of StellarRays.term
-  | Call of ident
+  | Call of ident * source_location option
   | Exec of bool * sgen_expr * source_location option
   | Group of sgen_expr list (* Internal: for combining multiple expressions *)
   | Focus of sgen_expr

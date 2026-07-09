@@ -186,7 +186,7 @@ and map_term_ray ~(f : ray -> ray) (t : StellarRays.term) : StellarRays.term =
 
 and map_ray env ~f : sgen_expr -> sgen_expr = function
   | Raw t -> Raw (map_term_ray ~f t)
-  | Call x -> Call (f x)
+  | Call (x, loc) -> Call (f x, loc)
   | Exec (b, e, loc) ->
     let map_e = map_ray env ~f e in
     Exec (b, map_e, loc)
@@ -307,9 +307,9 @@ let fill_error_location (loc : source_location) : err -> err = function
 let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
   (env : env) : sgen_expr -> (env * StellarRays.term, err) Result.t = function
   | Raw t -> Ok (env, t)
-  | Call x ->
+  | Call (x, location) ->
     begin match get_obj env x with
-    | None -> Error (UnknownID (string_of_ray x, None))
+    | None -> Error (UnknownID (string_of_ray x, location))
     | Some (g, subst) ->
       let result =
         List.fold_result subst ~init:g ~f:(fun g_acc (xfrom, xto) ->
@@ -370,7 +370,9 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
       let galaxy_term = StellarRays.Func (galaxy_sym, List.rev eval_terms) in
       Ok ({ objs = add_obj env' identifier (Raw galaxy_term) }, nil_term) )
   | Forall (galaxy_id, bind_var, body, location) ->
-    let* _, galaxy_term = eval_sgen_expr ~trace_cfg env (Call galaxy_id) in
+    let* _, galaxy_term =
+      eval_sgen_expr ~trace_cfg env (Call (galaxy_id, location))
+    in
     let constellation_terms = constellations_of_galaxy galaxy_term in
     List.fold_left constellation_terms
       ~init:(Ok (env, nil_term))
