@@ -55,7 +55,7 @@
 
 ;staged execution (then): each step executes against
 ;the previous result focused as state
-; (then a b) == @(exec b @a)
+; (then a b) == (exec b @a)
 (def c (then
   (+n0 0)                 ;base constellation
   [(-n0 X) (+n1 (s X))]   ;interacts with previous

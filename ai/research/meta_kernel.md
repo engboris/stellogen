@@ -54,7 +54,7 @@ Applying the rule sorts the current fourteen forms into three groups.
 **Stranded by the fixed-arity macro system.** `spec` (settled: an alias
 of `def`, demotes when bare-symbol aliases land; see `macro_system.md`
 pillar 3) and, by exactly the same logic, `then`. `then` is semantically
-derived (`(then a b)` is `@(exec b @a)`, folded left) and sits in the
+derived (`(then a b)` is `(exec b @a)`, folded left) and sits in the
 kernel only because a macro cannot be variadic. A binary `then` macro
 would work today at the cost of writing nested chains. `then` and `spec`
 are the same species of kernel debt; the alias/macro work pays both off.
