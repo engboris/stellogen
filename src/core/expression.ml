@@ -504,14 +504,32 @@ let rec sgen_expr_of_expr (e : expr loc) : (sgen_expr, expr_err) Result.t =
   | List ({ content = Symbol "then"; _ } :: first :: rest) ->
     (* (then c1 c2 ... cn): staged execution. Left fold where each step
        executes against the previous result focused as state:
-       (then a b) = @(exec b @a). Each stage keeps its own location (the
+       (then a b) = (exec b @a). Each stage keeps its own location (the
        line of that stage's expression), not the location of the whole
-       `then` form, so tracing a pipeline shows progress line by line. *)
+       `then` form, so tracing a pipeline shows progress line by line.
+       Every step but the last is re-focused so it can feed the next
+       stage; the last step is left bare so the overall result behaves
+       like any other exec result (usable later either as state, with an
+       explicit @, or as an action) instead of permanently baking in
+       focus. *)
     let* first_expr = sgen_expr_of_expr first in
-    List.fold_result rest ~init:first_expr ~f:(fun acc step ->
-      let* step_expr = sgen_expr_of_expr step in
-      Result.return
-        (Focus (Exec (false, Group [ step_expr; Focus acc ], step.loc))) )
+    let* step_exprs =
+      List.map rest ~f:(fun step ->
+        let* step_expr = sgen_expr_of_expr step in
+        Result.return (step.loc, step_expr) )
+      |> Result.all
+    in
+    begin match List.rev step_exprs with
+    | [] -> Result.return first_expr
+    | (last_loc, last_step) :: rev_init_steps ->
+      let init_steps = List.rev rev_init_steps in
+      let focused_acc =
+        List.fold_left init_steps ~init:first_expr ~f:(fun acc (loc, step) ->
+          Focus (Exec (false, Group [ step; Focus acc ], loc)) )
+      in
+      Exec (false, Group [ last_step; Focus focused_acc ], last_loc)
+      |> Result.return
+    end
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op expect_op ->
     let* sgen_expr1 = sgen_expr_of_expr expr1 in
@@ -564,7 +582,7 @@ let rec sgen_expr_of_expr (e : expr loc) : (sgen_expr, expr_err) Result.t =
     let* galaxy_id = ray_of_expr galaxy_expr.content in
     let bind_id = const bind_var in
     let* body_expr = sgen_expr_of_expr body in
-    Forall (galaxy_id, bind_id, body_expr) |> Result.return
+    Forall (galaxy_id, bind_id, body_expr, e.loc) |> Result.return
   | List ({ content = Symbol "show"; _ } :: args) when List.length args > 0 ->
     let* sgen_exprs = List.map args ~f:sgen_expr_of_expr |> Result.all in
     Show (sgen_exprs, e.loc) |> Result.return

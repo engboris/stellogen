@@ -123,7 +123,10 @@ This is **Robinson's resolution** from formal logic!
 ### 9. Then - Staged Execution
 `(then c1 c2 ...)` is a **built-in**: execute `c1`, feed the result
 as state to `c2`, and so on - useful for building pipelines.
-It is a left fold over execution: `(then a b)` = `@(exec b @a)`.
+It is a left fold over execution: `(then a b)` = `(exec b @a)`. Only
+the intermediate accumulator is refocused between steps; the final
+result comes back bare, just like any other `exec` result - reusable
+later either as state (with an explicit `@`) or as an action.
 No import needed:
 ```stellogen
 (def c (then
@@ -617,7 +620,7 @@ a bob 0         ; Constants
 ; Execution
 (exec c1 c2)    ; Non-linear execution
 (fire c1 c2)    ; Linear execution
-(then c1 c2)    ; Staged execution (built-in): @(exec c2 @c1)
+(then c1 c2)    ; Staged execution (built-in): (exec c2 @c1)
 
 ; Utilities
 (show expr)     ; Display result

@@ -1,13 +1,5 @@
-; Terms
-X             ; variable (uppercase)
-a             ; constant (lowercase & symbols)
-$             ; another constant
-(f X a)       ; function (constant) with terms as arguments
-(+f X)        ; function with positive polarity
-(-f X)        ; function with negative polarity
-(-f (+f X) Y) ; nested functions
-; Every Stellogen expression have these shapes (directly or indirectly)
+; A positive ray offers a greeting; a focused negative ray requests it.
+; `show` displays the result of their fusion.
 
-; Term with effect: display terms
-(show hello)
-(show hello world !)
+(def greeter [(+hello X) (hello X)])
+(show (exec #greeter @[(-hello world)]))  ; => (hello world)
