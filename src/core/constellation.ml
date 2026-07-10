@@ -116,28 +116,49 @@ let fresh_var vars =
    --------------------------------------- *)
 
 module Marked = struct
+  (* The bool on each variant tracks whether the star is consumable
+     (linear): used at most once per execution. It is orthogonal to the
+     State/Action tag, so the two can vary independently. *)
   type star =
-    | State of Raw.star
-    | Action of Raw.star
+    | State of Raw.star * bool
+    | Action of Raw.star * bool
   [@@deriving eq]
 
   type constellation = star list [@@deriving eq]
 
   let map ~f : star -> star = function
-    | State s -> State { content = List.map ~f s.content; bans = s.bans }
-    | Action s -> Action { content = List.map ~f s.content; bans = s.bans }
+    | State (s, l) ->
+      State ({ content = List.map ~f s.content; bans = s.bans }, l)
+    | Action (s, l) ->
+      Action ({ content = List.map ~f s.content; bans = s.bans }, l)
 
-  let make_action s = Action s
+  let make_action s = Action (s, false)
 
-  let make_state s = State s
+  let make_state s = State (s, false)
 
   let make_action_all = List.map ~f:make_action
 
   let make_state_all = List.map ~f:make_state
 
-  let remove : star -> Raw.star = function State s -> s | Action s -> s
+  let remove : star -> Raw.star = function State (s, _) | Action (s, _) -> s
 
   let remove_all = List.map ~f:remove
+
+  let is_linear : star -> bool = function State (_, l) | Action (_, l) -> l
+
+  let set_linear (l : bool) : star -> star = function
+    | State (s, _) -> State (s, l)
+    | Action (s, _) -> Action (s, l)
+
+  let set_linear_all (l : bool) = List.map ~f:(set_linear l)
+
+  (* Force State, preserving whatever linear flag the star already had -
+     this is what @ does: it overrides State/Action, not linearity. *)
+  let refocus : star -> star = function
+    | State (s, l) -> State (s, l)
+    | Action (s, l) -> State (s, l)
+
+  let refocus_all = List.map ~f:refocus
 
   let normalize_all x = x |> remove_all |> make_action_all
 end
@@ -146,7 +167,8 @@ let subst_all_vars sub = List.map ~f:(Marked.map ~f:(subst sub))
 
 let all_vars mcs : StellarSig.idvar list =
   mcs
-  |> List.concat_map ~f:(function Marked.State s | Marked.Action s ->
+  |> List.concat_map ~f:(function
+    | Marked.State (s, _) | Marked.Action (s, _) ->
     List.concat_map s.content ~f:StellarRays.vars )
 
 let normalize_vars (mcs : Marked.constellation) =

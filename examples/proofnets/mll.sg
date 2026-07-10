@@ -184,10 +184,11 @@
 })
 (def proof?+adapters (exec @#proof? #adapters))
 
-; Linear type assertion: proof is action, test has its own focus
+; Linear type assertion: proof is action, test has its own focus.
+; * marks every star of both sides consumable (used at most once).
 (macro (::lin Tested Test)
   (forall Test T
-    (== @(fire #Tested #T) ok)))
+    (== @(exec *{ #Tested #T }) ok)))
 
 (::lin proof?+adapters (⊸ (⊗ 1 2) (⊗ 3 4)))
 

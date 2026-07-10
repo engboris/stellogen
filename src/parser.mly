@@ -6,6 +6,7 @@ open Expression.Raw
 %token <string> SYM
 %token <string> STRING
 %token AT
+%token STAR
 %token BAR
 %token LPAR RPAR
 %token LBRACK RBRACK
@@ -37,7 +38,7 @@ let params :=
   | BAR; BAR; ~=expr+; <>
 
 (* Every expr, not just top-level declarations, is wrapped with its own
-   source span. Nested exec/fire/then stages need their own location to be
+   source span. Nested exec/then stages need their own location to be
    traceable line by line, not just the declaration that encloses them. *)
 let expr :=
   | e=raw_expr; {
@@ -54,6 +55,7 @@ let raw_expr :=
   | LBRACK; ~=revlist(expr); BAR; ~=expr; RBRACK; <ConsWithBase>
   | SHARP; ~=expr; <Call>
   | AT; ~=expr; <Focus>
+  | STAR; ~=expr; <Linear>
   | ~=SYM; <Symbol>
   | ~=VAR; <Var>
   | ~=STRING; <String>

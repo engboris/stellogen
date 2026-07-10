@@ -114,20 +114,27 @@ star:
 
 ### 1.4 Constellations and focus
 
-A **constellation** is a finite multiset of stars. Focus (`@`) marks the
-distinction that drives execution:
+A **constellation** is a finite multiset of stars. Each star carries two
+independent tags: focus (`@`), which drives execution, and linearity
+(`*`), which only matters for actions (1.5):
 
 ```
-cell  ::= star | @star
-const ::= cell | { cell ... } | @{ cell ... }
+cell  ::= star | @star | *star | @*star | *@star
+const ::= cell | { cell ... } | @{ cell ... } | *{ cell ... }
 ```
 
 - A star marked `@` is a **state**: part of the data being transformed.
 - An unmarked star is an **action**: a rule that transforms states.
+- A star marked `*` is **linear** (consumable): see 1.5. Orthogonal to
+  `@`/unmarked, so `@*star` and `*@star` are the same cell.
 
-`@` on a group focuses every star inside, hereditarily: focus strips all
-marks and re-marks everything as state, so `@` is idempotent and
-distributes through `{...}`.
+`@` on a group focuses every star inside, hereditarily, overriding each
+star's State/Action tag while leaving its `*` tag untouched: focus is
+idempotent and distributes through `{...}`. `*` on a group works the same
+way on the other axis: it marks every star inside linear, leaving each
+one's State/Action tag untouched. The two compose freely and in either
+order: `@*{ ... }` and `*@{ ... }` mark every star both focused and
+linear.
 
 Constellations are unordered as far as the semantics is concerned; the
 implementation keeps them in some order, and observable orderings
@@ -137,17 +144,21 @@ specification. See section 4.1.
 ### 1.5 Execution
 
 Execution is **one operation**: saturation of a focused interaction space.
-Its two surface variants differ along one axis, and staging is not a
-variant at all:
+There is a single top-level form, `exec`; the structural discipline of an
+action star is a per-star tag, not a mode of the call, and staging is not
+a variant at all:
 
-- **Mode axis: the structural discipline of action stars.** Actions enjoy
-  weakening in every mode: actions left unused are discarded (the result
-  of an execution consists of the final state stars only). `exec`
-  additionally grants contraction: an action can be copied and used any
-  number of times, as if under `!`. `fire` grants no contraction: once an
-  action star fuses it is removed from the action pool (if one scan finds
-  several alternative fusions of the same action, all their results are
-  kept as branches, but the action is consumed).
+- **The `*` tag: the structural discipline of an action star.** Every
+  action enjoys weakening (actions left unused are discarded; the result
+  of an execution consists of the final state stars only) and, by
+  default, contraction: an action can be copied and used any number of
+  times, as if under `!`. A star tagged `*` (linear) grants no
+  contraction: once it fuses it is removed from the action pool (if one
+  scan finds several alternative fusions of the same action, all their
+  results are kept as branches, but the action is consumed). `*` and `@`
+  are orthogonal tags on the same star; `*` only affects actions; a state
+  star may carry it but it has no observable effect, since a state's rays
+  are already consumed as they fuse (1.4).
 - **Staging is derived notation.** `(then c1 c2 ...)` is a left fold of
   executions, elaborated away before evaluation (part II); it never
   touches the execution engine.
@@ -158,8 +169,8 @@ Operationally, execution proceeds as follows:
 2. Scan the states. For a state star having a polarized ray that admits at
    least one fusion against some action ray: perform **all** fusions of
    that one ray (against every compatible ray of every action), remove the
-   state star, and add the fused stars to the states. In linear mode,
-   remove every action consumed by these fusions.
+   state star, and add the fused stars to the states. Remove every
+   `*`-tagged action consumed by these fusions.
 3. A **fusion** of a state star and an action star along compatible rays
    `r` and `r'`: rename the two stars apart, unify `r` with `r'`, drop the
    matched pair, apply the substitution to the remaining rays of both
@@ -173,8 +184,9 @@ The order in which states and candidate fusions are picked is
 implementation-determined and not part of the specification; only the
 saturation semantics is.
 
-The result of `exec`/`fire` is re-marked as all-action (unfocused), which
-is why chaining requires re-focusing; `then` does exactly that.
+The result of `exec` is re-marked as all-action, non-linear (unfocused,
+and any `*` tags on the input are dropped), which is why chaining requires
+re-focusing; `then` does exactly that.
 
 Execution may diverge; that is a property of the object language,
 accepted. Termination guarantees are user-space theorems about restricted
@@ -206,8 +218,8 @@ or a constellation if it uses the encodings of part III).
 | `(def (name p ...) e)` | parametric bind | naming families of things |
 | `#name`, `#(name a ...)` | reference | using named things |
 | `@e` | focus | marking state (shared with the object kernel) |
-| `(exec e ...)` | run, with contraction | running interactions |
-| `(fire e ...)` | run, linear | resource-aware variant |
+| `*e` | linear | marking consumable actions (shared with the object kernel) |
+| `(exec e ...)` | run | running interactions; each star's own `*` tag decides contraction |
 | `(then e1 e2 ...)` | staged run | derived form; a fold of `exec` |
 | `(show e ...)` | display | observation |
 | `(== e1 e2 [msg])` | assert equal | base observation (part IV) |
@@ -246,12 +258,13 @@ marks the intent that the defined thing is a test suite. It is a kernel
 form rather than a macro because `def` is variadic (galaxy formation) and
 macros are fixed-arity: no macro can faithfully alias it.
 
-### 2.2 `exec`, `fire`, `then`
+### 2.2 `exec`, `then`
 
 `(exec e1 ... en)` evaluates its arguments, combines them into one
-constellation (groups and galaxies flatten), and saturates it as in 1.5
-with contraction; `(fire ...)` does the same without contraction. The
-result is an unfocused constellation.
+constellation (groups and galaxies flatten), and saturates it as in 1.5:
+each action star contracts (can be reused) unless it carries its own `*`
+tag, in which case it is consumed after its first fusion. The result is
+an unfocused, non-linear constellation (1.5).
 
 `(then c1 c2 ... cn)` is elaborated at read time into a left fold:
 `(then a b)` becomes `(exec b @a)`, and each further step executes
@@ -315,8 +328,8 @@ encoding a **contract**. Shape checkers unify against these shapes, so the
 encoding must stay stable; changing it is a breaking change to every
 checker in user space.
 
-The `%`-prefixed names below, plus `@`, `#`, `!=` and `slice` in encoded
-positions, are reserved for the encoding.
+The `%`-prefixed names below, plus `@`, `*`, `#`, `!=` and `slice` in
+encoded positions, are reserved for the encoding.
 
 ### 3.1 Surface syntax to terms (read time)
 
@@ -330,11 +343,13 @@ positions, are reserved for the encoding.
                       of ("!=" t1 t2) / ("slice" t1 t2) terms
 #e                 -> ("#" e')                               reference marker
 @e                 -> ("@" e')                               focus marker
+*e                 -> ("*" e')                               linear marker
 (f a ...)          -> (f a' ...)                             applications are themselves
 ```
 
-Every surface form embeds in term position: `@`, `#` and `{...}` occurring
-inside a term become plain `"@"`-, `"#"`- and `%group`-headed subterms.
+Every surface form embeds in term position: `@`, `*`, `#` and `{...}`
+occurring inside a term become plain `"@"`-, `"*"`-, `"#"`- and
+`%group`-headed subterms.
 This is what lets a macro splice one body into both code position and term
 position; no `quote` primitive is needed, and a `quote` notation, if ever
 added, is a user-space no-op marker over this encoding.
@@ -350,15 +365,20 @@ star with bans            -> (%params RAYLIST BANLIST)
   ban (!= t1 t2)          -> ("!=" t1 t2), in a %cons list
   ban (slice t1 t2)       -> ("slice" t1 t2), in a %cons list
 state star                -> ("@" STAR)
+linear star               -> ("*" STAR)
+state, linear star        -> ("@" ("*" STAR))  or  ("*" ("@" STAR))
 constellation, one star   -> STAR              (not wrapped)
 constellation, n stars    -> (%group S1 ... Sn)
 galaxy                    -> (%galaxy T1 ... Tn)
 ```
 
 Reading back: `%galaxy` and `%group` flatten and concatenate; `"@"`
-focuses its contents; a `%cons` list of rays is an action star; any other
-term is a single-ray action star. Ray polarities ride inside these terms
-as ordinary polarized symbols.
+forces every star it wraps to state, preserving each one's own `"*"` tag;
+`"*"` forces every star it wraps linear, preserving each one's own
+State/Action tag; the two wrappers commute, either nesting order reads
+back the same. A `%cons` list of rays is an action star; any other term
+is a single-ray action star. Ray polarities ride inside these terms as
+ordinary polarized symbols.
 
 ---
 
@@ -400,7 +420,7 @@ optional third argument as above.
 anything reports pass or fail, so generic tooling counts failures
 identically across all practices, whatever their success conventions:
 an `ok` residue, annihilation (empty residue), witness shapes, linear
-checking via `fire`. A typical practice defines its type assertion as
+checking via `*`. A typical practice defines its type assertion as
 
 ```stellogen
 (macro (:: Tested Test)

@@ -266,15 +266,15 @@ let format_trace_steps_html steps =
 
 (* Run a constellation, routing fusion events to [trace]'s handler when one
    is given and enabled. *)
-let exec ?(linear = false) ?(trace = None) mcs : constellation =
+let exec ?(trace = None) mcs : constellation =
   match trace with
-  | None -> Executor.exec ~linear mcs
+  | None -> Executor.exec mcs
   | Some cfg when cfg.enabled -> (
     match cfg.trace_state with
     | Some state ->
       Option.iter cfg.current_location ~f:(fun loc ->
         set_location state (Some loc) );
       let handler = make_handler state in
-      Executor.exec ~linear ~on_event:handler mcs
-    | None -> Executor.exec ~linear mcs )
-  | Some _ -> Executor.exec ~linear mcs
+      Executor.exec ~on_event:handler mcs
+    | None -> Executor.exec mcs )
+  | Some _ -> Executor.exec mcs

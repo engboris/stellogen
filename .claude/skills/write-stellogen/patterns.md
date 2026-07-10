@@ -18,6 +18,8 @@ a bob 0            ; Constants (lowercase/digits)
 { star1 star2 }    ; Constellation (group of stars)
 @[...]             ; Focused star (state — REQUIRED for execution targets)
 @{...}             ; Focus all stars in constellation
+*[...]             ; Linear star (consumable — used at most once)
+*{...}             ; Mark every star in constellation consumable
 
 ; Definitions & calls
 (def name value)          ; Definition
@@ -27,8 +29,8 @@ a bob 0            ; Constants (lowercase/digits)
 @#name                    ; Call and focus
 
 ; Execution
-(exec actions @states)    ; Non-linear (actions reusable)
-(fire actions @states)    ; Linear (actions consumed once)
+(exec actions @states)    ; actions reusable by default
+(exec *actions @states)   ; * marks actions consumable (used at most once)
 (then c1 c2 c3)           ; Chain: exec c2 on c1, then c3 on result (built-in)
 
 ; Testing & display

@@ -70,12 +70,15 @@ end
 
 (** {1 Marked Stars and Constellations} *)
 
-(** Stars marked as either state (to be transformed) or action (rules) *)
+(** Stars marked as either state (to be transformed) or action (rules), each
+    independently tagged consumable (linear) or reusable. *)
 module Marked : sig
-  (** A marked star is either a state or an action *)
+  (** A marked star is either a state or an action; the bool tracks whether it
+      is consumable (used at most once per execution). *)
   type star =
-    | State of Raw.star  (** State stars are transformed during execution *)
-    | Action of Raw.star  (** Action stars define transformation rules *)
+    | State of Raw.star * bool
+      (** State stars are transformed during execution *)
+    | Action of Raw.star * bool  (** Action stars define transformation rules *)
 
   val equal_star : star -> star -> bool
 
@@ -87,25 +90,41 @@ module Marked : sig
   (** Map a function over the rays in a star *)
   val map : f:(ray -> ray) -> star -> star
 
-  (** Create an action star from a raw star *)
+  (** Create a non-linear action star from a raw star *)
   val make_action : Raw.star -> star
 
-  (** Create a state star from a raw star *)
+  (** Create a non-linear state star from a raw star *)
   val make_state : Raw.star -> star
 
-  (** Mark all raw stars as actions *)
+  (** Mark all raw stars as non-linear actions *)
   val make_action_all : Raw.constellation -> constellation
 
-  (** Mark all raw stars as states *)
+  (** Mark all raw stars as non-linear states *)
   val make_state_all : Raw.constellation -> constellation
 
-  (** Remove marking from a star *)
+  (** Remove marking (both State/Action and linear) from a star *)
   val remove : star -> Raw.star
 
   (** Remove marking from all stars *)
   val remove_all : constellation -> Raw.constellation
 
-  (** Normalize: remove marking and re-mark all as actions *)
+  (** Whether a star is consumable (linear) *)
+  val is_linear : star -> bool
+
+  (** Set the linear flag, preserving the State/Action tag and content *)
+  val set_linear : bool -> star -> star
+
+  (** Set the linear flag on every star, preserving each one's State/Action tag
+  *)
+  val set_linear_all : bool -> constellation -> constellation
+
+  (** Force State, preserving each star's existing linear flag *)
+  val refocus : star -> star
+
+  (** [refocus] applied to every star *)
+  val refocus_all : constellation -> constellation
+
+  (** Normalize: remove marking and re-mark all as non-linear actions *)
   val normalize_all : constellation -> constellation
 end
 

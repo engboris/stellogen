@@ -228,6 +228,14 @@ You can also focus all stars of a constellation with `@`:
 (def f @{ [a] [b] [c] })
 ```
 
+## Linear (Consumable) Stars
+
+A star prefixed with `*` is *consumable*: during execution it is used at
+most once, then removed from the pool of actions available for further
+fusion. This only matters for action stars (states are already consumed as
+they fuse). Like `@`, `*` also works on a whole constellation, marking
+every star inside consumable at once: `*{ ... }`.
+
 ## Execution of Constellations
 
 Execution = stars interacting through **fusion**.
@@ -241,10 +249,10 @@ interactions are possible. The result is a new constellation.
 (def x [(+f X) X])
 (def y (-f a))
 
-(def res1 (exec @#x #y))  ; normal execution
+(def res1 (exec @#x #y))  ; normal execution, y can be reused
 (show #res1)
 
-(def res2 (fire @#x #y))  ; actions are used exactly once
+(def res2 (exec @#x *#y)) ; y is consumable, used exactly once
 (show #res2)
 ```
 

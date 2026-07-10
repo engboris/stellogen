@@ -24,7 +24,7 @@ val pp_err : err -> (string, err) Result.t
 
 (** Evaluate a single Stellogen expression in an environment. Returns the
     updated environment and the result term. [trace_cfg], when given, routes
-    every [exec]/[fire] inside the expression through that trace session. *)
+    every [exec] inside the expression through that trace session. *)
 val eval_sgen_expr :
      ?trace_cfg:Tracer.trace_config option
   -> env

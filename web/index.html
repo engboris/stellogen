@@ -374,7 +374,7 @@ $             ; another constant
             let pos = 0;
 
             // Keywords and operators
-            const keywords = ['exec', 'fire', 'process', 'show', 'use', 'macro', 'spec', 'def'];
+            const keywords = ['exec', 'process', 'show', 'use', 'macro', 'spec', 'def'];
 
             // Tokenize the code
             while (pos < code.length) {
@@ -411,7 +411,7 @@ $             ; another constant
                 }
 
                 // Operators
-                const ops = ['==', '~=', '||', '@', '#'];
+                const ops = ['==', '~=', '||', '@', '*', '#'];
                 for (const op of ops) {
                     if (!matched && code.substr(pos, op.length) === op) {
                         tokens.push({ type: 'operator', text: op });
