@@ -73,23 +73,26 @@ let set_location state loc = state.location <- loc
 
 let wait_for_keypress () = ignore (Stdlib.input_line Stdlib.stdin)
 
+(* Always show the current source line (marked, normal color), so a trace
+   reads like a cursor moving through the file instead of only occasionally
+   pointing at a line. *)
+let print_source_lines loc =
+  Stdlib.Printf.printf "\n%s %s:%d:%d" (dim "at") loc.filename loc.line
+    loc.column;
+  match get_source_line loc.filename loc.line with
+  | Some line ->
+    let trimmed = String.strip line in
+    if not (String.is_empty trimmed) then
+      Stdlib.Printf.printf "\n  %s %s" (cyan "\xe2\x96\xb8") trimmed
+  | None -> ()
+
 let print_header step_num location status =
   Stdlib.Printf.printf "\n%s\n" (String.make 80 '=');
   Stdlib.Printf.printf "%s %s"
     (bold (cyan "Step"))
     (bold (yellow (Int.to_string step_num)));
   Option.iter status ~f:(fun msg -> Stdlib.Printf.printf " - %s" (bold msg));
-  ( match location with
-  | Some loc -> (
-    Stdlib.Printf.printf "\n%s %s:%d:%d" (dim "at") loc.filename loc.line
-      loc.column;
-    match get_source_line loc.filename loc.line with
-    | Some line ->
-      let trimmed = String.strip line in
-      if not (String.is_empty trimmed) then
-        Stdlib.Printf.printf "\n  %s %s" (dim "│") (dim trimmed)
-    | None -> () )
-  | None -> () );
+  Option.iter location ~f:print_source_lines;
   Stdlib.Printf.printf "\n%s\n" (String.make 80 '=')
 
 let print_constellation label stars =

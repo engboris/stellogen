@@ -169,6 +169,18 @@ let rec apply_substitution (subst_pairs : (string * expr loc) list)
     | None -> e )
   | _ -> e
 
+(* Macros are pure text substitution: the expanded code has no existence of
+   its own, so it is attributed entirely to the call site, not to wherever
+   the macro happens to be defined. Without this, tracing a call like
+   `(:: e binary)` from a user's file would jump into the library file that
+   defines `::`, since nodes deep inside the macro body still carry the
+   locations they were parsed with there. *)
+let rec set_loc_deep (loc : source_location option) (e : expr loc) : expr loc =
+  match e.content with
+  | List subexprs ->
+    { content = List (List.map subexprs ~f:(set_loc_deep loc)); loc }
+  | Symbol _ | Var _ -> { e with loc }
+
 (* Expand a single matched macro: substitute params and recursively expand *)
 let expand_matched_macro
   (macro_env : (string * (string list * expr loc list)) list)
@@ -190,8 +202,8 @@ let expand_matched_macro
   let substituted = List.map body ~f:(apply_substitution subst_pairs) in
   (* Recursively expand macros in the substituted body *)
   let expanded = List.concat_map substituted ~f:(expand_fn macro_env) in
-  (* Attach the call site location to the expanded expressions *)
-  List.map expanded ~f:(fun e -> { e with loc = call_loc })
+  (* Attach the call site location to every node of the expansion *)
+  List.map expanded ~f:(set_loc_deep call_loc)
 
 (* Expand macros in a list of arguments, coalescing results *)
 let expand_args_in_list
@@ -452,12 +464,14 @@ let rec constellation_of_expr :
    Stellogen expr of Expr
    --------------------------------------- *)
 
-(* The parser only attaches a real source position to the outermost
-   expression of each top-level statement (see positioned_expr in
-   parser.mly) - nested sub-expressions always have loc = None. So each
-   node here falls back to the nearest enclosing location (the closest
-   ancestor that had one) instead of losing position entirely once nested
-   below the statement's top form. *)
+(* The parser attaches a real source position to every parsed expr node,
+   not just top-level declarations (see the `expr` rule in parser.mly), so
+   [expr.loc] is normally already the right line - e.g. a `then` pipeline
+   (each stage its own nested `exec`) or an inline `exec`/`fire` reports
+   the line it is actually running, not the location of the whole
+   enclosing form. Synthetic nodes (introduced by macro expansion) can
+   still be born with loc = None, so each node falls back to the nearest
+   enclosing location this recursion has already resolved. *)
 let rec sgen_expr_of_expr ?(enclosing_loc : source_location option = None)
   (expr : expr loc) : (sgen_expr, expr_err * source_location option) Result.t =
   let loc = match expr.loc with Some _ -> expr.loc | None -> enclosing_loc in
@@ -496,23 +510,33 @@ let rec sgen_expr_of_expr ?(enclosing_loc : source_location option = None)
   | List ({ content = Symbol "then"; _ } :: first :: rest) ->
     (* (then c1 c2 ... cn): staged execution. Left fold where each step
        executes against the previous result focused as state:
-       (then a b) = (exec b @a)
+       (then a b) = (exec b @a). Each stage keeps its own location (the
+       line of that stage's expression), not the location of the whole
+       `then` form, so tracing a pipeline shows progress line by line.
        Every step but the last is re-focused so it can feed the next
        stage; the last step is left bare so the overall result behaves
        like any other exec result (usable later either as state, with an
        explicit @, or as an action) instead of permanently baking in
        focus. *)
     let* first_expr = recur first in
-    let* step_exprs = List.map rest ~f:recur |> Result.all in
+    let* step_exprs =
+      List.map rest ~f:(fun step ->
+        let* step_expr = recur step in
+        let step_loc = match step.loc with Some _ -> step.loc | None -> loc in
+        Result.return (step_loc, step_expr) )
+      |> Result.all
+    in
     begin match List.rev step_exprs with
     | [] -> Result.return first_expr
-    | last_step :: rev_init_steps ->
+    | (last_loc, last_step) :: rev_init_steps ->
       let init_steps = List.rev rev_init_steps in
       let focused_acc =
-        List.fold_left init_steps ~init:first_expr ~f:(fun acc step ->
-          Focus (Exec (false, Group [ step; Focus acc ], loc)) )
+        List.fold_left init_steps ~init:first_expr
+          ~f:(fun acc (step_loc, step) ->
+          Focus (Exec (false, Group [ step; Focus acc ], step_loc)) )
       in
-      Exec (false, Group [ last_step; Focus focused_acc ], loc) |> Result.return
+      Exec (false, Group [ last_step; Focus focused_acc ], last_loc)
+      |> Result.return
     end
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op expect_op ->
@@ -543,8 +567,8 @@ let rec sgen_expr_of_expr ?(enclosing_loc : source_location option = None)
     let* value_exprs =
       match values with
       | [ single ] ->
-        let* e = recur single in
-        Ok [ e ]
+        let* v = recur single in
+        Ok [ v ]
       | multiple ->
         let* sgen_exprs = List.map multiple ~f:recur |> Result.all in
         let all_groups =
