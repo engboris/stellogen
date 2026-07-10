@@ -18,7 +18,7 @@ You are writing code in **Stellogen**, an experimental language based on **stell
 3. **Stars are blocks of rays** in `[...]`. Variables are **local** to each star.
 4. **Constellations are groups of stars** in `{...}`. They are unordered.
 5. **Focus (`@`) is critical.** It marks state stars (data being transformed). Without `@`, nothing executes.
-6. **`exec` is non-linear** (actions reused), **`fire` is linear** (actions consumed once).
+6. **Actions are reusable by default**; prefix a star with `*` to mark it consumable (used at most once). `*{...}` marks every star in a group consumable.
 7. **`then` chains** constellations sequentially (built-in).
 
 ## Writing Process

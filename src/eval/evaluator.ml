@@ -20,6 +20,8 @@ let nil_sym = (Null, "%nil")
 
 let focus_sym = (Null, "@")
 
+let linear_sym = (Null, "*")
+
 let params_sym = (Null, "%params")
 
 let galaxy_sym = (Null, "%galaxy")
@@ -34,9 +36,15 @@ let constellations_of_galaxy (t : StellarRays.term) : StellarRays.term list =
 (* Convert a constellation to a term using %group *)
 let term_of_constellation (c : Marked.constellation) : StellarRays.term =
   let open StellarRays in
-  let rec star_to_term : Marked.star -> term = function
-    | State s -> Func (focus_sym, [ star_content_to_term s ])
-    | Action s -> star_content_to_term s
+  let rec star_to_term (s : Marked.star) : term =
+    let content_term = star_content_to_term (Marked.remove s) in
+    let linear_term =
+      if Marked.is_linear s then Func (linear_sym, [ content_term ])
+      else content_term
+    in
+    match s with
+    | State _ -> Func (focus_sym, [ linear_term ])
+    | Action _ -> linear_term
   and star_content_to_term (s : Raw.star) : term =
     let rays_term = rays_to_term s.content in
     if List.is_empty s.bans then rays_term
@@ -74,11 +82,13 @@ let rec constellation_of_term (t : StellarRays.term) : Marked.constellation =
     constellation_of_term star @ constellation_of_term rest
   | Func ((Null, "%nil"), []) -> []
   | Func ((Null, "@"), [ inner ]) ->
-    constellation_of_term inner |> Marked.remove_all |> Marked.make_state_all
+    constellation_of_term inner |> Marked.refocus_all
+  | Func ((Null, "*"), [ inner ]) ->
+    constellation_of_term inner |> Marked.set_linear_all true
   | Func ((Null, "%params"), [ rays_term; bans_term ]) ->
     let rays = rays_of_term rays_term in
     let bans = bans_of_term bans_term in
-    [ Action { content = rays; bans } ]
+    [ Action ({ content = rays; bans }, false) ]
   | other ->
     (* Check if this looks like a %cons list of rays (star representation) *)
     if is_cons_list other then
@@ -90,10 +100,10 @@ let rec constellation_of_term (t : StellarRays.term) : Marked.constellation =
         constellation_of_term group
       | _ ->
         (* Multiple rays or non-group rays - create a star *)
-        [ Action { content = rays; bans = [] } ]
+        [ Action ({ content = rays; bans = [] }, false) ]
     else
       (* Single ray treated as a single-ray action star *)
-      [ Action { content = [ other ]; bans = [] } ]
+      [ Action ({ content = [ other ]; bans = [] }, false) ]
 
 (* Check if a term is a cons list (%cons _ _) or %nil *)
 and is_cons_list = function
@@ -104,6 +114,7 @@ and is_cons_list = function
 (* Check if a term looks like a star (either @ focused, %params, or cons list) *)
 and is_star_term = function
   | Func ((Null, "@"), _) -> true
+  | Func ((Null, "*"), _) -> true
   | Func ((Null, "%params"), _) -> true
   | Func ((Null, "%cons"), _) -> true
   | Func ((Null, "%nil"), _) -> true
@@ -187,15 +198,18 @@ and map_term_ray ~(f : ray -> ray) (t : StellarRays.term) : StellarRays.term =
 and map_ray env ~f : sgen_expr -> sgen_expr = function
   | Raw t -> Raw (map_term_ray ~f t)
   | Call (x, loc) -> Call (f x, loc)
-  | Exec (b, e, loc) ->
+  | Exec (e, loc) ->
     let map_e = map_ray env ~f e in
-    Exec (b, map_e, loc)
+    Exec (map_e, loc)
   | Group es ->
     let map_es = List.map ~f:(map_ray env ~f) es in
     Group map_es
   | Focus e ->
     let map_e = map_ray env ~f e in
     Focus map_e
+  | Linear e ->
+    let map_e = map_ray env ~f e in
+    Linear map_e
   | Def (id, es) -> Def (f id, List.map ~f:(map_ray env ~f) es)
   | Forall (gid, bind, body, loc) ->
     Forall (f gid, f bind, map_ray env ~f body, loc)
@@ -353,7 +367,7 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
           Ok (env_new, result :: results) )
     in
     Ok (env', func "%group" (List.rev eval_terms))
-  | Exec (b, e, loc) ->
+  | Exec (e, loc) ->
     let* env', eval_e = eval_sgen_expr ~trace_cfg env e in
     let eval_constellation = constellation_of_term eval_e in
     (* Set location in trace config if available *)
@@ -368,16 +382,21 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
       Tracer.set_trace_location cfg (Some lsc_loc)
     | _ -> () );
     let result_constellation =
-      Tracer.exec ~linear:b ~trace:trace_cfg eval_constellation
-      |> Marked.make_action_all
+      Tracer.exec ~trace:trace_cfg eval_constellation |> Marked.make_action_all
     in
     Ok (env', term_of_constellation result_constellation)
   | Focus e ->
     let* env', eval_e = eval_sgen_expr ~trace_cfg env e in
     let focused_constellation =
-      constellation_of_term eval_e |> Marked.remove_all |> Marked.make_state_all
+      constellation_of_term eval_e |> Marked.refocus_all
     in
     Ok (env', term_of_constellation focused_constellation)
+  | Linear e ->
+    let* env', eval_e = eval_sgen_expr ~trace_cfg env e in
+    let linear_constellation =
+      constellation_of_term eval_e |> Marked.set_linear_all true
+    in
+    Ok (env', term_of_constellation linear_constellation)
   | Def (identifier, exprs) -> (
     match exprs with
     | [ single ] -> Ok ({ objs = add_obj env identifier single }, nil_term)
@@ -430,7 +449,7 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
         (* Propagate location to inner expr if it doesn't have one *)
         let expr_with_loc =
           match expr with
-          | Exec (b, e, None) -> Exec (b, e, show_loc)
+          | Exec (e, None) -> Exec (e, show_loc)
           | other -> other
         in
         let* env', evaluated =

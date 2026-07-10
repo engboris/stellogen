@@ -26,17 +26,21 @@ type fusion_candidate =
   ; other_action_rays : ray list (* rays before the matching one *)
   }
 
+(** An action star still available for fusion, tagged with whether it is
+    consumable (linear): removed from the pool after its first use. *)
+type live_action =
+  { raw : star
+  ; linear : bool
+  }
+
 (** Result of searching for fusions *)
 type fusion_result =
   { new_stars : star list
-  ; remaining_actions : star list
+  ; remaining_actions : live_action list
   }
 
 (** Configuration for execution *)
-type exec_config =
-  { linear : bool
-  ; mutable var_counter : int
-  }
+type exec_config = { mutable var_counter : int }
 
 (** Observable events during execution (for tracing) *)
 type exec_event =
@@ -125,12 +129,12 @@ let find_action_matches ~repl1 ~repl2 (state_ray : ray) (action : star) :
 (** Find all fusions for a given state ray against all actions. This is the core
     work queue processor for a single ray. *)
 let find_ray_fusions ~config ~emit_event ~state_idx ~state_ray_idx ~state_ray
-  ~other_state_rays ~state_bans (actions : star list) : fusion_result =
+  ~other_state_rays ~state_bans (actions : live_action list) : fusion_result =
   let repl1 = replace_indices config.var_counter in
   let results = ref [] in
   let consumed_actions = ref [] in
 
-  List.iteri actions ~f:(fun action_idx action ->
+  List.iteri actions ~f:(fun action_idx { raw = action; linear } ->
     let repl2 = replace_indices (config.var_counter + 1) in
     let matches = find_action_matches ~repl1 ~repl2 state_ray action in
 
@@ -156,20 +160,17 @@ let find_ray_fusions ~config ~emit_event ~state_idx ~state_ray_idx ~state_ray
       if coherent_bans fused.bans then (
         results := fused :: !results;
         config.var_counter <- config.var_counter + 2;
-        if config.linear then
-          consumed_actions := action_idx :: !consumed_actions ) ) );
+        if linear then consumed_actions := action_idx :: !consumed_actions ) ) );
 
   let remaining =
-    if config.linear then
-      List.filter_mapi actions ~f:(fun i a ->
-        if List.mem !consumed_actions i ~equal:Int.equal then None else Some a )
-    else actions
+    List.filter_mapi actions ~f:(fun i a ->
+      if List.mem !consumed_actions i ~equal:Int.equal then None else Some a )
   in
   { new_stars = List.rev !results; remaining_actions = remaining }
 
 (** Try to find fusions for any ray in a state star *)
 let try_state_star ~config ~emit_event ~state_idx (state : star)
-  (actions : star list) : (star list * star list) option =
+  (actions : live_action list) : (star list * live_action list) option =
   let rec try_ray ray_idx before = function
     | [] -> None
     | r :: rest when not (is_polarised r) ->
@@ -205,21 +206,25 @@ let rec process_queue ~config ~emit_event ~queue_idx ~before actions = function
       Some (new_states, new_actions) )
 
 (** Main execution function *)
-let exec ?(linear = false) ?(on_event = fun _ -> ()) mcs : constellation =
-  let config = { linear; var_counter = 0 } in
+let exec ?(on_event = fun _ -> ()) mcs : constellation =
+  let config = { var_counter = 0 } in
 
-  (* Separate into actions and states *)
+  (* Separate into actions (tagged linear or not) and states. A star's
+     linear flag only has meaning for actions - see Marked.star. *)
   let actions, states =
     let rec classify acts sts = function
       | [] -> (List.rev acts, List.rev sts)
-      | Marked.State s :: rest -> classify acts (s :: sts) rest
-      | Marked.Action s :: rest -> classify (s :: acts) sts rest
+      | Marked.State (s, _) :: rest -> classify acts (s :: sts) rest
+      | Marked.Action (s, linear) :: rest ->
+        classify ({ raw = s; linear } :: acts) sts rest
     in
     classify [] [] mcs
   in
 
   let rec loop step actions states =
-    on_event (StepStart { step; actions; states });
+    on_event
+      (StepStart
+         { step; actions = List.map actions ~f:(fun a -> a.raw); states } );
 
     match
       process_queue ~config ~emit_event:on_event ~queue_idx:0 ~before:[] actions

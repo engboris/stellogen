@@ -13,6 +13,7 @@ let create_error ~position ~message ?hint () = { position; message; hint }
 let string_of_token = function
   | Parser.VAR s | Parser.SYM s | Parser.STRING s -> s
   | Parser.AT -> "@"
+  | Parser.STAR -> "*"
   | Parser.BAR -> "|"
   | Parser.LPAR -> "("
   | Parser.RPAR -> ")"

@@ -4,7 +4,7 @@ Read these files for reference patterns before writing code.
 
 ## Proof Structures (MLL)
 
-- **`examples/proofnets/mll.sg`** — Multiplicative linear logic proof-structures. Axioms as binary positive stars, cuts as binary negative stars. Tensor/par use list-based addressing (`[l|X]`, `[r|X]`). Includes cut-elimination via execution and galaxy-based type checking with `spec` and linear assertion (`fire`).
+- **`examples/proofnets/mll.sg`** — Multiplicative linear logic proof-structures. Axioms as binary positive stars, cuts as binary negative stars. Tensor/par use list-based addressing (`[l|X]`, `[r|X]`). Includes cut-elimination via execution and galaxy-based type checking with `spec` and linear assertion (`*{...}`).
 - **`examples/proofnets/fomll.sg`** — Simplified first-order MLL with only axioms (`[+a +b]`) and cuts (`[-a -b]`). Shows how cut-elimination yields graph rewiring.
 
 ## Linear Lambda Calculus

@@ -99,26 +99,31 @@ Result: [a]  ; The merged star
 
 This is **Robinson's resolution** from formal logic!
 
-### 8. Execution - exec and fire
+### 8. Execution - exec and the `*` (linear) modality
 **Execution** = stars interacting through fusion until no more interactions possible
 
 ```stellogen
 (def x [(+f X) X])
 (def y [(-f a)])
 
-(exec @#x #y)   ; Non-linear: actions can be reused
-(fire @#x #y)   ; Linear: actions used exactly once
+(exec @#x #y)    ; y can be reused: non-linear
+(exec @#x *#y)   ; y is consumable: used at most once
 ```
 
 **Execution process**:
-1. Actions (non-`@` stars) are **duplicated** as needed
+1. Actions (non-`@` stars) are **duplicated** as needed, unless marked `*`
 2. They **fuse** with state stars (`@`)
 3. Continue until **saturation** (no more possible interactions)
 4. Result is a new constellation
 
-**`exec` vs `fire`**:
-- `exec`: Non-linear - action stars can be reused multiple times
-- `fire`: Linear - each action star used exactly once (resource-aware)
+**`@` vs `*`** - two independent, composable modalities on a star:
+- `@` (focus): State vs Action - what's being computed vs the rule computing it
+- `*` (linear): reusable (default) vs consumable - a `*`-marked action is
+  removed from the pool after its first use, so it fires at most once. It
+  only affects action stars; `*` on a state star is legal but has no
+  effect, since a state's rays are already consumed as they fuse.
+- Both work on a whole constellation at once, the same way: `@{...}`
+  focuses every star inside, `*{...}` makes every star inside consumable.
 
 ### 9. Then - Staged Execution
 `(then c1 c2 ...)` is a **built-in**: execute `c1`, feed the result
@@ -143,6 +148,7 @@ an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 - **Spec**: `(spec name value)` - built-in synonym of `def` (marks intent: the thing defined is a test suite/type)
 - **Call**: `#name` - retrieve definition
 - **Focus**: `@expr` - mark as state/evaluate
+- **Linear**: `*expr` - mark as consumable (used at most once during execution)
 - **Show**: `(show expr)` - display result
 - **Expect**: `(== expr1 expr2)` - assert syntactic equality
 - **Match**: `(~= r1 r2)` - check structural unifiability; polarity is IGNORED (e.g. `(~= (+f X) (+f a))` succeeds)
@@ -162,6 +168,7 @@ an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 - **Groups**: `{...}` for constellations
 - **Stacking**: there is NO `<f a b>` angle-bracket sugar and NO `stack` macro; write nested terms directly: `(s (s 0))`
 - **Staged execution**: `(then c1 c2 ...)` — a built-in, see above
+- **Linear**: `*expr` marks a star (or, as `*{...}`, every star of a constellation) consumable — used at most once per execution
 
 ### Declarations
 - **Definition**: `(def name value)`
@@ -175,7 +182,7 @@ an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 - Rays, stars, and constellations
 - Focus (`@`) and identifiers (`#`)
 - String literals and cons lists
-- Linear (`fire`) vs non-linear (`exec`) execution
+- Linear (`*`) vs non-linear (default) execution
 - Inequality constraints (`|| (!= X Y)`)
 - Staged execution with `then` (built-in)
 - Fields and field access
@@ -217,8 +224,9 @@ separately** (in its own interaction space). That is what `forall` is for:
 
 The success convention is deliberately user-defined: different practices
 judge differently (e.g. `examples/proofnets/mll.sg` defines `::lin` using
-linear `fire` instead of `exec`). The fixed, trusted part is only the base
-observations `==`/`~=`; every checking macro must bottom out in them.
+`*{...}` to mark both sides consumable, instead of plain `exec`). The
+fixed, trusted part is only the base observations `==`/`~=`; every
+checking macro must bottom out in them.
 
 ### Common Patterns for Writing Stellogen
 
@@ -610,6 +618,7 @@ a bob 0         ; Constants
 [ray1 ray2]     ; Star (block of rays)
 { star1 star2 } ; Constellation (group of stars)
 @[...]          ; Focused star (state)
+*[...]          ; Linear star (consumable, used at most once)
 [(+f X) || (!= X Y)]  ; Star with inequality constraint
 
 ; Definitions and Calls
@@ -618,8 +627,7 @@ a bob 0         ; Constants
 @#name          ; Call and focus
 
 ; Execution
-(exec c1 c2)    ; Non-linear execution
-(fire c1 c2)    ; Linear execution
+(exec c1 c2)    ; c2's non-linear stars can be reused; *-marked ones fire once
 (then c1 c2)    ; Staged execution (built-in): (exec c2 @c1)
 
 ; Utilities

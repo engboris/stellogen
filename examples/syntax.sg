@@ -14,6 +14,9 @@
 ;full focus
 (def f @{ [a] [b] [c] })
 
+;full linear (every star consumable, used at most once)
+(def f2 *{ [a] [b] [c] })
+
 ;identifier
 (def x #a)
 
@@ -33,8 +36,8 @@
 ;execution
 (def x [(+f X) X])
 (def y (-f a))
-(def ex (fire @#x #y)) ;linear
-(def ex (exec @#x #y))    ;non-linear
+(def ex (exec @#x #y))     ;non-linear: action can be reused
+(def ex (exec @#x *#y))    ;linear: * marks the action consumable, used once
 
 ;show constellation
 (show #ex)

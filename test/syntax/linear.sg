@@ -6,11 +6,11 @@
 
 (spec nat [(-nat (s X)) (+nat X)])
 
-(def tested @(fire @#1 #nat))
+(def tested @(exec @#1 *#nat))
 (== #tested (+nat 0))
 
-(def tested @(fire @#2 #nat))
+(def tested @(exec @#2 *#nat))
 (== #tested (+nat (s 0)))
 
-(def tested @(fire @#3 #nat))
+(def tested @(exec @#3 *#nat))
 (== #tested (+nat (s (s 0))))

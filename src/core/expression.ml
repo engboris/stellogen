@@ -21,6 +21,7 @@ module Raw = struct
     | Var of ident
     | String of string
     | Focus of t
+    | Linear of t
     | Call of t
     | List of t list
     | Group of t list
@@ -52,6 +53,8 @@ let cons_op = primitive "cons"
 let call_op = "#"
 
 let focus_op = "@"
+
+let linear_op = "*"
 
 let string_op = primitive "string"
 
@@ -99,6 +102,11 @@ let rec expand_macro : Raw.t -> expr loc = function
   | Raw.Focus e' ->
     let e = expand_macro e' in
     { content = List [ { content = Symbol focus_op; loc = None }; e ]
+    ; loc = None
+    }
+  | Raw.Linear e' ->
+    let e = expand_macro e' in
+    { content = List [ { content = Symbol linear_op; loc = None }; e ]
     ; loc = None
     }
   | Raw.Group es ->
@@ -434,23 +442,26 @@ let rec raylist_of_expr expr : (ray list, expr_err) Result.t =
 let rec star_of_expr : expr -> (Marked.star, expr_err) Result.t = function
   | List [ { content = Symbol k; _ }; s ] when equal_string k focus_op ->
     let* ss = star_of_expr s.content in
-    ss |> Marked.remove |> Marked.make_state |> Result.return
+    ss |> Marked.refocus |> Result.return
+  | List [ { content = Symbol k; _ }; s ] when equal_string k linear_op ->
+    let* ss = star_of_expr s.content in
+    ss |> Marked.set_linear true |> Result.return
   | List [ { content = Symbol k; _ }; s; { content = List ps; _ } ]
     when equal_string k params_op ->
     let* content = raylist_of_expr s.content in
     let* bans = bans_of_expr ps in
-    Marked.Action { content; bans } |> Result.return
+    Marked.Action ({ content; bans }, false) |> Result.return
   | e ->
     let* content = raylist_of_expr e in
-    Marked.Action { content; bans = [] } |> Result.return
+    Marked.Action ({ content; bans = [] }, false) |> Result.return
 
 let rec constellation_of_expr :
   expr -> (Marked.constellation, expr_err) Result.t = function
   | Symbol s ->
-    [ Marked.Action { content = [ var (s, None) ]; bans = [] } ]
+    [ Marked.Action ({ content = [ var (s, None) ]; bans = [] }, false) ]
     |> Result.return
   | Var x ->
-    [ Marked.Action { content = [ var (x, None) ]; bans = [] } ]
+    [ Marked.Action ({ content = [ var (x, None) ]; bans = [] }, false) ]
     |> Result.return
   | List [ { content = Symbol s; _ }; h; t ] when equal_string s cons_op ->
     let* sh = star_of_expr h.content in
@@ -458,7 +469,7 @@ let rec constellation_of_expr :
     Ok (sh :: ct)
   | List g ->
     let* rg = ray_of_expr (List g) in
-    [ Marked.Action { content = [ rg ]; bans = [] } ] |> Result.return
+    [ Marked.Action ({ content = [ rg ]; bans = [] }, false) ] |> Result.return
 
 (* ---------------------------------------
    Stellogen expr of Expr
@@ -467,7 +478,7 @@ let rec constellation_of_expr :
 (* The parser attaches a real source position to every parsed expr node,
    not just top-level declarations (see the `expr` rule in parser.mly), so
    [expr.loc] is normally already the right line - e.g. a `then` pipeline
-   (each stage its own nested `exec`) or an inline `exec`/`fire` reports
+   (each stage its own nested `exec`) or an inline `exec` reports
    the line it is actually running, not the location of the whole
    enclosing form. Synthetic nodes (introduced by macro expansion) can
    still be born with loc = None, so each node falls back to the nearest
@@ -484,6 +495,9 @@ let rec sgen_expr_of_expr ?(enclosing_loc : source_location option = None)
   | List [ { content = Symbol op; _ }; arg ] when String.equal op focus_op ->
     let* sgen_expr = recur arg in
     Focus sgen_expr |> Result.return
+  | List [ { content = Symbol op; _ }; arg ] when String.equal op linear_op ->
+    let* sgen_expr = recur arg in
+    Linear sgen_expr |> Result.return
   | List [ { content = Symbol op; _ }; rays_expr; bans_expr ]
     when String.equal op params_op ->
     (* (params rays_list bans_list) → create %params term structure *)
@@ -500,13 +514,7 @@ let rec sgen_expr_of_expr ?(enclosing_loc : source_location option = None)
     let combined =
       match sgen_exprs with [ single ] -> single | multiple -> Group multiple
     in
-    Exec (false, combined, loc) |> Result.return
-  | List ({ content = Symbol "fire"; _ } :: args) ->
-    let* sgen_exprs = List.map args ~f:recur |> Result.all in
-    let combined =
-      match sgen_exprs with [ single ] -> single | multiple -> Group multiple
-    in
-    Exec (true, combined, loc) |> Result.return
+    Exec (combined, loc) |> Result.return
   | List ({ content = Symbol "then"; _ } :: first :: rest) ->
     (* (then c1 c2 ... cn): staged execution. Left fold where each step
        executes against the previous result focused as state:
@@ -533,10 +541,9 @@ let rec sgen_expr_of_expr ?(enclosing_loc : source_location option = None)
       let focused_acc =
         List.fold_left init_steps ~init:first_expr
           ~f:(fun acc (step_loc, step) ->
-          Focus (Exec (false, Group [ step; Focus acc ], step_loc)) )
+          Focus (Exec (Group [ step; Focus acc ], step_loc)) )
       in
-      Exec (false, Group [ last_step; Focus focused_acc ], last_loc)
-      |> Result.return
+      Exec (Group [ last_step; Focus focused_acc ], last_loc) |> Result.return
     end
   | List [ { content = Symbol op; _ }; expr1; expr2 ]
     when String.equal op expect_op ->
