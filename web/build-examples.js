@@ -9,13 +9,13 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration: map example keys to their source files
-// Order: hello, macros, prolog examples, states examples, proofnets examples
+// Order: hello, macros, relational examples, states examples, proofnets examples
 const EXAMPLE_MAPPING = {
   hello: 'hello.sg',
-  macros: 'macro_demo.sg',
-  // Prolog examples
-  'prolog-arithmetic': 'prolog/arithmetic.sg',
-  'prolog-family': 'prolog/family.sg',
+  macros: 'macros.sg',
+  // Relational examples
+  'relational-arithmetic': 'relational/arithmetic.sg',
+  'relational-joins': 'relational/joins.sg',
   // States examples
   'states-nfa': 'states/nfa.sg',
   'states-npda': 'states/npda.sg',
@@ -37,7 +37,7 @@ const PRELUDE_FILE = path.join(EXAMPLES_DIR, 'milkyway', 'prelude.sg');
 function loadPrelude() {
   try {
     const preludeContent = fs.readFileSync(PRELUDE_FILE, 'utf-8');
-    return `' Prelude macros (normally imported)\n${preludeContent.trim()}`;
+    return `; Prelude macros (normally imported)\n${preludeContent.trim()}`;
   } catch (error) {
     console.error('❌ Error loading prelude:', error.message);
     process.exit(1);
@@ -46,17 +46,18 @@ function loadPrelude() {
 
 /**
  * Process example file content for the playground
- * - Replace (use-macros "milkyway/prelude.sg") with inline macro definitions
+ * - Replace (use "milkyway/prelude.sg") with inline prelude definitions,
+ *   since the browser build has no filesystem to resolve imports from.
  * - Adjust any other syntax needed for standalone execution
  */
 function processExampleContent(content, _filename, preludeMacros) {
-  // For files that use prelude macros, inline them
-  // Handle both direct and relative paths to prelude
-  if (content.includes('(use-macros "milkyway/prelude.sg")')) {
-    content = content.replace('(use-macros "milkyway/prelude.sg")', preludeMacros);
+  // For files that import the prelude, inline it.
+  // Handle both direct and relative paths to prelude.
+  if (content.includes('(use "milkyway/prelude.sg")')) {
+    content = content.replace('(use "milkyway/prelude.sg")', preludeMacros);
   }
-  if (content.includes('(use-macros "../milkyway/prelude.sg")')) {
-    content = content.replace('(use-macros "../milkyway/prelude.sg")', preludeMacros);
+  if (content.includes('(use "../milkyway/prelude.sg")')) {
+    content = content.replace('(use "../milkyway/prelude.sg")', preludeMacros);
   }
 
   return content.trim();

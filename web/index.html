@@ -293,21 +293,11 @@
                 <div id="line-numbers" aria-hidden="true"></div>
                 <div class="editor-wrapper">
                     <div id="highlight-layer" aria-hidden="true"></div>
-                    <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">; Terms
+                    <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">; A positive ray offers a greeting; a focused negative ray requests it.
+; `show` displays the result of their fusion.
 
-X             ; variable (uppercase)
-a             ; constant (lowercase & symbols)
-$             ; another constant
-(f X a)       ; function (constant) with terms as arguments
-(+f X)        ; function with positive polarity
-(-f X)        ; function with negative polarity
-(-f (+f X) Y) ; nested functions
-; Every Stellogen expression have these shapes (directly or indirectly)
-
-; Term with effect: display terms
-
-(show hello)
-(show hello world !)</textarea>
+(def greeter [(+hello X) (hello X)])
+(show (exec #greeter @[(-hello world)]))  ; => (hello world)</textarea>
                 </div>
             </div>
         </div>
@@ -323,11 +313,10 @@ $             ; another constant
     <div class="controls">
         <button id="runBtn">Run</button>
         <select id="examples">
-            <option value="">Load Example...</option>
-            <option value="hello">Hello</option>
+            <option value="hello" selected>Hello</option>
             <option value="macros">Macros</option>
-            <option value="prolog-arithmetic">Prolog - Arithmetic</option>
-            <option value="prolog-family">Prolog - Family</option>
+            <option value="relational-arithmetic">Relational - Arithmetic</option>
+            <option value="relational-joins">Relational - Joins</option>
             <option value="states-nfa">NFA (Finite Automaton)</option>
             <option value="states-npda">NPDA (Pushdown Automaton)</option>
             <option value="states-turing">Turing Machine</option>
@@ -496,6 +485,12 @@ $             ; another constant
         editor.addEventListener('input', updateHighlighting);
         editor.addEventListener('scroll', syncScroll);
 
+        // Keep the default editor content in sync with examples.js, so it
+        // can't drift from examples/hello.sg like the old hardcoded copy did
+        if (typeof examples !== 'undefined' && examples.hello) {
+            editor.value = examples.hello;
+        }
+
         // Initial highlight
         updateHighlighting();
 
@@ -595,7 +590,6 @@ $             ; another constant
             if (example) {
                 editor.value = example;
                 updateHighlighting();
-                e.target.value = '';
             }
         });
 
