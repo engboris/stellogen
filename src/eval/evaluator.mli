@@ -15,6 +15,12 @@ val term_of_constellation :
 val constellation_of_term :
   Constellation.StellarRays.term -> Constellation.Marked.constellation
 
+(** {1 Output} *)
+
+(** Where [show] writes its output. Defaults to printing on stdout; the web
+    playground redirects it to its output buffer. *)
+val show_printer : (string -> unit) ref
+
 (** {1 Error Formatting} *)
 
 (** Format an error for display, returning the formatted string or an error *)

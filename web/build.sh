@@ -22,6 +22,7 @@ mkdir -p web_deploy
 echo "Step 4: Copying files..."
 cp _build/default/web/playground.bc.js web_deploy/playground.js
 cp web/index.html web_deploy/
+cp web/worker.js web_deploy/
 cp web/examples.js web_deploy/
 
 # Get file size
@@ -33,6 +34,7 @@ echo
 echo "Generated files:"
 echo "  - web_deploy/playground.js ($JS_SIZE)"
 echo "  - web_deploy/index.html"
+echo "  - web_deploy/worker.js"
 echo "  - web_deploy/examples.js (auto-generated from examples/*.sg)"
 echo
 echo "To test locally:"

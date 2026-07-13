@@ -2,6 +2,11 @@
 
 A browser-based playground for experimenting with Stellogen code, compiled to JavaScript using js_of_ocaml.
 
+The **Run** button evaluates the run phase (like `sgen run`); the **Check**
+button evaluates the check phase (like `sgen check`), so `§` items and `::`
+assertions are verified in the browser too. Keyboard shortcuts: Ctrl+Enter
+to run, Ctrl+Shift+Enter to check.
+
 ## Building the Playground
 
 ### Prerequisites
@@ -51,6 +56,7 @@ This will create:
 mkdir -p web_deploy
 cp _build/default/web/playground.bc.js web_deploy/playground.js
 cp web/index.html web_deploy/
+cp web/worker.js web_deploy/
 cp web/examples.js web_deploy/
 ```
 
@@ -64,6 +70,10 @@ python3 -m http.server 8000
 # Or using any other HTTP server
 # Then open http://localhost:8000 in your browser
 ```
+
+Note: the interpreter runs in a web worker (`worker.js`), which browsers
+refuse to load from `file://` URLs. Always serve the playground over HTTP,
+even for local testing.
 
 ### Examples Management
 

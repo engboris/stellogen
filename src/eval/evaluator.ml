@@ -28,6 +28,13 @@ let galaxy_sym = (Null, "%galaxy")
 
 let nil_term = StellarRays.Func (nil_sym, [])
 
+(* Where show writes its output. The CLI keeps the default stdout;
+   the web playground redirects this to its output buffer. *)
+let show_printer : (string -> unit) ref =
+  ref (fun output ->
+    Stdlib.print_endline output;
+    Stdlib.flush Stdlib.stdout )
+
 (* Extract individual constellation terms from a galaxy term.
    Non-galaxy terms are treated as singleton galaxies. *)
 let constellations_of_galaxy (t : StellarRays.term) : StellarRays.term list =
@@ -494,8 +501,7 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
             |> List.map ~f:Marked.remove |> string_of_constellation )
           |> String.concat ~sep:" "
         in
-        Stdlib.print_endline output;
-        Stdlib.flush Stdlib.stdout;
+        !show_printer output;
         Ok (env_acc, nil_term)
       | expr :: rest ->
         (* Propagate location to inner expr if it doesn't have one *)
