@@ -1,0 +1,8 @@
+; object is shared, § items are check-only, unmarked items are run-only
+(object shared (+f a))
+
+§(show check-sees #shared)
+(show run-sees #shared)
+
+§(== #shared (+f a))
+(== #shared (+f a))

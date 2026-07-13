@@ -1,12 +1,14 @@
 (use "milkyway/prelude.sg")
 
-(spec nat
+; the type lives in the check phase
+§(spec nat
   {[(-nat 0) ok]
    [(-nat (s N)) (+nat N)]})
 
-(def 0 (+nat 0))     (:: 0 nat)
-(def 1 (+nat (s 0))) (:: 1 nat)
-(def 2 (+nat (s (s 0)))) (:: 2 nat)
+; objects are shared: checked below, used by the program at the bottom
+(object 0 (+nat 0))     (:: 0 nat)
+(object 1 (+nat (s 0))) (:: 1 nat)
+(object 2 (+nat (s (s 0)))) (:: 2 nat)
 
 (def add1 [(-nat X) (+nat (s X))])
 

@@ -1,16 +1,16 @@
 (use "../milkyway/prelude.sg")
 
-(spec binary
+§(spec binary
   {[(-i []) ok]
    [(-i [0|X]) (+i X)]
    [(-i [1|X]) (+i X)]})
 
-;input words
-(def e (+i []))        (:: e binary)
-(def 0 (+i [0]))       (:: 0 binary)
-(def 000 (+i [0 0 0])) (:: 000 binary)
-(def 010 (+i [0 1 0])) (:: 010 binary)
-(def 110 (+i [1 1 0])) (:: 110 binary)
+;input words, shared between the check and run phases
+(object e (+i []))        (:: e binary)
+(object 0 (+i [0]))       (:: 0 binary)
+(object 000 (+i [0 0 0])) (:: 000 binary)
+(object 010 (+i [0 1 0])) (:: 010 binary)
+(object 110 (+i [1 1 0])) (:: 110 binary)
 
 (def (initial Q) [(-i W) (+a W Q)])
 (def (accept Q) [(-a [] Q) accept])

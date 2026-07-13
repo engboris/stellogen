@@ -50,6 +50,11 @@ a bob 0            ; Constants (lowercase/digits)
 (:: value typename)       ; Assert value passes all tests (needs prelude)
 (forall Galaxy G body)    ; Iterate over galaxy entries
 
+; Phases (two superposed programs per file)
+§expr                     ; Top-level expression in the check phase (sgen check)
+                          ; Unmarked top-level expressions: run phase (sgen run)
+(object name value)       ; Definition shared by both phases
+
 ; Macros
 (macro (pattern) (expansion))
 (macro (pattern A B ...) (expansion using A B ...))
@@ -244,10 +249,13 @@ Linear lambda terms are encoded as MLL proof nets. Each lambda term translates t
 See `examples/lambda/linear_lambda.sg` and `examples/proofnets/mll.sg` for complete examples.
 
 ### Pattern: Type Checking
-Types are galaxies (collections of constellations) of interactive tests:
+Types are galaxies (collections of constellations) of interactive tests.
+`::` hides a `§` in its expansion, so assertions live in the check phase:
+verified by `sgen check`, skipped by `sgen run`.
 ```stellogen
-(spec typename { test1 test2 ... })
-(:: value typename)   ; Passes if every test yields ok
+§(spec typename { test1 test2 ... })  ; type only used for checking
+(object val ...)      ; value used by both the checks and the run program
+(:: val typename)     ; Passes if every test yields ok (check phase)
 ```
 
 ## Cleaning Results

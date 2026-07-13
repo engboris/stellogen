@@ -23,6 +23,7 @@ module Raw = struct
     | Focus of t
     | Linear of t
     | Call of t
+    | Static of t
     | List of t list
     | Group of t list
     | Cons of t list
@@ -58,9 +59,13 @@ let linear_op = "*"
 
 let string_op = primitive "string"
 
+let static_op = "\xc2\xa7" (* the section sign, written as U+00A7 *)
+
 let def_op = "def"
 
 let spec_op = "spec"
+
+let object_op = "object"
 
 let forall_op = "forall"
 
@@ -107,6 +112,13 @@ let rec expand_macro : Raw.t -> expr loc = function
   | Raw.Linear e' ->
     let e = expand_macro e' in
     { content = List [ { content = Symbol linear_op; loc = None }; e ]
+    ; loc = None
+    }
+  | Raw.Static e' ->
+    (* Safe encoding: the lexer owns the section sign, so users cannot
+       forge a symbol with this name *)
+    let e = expand_macro e' in
+    { content = List [ { content = Symbol static_op; loc = None }; e ]
     ; loc = None
     }
   | Raw.Group es ->
@@ -239,6 +251,15 @@ let rec expand_macros_in_expr
       :: { content = List ({ content = Symbol _; _ } :: _); _ }
       :: _ ) ->
     []
+  (* A §-marked macro definition must not be erased like a plain one:
+     keep it intact so program conversion reports the error with its
+     location *)
+  | List
+      [ { content = Symbol s; _ }
+      ; { content = List ({ content = Symbol "macro"; _ } :: _); _ }
+      ]
+    when String.equal s static_op ->
+    [ expr ]
   (* Macro call - expand and recursively process *)
   | List ({ content = Symbol macro_name; _ } :: call_args) -> (
     (* Find all patterns for this macro name *)
@@ -319,8 +340,11 @@ type macro_env = (string * (string list * expr loc list)) list
    imported file's macros into scope, and later at evaluation time where
    the same directive imports the file's definitions. *)
 let collect_macro_imports (raw_exprs : Raw.t list) : string list =
-  let strip = function
-    | Raw.Positioned (inner, _, _) -> inner
+  (* Static is stripped too: macro imports happen at preprocessing, before
+     phases exist, so §(use ...) still brings macros into scope *)
+  let rec strip = function
+    | Raw.Positioned (inner, _, _) -> strip inner
+    | Raw.Static inner -> strip inner
     | other -> other
   in
   List.concat_map raw_exprs ~f:(fun raw_expr ->
@@ -390,6 +414,10 @@ let rec ray_of_expr : expr -> (ray, expr_err) Result.t = function
   | Var "_" -> to_var ("_" ^ fresh_placeholder ()) |> Result.return
   | Var s -> to_var s |> Result.return
   | List [] -> Error EmptyRay
+  | List ({ content = Symbol h; _ } :: _) as e when String.equal h static_op ->
+    (* Without this case a nested § would be silently absorbed into a
+       function term *)
+    Error (MisplacedStatic (to_string e))
   | List ({ content = Symbol h; _ } :: t) ->
     let* args = List.map ~f:(fun e -> ray_of_expr e.content) t |> Result.all in
     to_func (symbol_of_str h, args) |> Result.return
@@ -489,6 +517,10 @@ let rec sgen_expr_of_expr ?(enclosing_loc : source_location option = None)
   let wrap_error result = Result.map_error result ~f:(fun err -> (err, loc)) in
   let recur e = sgen_expr_of_expr ~enclosing_loc:loc e in
   match expr.content with
+  (* § below top level: program_of_expr strips the marker of top-level
+     items before conversion, so reaching one here is an error *)
+  | List ({ content = Symbol op; _ } :: _) when String.equal op static_op ->
+    Error (MisplacedStatic (to_string expr.content), loc)
   | List [ { content = Symbol op; _ }; arg ] when String.equal op call_op ->
     let* ray = ray_of_expr arg.content |> wrap_error in
     Call (ray, loc) |> Result.return
@@ -568,7 +600,8 @@ let rec sgen_expr_of_expr ?(enclosing_loc : source_location option = None)
     let* message_ray = ray_of_expr message.content |> wrap_error in
     Match (sgen_expr1, sgen_expr2, message_ray, loc) |> Result.return
   | List ({ content = Symbol op; _ } :: identifier :: values)
-    when (String.equal op def_op || String.equal op spec_op)
+    when ( String.equal op def_op || String.equal op spec_op
+         || String.equal op object_op )
          && not (List.is_empty values) ->
     let* id_ray = ray_of_expr identifier.content |> wrap_error in
     let* value_exprs =
@@ -611,6 +644,41 @@ let rec sgen_expr_of_expr ?(enclosing_loc : source_location option = None)
    Stellogen program of Expr
    --------------------------------------- *)
 
-let program_of_expr e = List.map ~f:sgen_expr_of_expr e |> Result.all
+(* Assign each top-level item to a phase. The § marker is stripped here,
+   after macro expansion, so a macro whose expansion is §(...) satisfies
+   the top-level rule while a nested § stays an error. *)
+let classify_item (expr : expr loc) :
+  (item_phase * sgen_expr, expr_err * source_location option) Result.t =
+  let is_head_list keyword (e : expr loc) =
+    match e.content with
+    | List ({ content = Symbol h; _ } :: _) -> String.equal h keyword
+    | _ -> false
+  in
+  match expr.content with
+  | List [ { content = Symbol op; _ }; payload ] when String.equal op static_op
+    ->
+    if is_head_list object_op payload then Error (StaticOnObject, expr.loc)
+    else if is_head_list "macro" payload then Error (StaticOnMacro, expr.loc)
+    else
+      let payload =
+        match payload.loc with
+        | Some _ -> payload
+        | None -> { payload with loc = expr.loc }
+      in
+      let* sgen = sgen_expr_of_expr payload in
+      Ok (CheckOnly, sgen)
+  | List ({ content = Symbol h; _ } :: _) when String.equal h object_op ->
+    let* sgen = sgen_expr_of_expr expr in
+    Ok (Shared, sgen)
+  | List [ { content = Symbol h; _ }; _ ] when String.equal h "use" ->
+    (* Imports run in both phases; the imported file's items
+       self-classify under the active phase *)
+    let* sgen = sgen_expr_of_expr expr in
+    Ok (Shared, sgen)
+  | _ ->
+    let* sgen = sgen_expr_of_expr expr in
+    Ok (RunOnly, sgen)
+
+let program_of_expr e = List.map ~f:classify_item e |> Result.all
 
 let preprocess e = e |> List.map ~f:expand_macro |> unfold_decl_def []

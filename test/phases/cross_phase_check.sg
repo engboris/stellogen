@@ -1,0 +1,3 @@
+; a check-phase expression referencing a run-phase definition
+(def query (+f a))
+§(show #query)

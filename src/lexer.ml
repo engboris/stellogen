@@ -64,7 +64,7 @@ and read lexbuf =
   let get_pos () = fst (Sedlexing.lexing_positions lexbuf) in
   let tok =
     match%sedlex lexbuf with
-    | ( Compl (Chars "';\" \t\n\r()[]{}|@#*")
+    | ( Compl (Chars "';\" \t\n\r()[]{}|@#*" | 0xA7)
       , Star (Compl (Chars "; \t\n\r()[]{}|")) ) -> (
       let lexeme = Utf8.lexeme lexbuf in
       match lexeme.[0] with '_' | 'A' .. 'Z' -> VAR lexeme | _ -> SYM lexeme )
@@ -89,6 +89,7 @@ and read lexbuf =
     | '@' -> AT
     | '*' -> STAR
     | '#' -> SHARP
+    | 0xA7 -> SECTION (* the section sign, written as U+00A7 *)
     | '|' -> BAR
     | ';' -> comment lexbuf
     | '"' -> string_literal lexbuf

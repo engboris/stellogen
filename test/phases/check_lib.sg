@@ -1,0 +1,5 @@
+; a helper library meant to be imported into the check phase.
+; Imported items self-classify under the active phase, so exported
+; definitions are objects; a plain def would be run-only and invisible
+; to a checking importer.
+(object helper (+h ok))

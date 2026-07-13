@@ -1,0 +1,7 @@
+; §(use ...): the import only happens in the check phase
+§(use "check_lib.sg")
+§(show #helper)
+
+; the run phase skips the import, so this reference fails under
+; 'sgen run' (and works under 'sgen check' thanks to the line above)
+(show #helper)

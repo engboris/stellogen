@@ -1,7 +1,9 @@
 ; Stellogen Prelude
 ; Common macros for type system and testing
 
-; Macro for type assertion (iterates over galaxy of tests)
+; Macro for type assertion (iterates over galaxy of tests).
+; The expansion carries the § marker: every call site becomes a
+; check-phase item, evaluated by 'sgen check' and skipped by 'sgen run'.
 (macro (:: Tested Test)
-  (forall Test T
+  §(forall Test T
     (== @(exec @#Tested #T) ok)))

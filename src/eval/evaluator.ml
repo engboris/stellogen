@@ -224,6 +224,7 @@ let trace_of_err : err -> frame list = function
   | ExpectError { trace; _ } -> trace
   | MatchError { trace; _ } -> trace
   | UnknownID (_, _, trace) -> trace
+  | WrongPhaseID (_, _, _, trace) -> trace
   | ExprError (_, _, trace) -> trace
 
 (* Render the chain of #calls that were unwound to reach where the error
@@ -284,6 +285,23 @@ let pp_err error : (string, err) Result.t =
       Terminal.format_error_at_location_opt ~message:"identifier not found"
         ~location:(Option.map location ~f:to_terminal_loc)
         ~hint
+    | WrongPhaseID (identifier, active_phase, location, _) ->
+      let this_phase, other_phase =
+        match active_phase with
+        | Check -> ("check", "run")
+        | Run -> ("run", "check")
+      in
+      let hint =
+        Some
+          (Printf.sprintf
+             "'%s' is defined in the %s phase but referenced from a %s-phase \
+              expression."
+             identifier other_phase this_phase )
+      in
+      Terminal.format_error_at_location_opt
+        ~message:"identifier not visible in this phase"
+        ~location:(Option.map location ~f:to_terminal_loc)
+        ~hint
     | ExprError (expr_error, location, _) ->
       let error_msg, hint =
         match expr_error with
@@ -308,6 +326,16 @@ let pp_err error : (string, err) Result.t =
         | InvalidBanStructure msg ->
           ( Printf.sprintf "invalid ban structure: %s" msg
           , "Ban expressions must use != or 'slice' with two arguments." )
+        | MisplacedStatic expr ->
+          ( Printf.sprintf "misplaced '\xc2\xa7' in '%s'" expr
+          , "The '\xc2\xa7' marker can only prefix a whole top-level \
+             expression." )
+        | StaticOnObject ->
+          ( "'\xc2\xa7' cannot be applied to an object definition"
+          , "Objects are shared between both phases; remove the marker." )
+        | StaticOnMacro ->
+          ( "'\xc2\xa7' cannot be applied to a macro definition"
+          , "Macros are expanded before phases exist; remove the marker." )
         | CircularImport path ->
           ( Printf.sprintf "circular import detected: %s" path
           , "Check your import chain for cycles." )
@@ -330,6 +358,7 @@ let fill_error_location (loc : source_location) : err -> err = function
   | MatchError ({ location = None; _ } as r) ->
     MatchError { r with location = Some loc }
   | UnknownID (id, None, trace) -> UnknownID (id, Some loc, trace)
+  | WrongPhaseID (id, p, None, trace) -> WrongPhaseID (id, p, Some loc, trace)
   | ExprError (e, None, trace) -> ExprError (e, Some loc, trace)
   | other -> other
 
@@ -339,21 +368,39 @@ let push_frame (frame : frame) : err -> err = function
   | ExpectError r -> ExpectError { r with trace = frame :: r.trace }
   | MatchError r -> MatchError { r with trace = frame :: r.trace }
   | UnknownID (id, loc, trace) -> UnknownID (id, loc, frame :: trace)
+  | WrongPhaseID (id, p, loc, trace) -> WrongPhaseID (id, p, loc, frame :: trace)
   | ExprError (e, loc, trace) -> ExprError (e, loc, frame :: trace)
 
+let phase_active (active : phase) (item : item_phase) : bool =
+  match (item, active) with
+  | Shared, _ -> true
+  | CheckOnly, Check | RunOnly, Run -> true
+  | CheckOnly, Run | RunOnly, Check -> false
+
+(* Names bound by a skipped item, recorded for the phase-aware
+   unknown-identifier diagnostic. The values are never evaluated. *)
+let rec skipped_def_names : sgen_expr -> ident list = function
+  | Def (id, _) -> [ id ]
+  | Group es -> List.concat_map es ~f:skipped_def_names
+  | _ -> []
+
 let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
-  (env : env) : sgen_expr -> (env * StellarRays.term, err) Result.t = function
+  ?(phase = Run) (env : env) :
+  sgen_expr -> (env * StellarRays.term, err) Result.t = function
   | Raw t -> Ok (env, t)
   | Call (x, location) ->
     begin match get_obj env x with
-    | None -> Error (UnknownID (string_of_ray x, location, []))
+    | None ->
+      if List.exists env.skipped ~f:(fun key -> unifiable key x) then
+        Error (WrongPhaseID (string_of_ray x, phase, location, []))
+      else Error (UnknownID (string_of_ray x, location, []))
     | Some (g, subst) ->
       let result =
         List.fold_result subst ~init:g ~f:(fun g_acc (xfrom, xto) ->
           map_ray env ~f:(StellarRays.subst [ (xfrom, xto) ]) g_acc
           |> Result.return )
       in
-      Result.bind result ~f:(eval_sgen_expr ~trace_cfg env)
+      Result.bind result ~f:(eval_sgen_expr ~trace_cfg ~phase env)
       |> Result.map_error ~f:(push_frame { called = x; location })
     end
   | Group es ->
@@ -363,12 +410,12 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
         ~init:(Ok (env, []))
         ~f:(fun acc e ->
           let* env_acc, results = acc in
-          let* env_new, result = eval_sgen_expr ~trace_cfg env_acc e in
+          let* env_new, result = eval_sgen_expr ~trace_cfg ~phase env_acc e in
           Ok (env_new, result :: results) )
     in
     Ok (env', func "%group" (List.rev eval_terms))
   | Exec (e, loc) ->
-    let* env', eval_e = eval_sgen_expr ~trace_cfg env e in
+    let* env', eval_e = eval_sgen_expr ~trace_cfg ~phase env e in
     let eval_constellation = constellation_of_term eval_e in
     (* Set location in trace config if available *)
     ( match (trace_cfg, loc) with
@@ -386,20 +433,21 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
     in
     Ok (env', term_of_constellation result_constellation)
   | Focus e ->
-    let* env', eval_e = eval_sgen_expr ~trace_cfg env e in
+    let* env', eval_e = eval_sgen_expr ~trace_cfg ~phase env e in
     let focused_constellation =
       constellation_of_term eval_e |> Marked.refocus_all
     in
     Ok (env', term_of_constellation focused_constellation)
   | Linear e ->
-    let* env', eval_e = eval_sgen_expr ~trace_cfg env e in
+    let* env', eval_e = eval_sgen_expr ~trace_cfg ~phase env e in
     let linear_constellation =
       constellation_of_term eval_e |> Marked.set_linear_all true
     in
     Ok (env', term_of_constellation linear_constellation)
   | Def (identifier, exprs) -> (
     match exprs with
-    | [ single ] -> Ok ({ objs = add_obj env identifier single }, nil_term)
+    | [ single ] ->
+      Ok ({ env with objs = add_obj env identifier single }, nil_term)
     | multiple ->
       (* Multiple expressions = galaxy: evaluate each, wrap in %galaxy *)
       let* env', eval_terms =
@@ -407,23 +455,27 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
           ~init:(Ok (env, []))
           ~f:(fun acc e ->
             let* env_acc, results = acc in
-            let* env_new, result = eval_sgen_expr ~trace_cfg env_acc e in
+            let* env_new, result = eval_sgen_expr ~trace_cfg ~phase env_acc e in
             Ok (env_new, result :: results) )
       in
       let galaxy_term = StellarRays.Func (galaxy_sym, List.rev eval_terms) in
-      Ok ({ objs = add_obj env' identifier (Raw galaxy_term) }, nil_term) )
+      Ok
+        ( { env' with objs = add_obj env' identifier (Raw galaxy_term) }
+        , nil_term ) )
   | Forall (galaxy_id, bind_var, body, location) ->
     let* _, galaxy_term =
-      eval_sgen_expr ~trace_cfg env (Call (galaxy_id, location))
+      eval_sgen_expr ~trace_cfg ~phase env (Call (galaxy_id, location))
     in
     let constellation_terms = constellations_of_galaxy galaxy_term in
     List.fold_left constellation_terms
       ~init:(Ok (env, nil_term))
       ~f:(fun acc const_term ->
         let* env_acc, _ = acc in
-        let local_env = { objs = add_obj env_acc bind_var (Raw const_term) } in
+        let local_env =
+          { env_acc with objs = add_obj env_acc bind_var (Raw const_term) }
+        in
         let* _, _ =
-          eval_sgen_expr ~trace_cfg local_env body
+          eval_sgen_expr ~trace_cfg ~phase local_env body
           |> Result.map_error ~f:(fun err ->
             match location with
             | Some loc -> fill_error_location loc err
@@ -453,14 +505,14 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
           | other -> other
         in
         let* env', evaluated =
-          eval_sgen_expr ~trace_cfg env_acc expr_with_loc
+          eval_sgen_expr ~trace_cfg ~phase env_acc expr_with_loc
         in
         eval_all env' (evaluated :: results) rest
     in
     eval_all env [] exprs
   | Expect (expr1, expr2, message, location) ->
-    let* env1, eval1 = eval_sgen_expr ~trace_cfg env expr1 in
-    let* env2, eval2 = eval_sgen_expr ~trace_cfg env1 expr2 in
+    let* env1, eval1 = eval_sgen_expr ~trace_cfg ~phase env expr1 in
+    let* env2, eval2 = eval_sgen_expr ~trace_cfg ~phase env1 expr2 in
     let const1 = constellation_of_term eval1 in
     let const2 = constellation_of_term eval2 in
     let normalized1 = Marked.normalize_all const1 in
@@ -472,8 +524,8 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
         (ExpectError
            { got = const1; expected = const2; message; location; trace = [] } )
   | Match (expr1, expr2, message, location) ->
-    let* env1, eval1 = eval_sgen_expr ~trace_cfg env expr1 in
-    let* env2, eval2 = eval_sgen_expr ~trace_cfg env1 expr2 in
+    let* env1, eval1 = eval_sgen_expr ~trace_cfg ~phase env expr1 in
+    let* env2, eval2 = eval_sgen_expr ~trace_cfg ~phase env1 expr2 in
     let const1 = constellation_of_term eval1 |> List.map ~f:Marked.remove in
     let const2 = constellation_of_term eval2 |> List.map ~f:Marked.remove in
     if constellations_matchable const1 const2 then Ok (env2, nil_term)
@@ -516,7 +568,9 @@ let rec eval_sgen_expr ?(trace_cfg : Tracer.trace_config option = None)
     in
     match Expression.program_of_expr preprocessed with
     | Ok program ->
-      let* new_env = eval_program_internal ~trace_cfg env program in
+      (* Imports inherit the phase: the imported file's items
+         self-classify under the active phase *)
+      let* new_env = eval_program_internal ~trace_cfg ~phase env program in
       Ok (new_env, nil_term)
     | Error (expr_err, loc) -> Error (ExprError (expr_err, loc, [])) )
 
@@ -529,10 +583,32 @@ and eval_program (p : program) =
     Error e
 
 and eval_program_internal ?(trace_cfg : Tracer.trace_config option = None)
-  (env : env) (p : program) =
+  ?(phase = Run) (env : env) (p : program) =
   List.fold_left
-    ~f:(fun acc x ->
+    ~f:(fun acc (item_phase, x) ->
       let* acc_env = acc in
-      let* new_env, _ = eval_sgen_expr ~trace_cfg acc_env x in
-      Ok new_env )
+      if phase_active phase item_phase then
+        let* new_env, _ = eval_sgen_expr ~trace_cfg ~phase acc_env x in
+        Ok new_env
+      else Ok { acc_env with skipped = skipped_def_names x @ acc_env.skipped } )
     ~init:(Ok env) p
+
+(* Check-phase evaluation with error collection, per top-level item:
+   assertion failures are recorded and evaluation continues; structural
+   errors stop it, since later items legitimately depend on definitions. *)
+let eval_program_check (p : program) : env * err list =
+  let env, rev_errors =
+    List.fold_until p ~init:(initial_env, [])
+      ~f:(fun (env, errors) (item_phase, x) ->
+        if phase_active Check item_phase then
+          match eval_sgen_expr ~phase:Check env x with
+          | Ok (env', _) -> Continue_or_stop.Continue (env', errors)
+          | Error ((ExpectError _ | MatchError _) as e) ->
+            Continue_or_stop.Continue (env, e :: errors)
+          | Error e -> Continue_or_stop.Stop (env, e :: errors)
+        else
+          Continue_or_stop.Continue
+            ({ env with skipped = skipped_def_names x @ env.skipped }, errors) )
+      ~finish:Fn.id
+  in
+  (env, List.rev rev_errors)

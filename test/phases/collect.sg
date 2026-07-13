@@ -1,0 +1,5 @@
+; check collects assertion failures per top-level item
+§(== a b)
+§(== c c)
+§(~= (+f a) (+g b))
+§(show done)

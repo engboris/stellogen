@@ -1,0 +1,2 @@
+; § below top level is an error, not a term
+(def x (f §a))

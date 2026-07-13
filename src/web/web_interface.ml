@@ -51,10 +51,16 @@ let eval_program_with_buffer (p : program) =
 
   let rec eval_program_internal env = function
     | [] -> Ok env
-    | term :: rest -> (
-      match eval_term env term with
-      | Ok env' -> eval_program_internal env' rest
-      | Error e -> Error e )
+    | (item_phase, term) :: rest ->
+      if Evaluator.phase_active Syntax.Run item_phase then
+        match eval_term env term with
+        | Ok env' -> eval_program_internal env' rest
+        | Error e -> Error e
+      else
+        (* The playground runs the run phase; check-only items are
+           skipped but their names are kept for diagnostics *)
+        let skipped = Evaluator.skipped_def_names term @ env.skipped in
+        eval_program_internal { env with skipped } rest
   in
 
   match eval_program_internal Syntax.initial_env p with

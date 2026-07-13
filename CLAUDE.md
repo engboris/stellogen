@@ -143,9 +143,39 @@ No import needed:
 `then` is only special as the head of an expression; it remains usable as
 an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 
-### 10. Key Operators
+### 10. Phase Separation - check vs run (§ and object)
+A file is two superposed programs. Every top-level expression belongs to
+exactly one of three kinds:
+
+| kind | `sgen check` (phase 1) | `sgen run` (phase 2) |
+|---|---|---|
+| `(object x ...)` shared definition | visible | visible |
+| `§X` where X is any expression | evaluated | skipped |
+| unmarked expression | skipped | evaluated |
+
+- `§` (section sign) before ANY top-level expression puts it in the
+  check phase: `§(def x ...)`, `§(== ...)`, `§(show ...)`. It is a
+  lexer token, only legal at top level; nested `§` is a diagnosed error.
+- `object` is a keyword (not a sigil): a definition shared by both
+  phases - the only thing crossing the boundary. `§(object ...)` is an
+  error.
+- `def`/`spec` are phase-neutral; the phase comes solely from `§`.
+  Each phase resolves `#name` calls against its own definitions plus the
+  shared objects; referencing a name defined in the other phase is an
+  error with a phase-aware message.
+- The prelude's `::` macro hides a `§` in its expansion, so type
+  assertions live in the check phase; `sgen run` skips them all (that
+  skip is the performance point; `sgen check` in CI is what verifies).
+- Imports (`use`) run in both phases; the imported file's items
+  self-classify. `§(use ...)` imports only in the check phase (library
+  definitions meant to be visible must be `object`s). Macros are
+  phase-less (expanded before phases exist); `§(macro ...)` is an error.
+
+### 11. Key Operators
 - **Definition**: `(def name value)` - bind name to value
 - **Spec**: `(spec name value)` - built-in synonym of `def` (marks intent: the thing defined is a test suite/type)
+- **Object**: `(object name value)` - definition shared by both phases (see above)
+- **Static marker**: `§expr` - put a top-level expression in the check phase
 - **Call**: `#name` - retrieve definition
 - **Focus**: `@expr` - mark as state/evaluate
 - **Linear**: `*expr` - mark as consumable (used at most once during execution)
@@ -172,6 +202,8 @@ an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 
 ### Declarations
 - **Definition**: `(def name value)`
+- **Shared definition**: `(object name value)` - visible in both phases
+- **Check-phase item**: `§expr` - any top-level expression
 - **Macro**: `(macro (pattern) (expansion))`
 - **Show**: `(show expr)` - display result
 - **Expect**: `(== expr1 expr2)` - assertion/testing (checks equality)
@@ -191,6 +223,7 @@ an ordinary symbol inside terms (e.g. `#(if read 0 on q0 then q1)`).
 - Expect (`==`) for equality assertions
 - Match (`~=`) for unifiability checks
 - Parametric definitions `(def (f a b) ...)` and calls `#(f a b)`
+- Phase separation: `§` and `object`
 
 ### Type System (Unconventional)
 Types are defined as **sets of interactive tests**. Type checking =
@@ -215,10 +248,11 @@ Simple version (type = ONE test constellation):
 
 The real prelude (`examples/milkyway/prelude.sg`) is more general: a type
 may be a **galaxy** of several tests, and the tested must pass **each test
-separately** (in its own interaction space). That is what `forall` is for:
+separately** (in its own interaction space). That is what `forall` is for.
+The `§` in the expansion sends every call site to the check phase:
 ```stellogen
 (macro (:: Tested Test)
-  (forall Test T
+  §(forall Test T
     (== @(exec @#Tested #T) ok)))
 ```
 
@@ -407,8 +441,13 @@ dune build
 dune exec sgen run -- <inputfile>
 
 # Other subcommands
+sgen check <file>        # evaluate the check phase (objects + § items)
 sgen preprocess <file>   # show code after macro expansion
 sgen trace <file>        # run with interactive execution trace
+
+# Both run and check exit non-zero on failure. check collects assertion
+# failures per top-level item; run stops at the first error. Nothing at
+# runtime verifies that check ever ran: gate it in CI.
 
 # Help
 sgen --help
@@ -441,18 +480,18 @@ run file.sg` — because `dune exec` wraps the process and defeats `timeout`.
 ```stellogen
 ; spec is a built-in synonym of def (marks intent)
 
-; Macro for type assertion
+; Macro for type assertion; the § sends call sites to the check phase
 (macro (:: Tested Test)
-  (== @(exec @#Tested #Test) ok))
+  §(== @(exec @#Tested #Test) ok))
 
-; Define nat type as interactive tests
-(spec nat {
+; Define nat type as interactive tests (check phase)
+§(spec nat {
   [(-nat 0) ok]
   [(-nat (s N)) (+nat N)]})
 
-; Define and check values
-(def 0 (+nat 0))
-(:: 0 nat)  ; succeeds
+; Define and check a value used by both phases
+(object 0 (+nat 0))
+(:: 0 nat)  ; verified by sgen check, skipped by sgen run
 ```
 
 ## Dependencies (OCaml)
@@ -622,9 +661,14 @@ a bob 0         ; Constants
 [(+f X) || (!= X Y)]  ; Star with inequality constraint
 
 ; Definitions and Calls
-(def name value) ; Define
+(def name value) ; Define (in the phase of the enclosing item)
+(object name value) ; Define shared between check and run phases
 #name           ; Call/reference
 @#name          ; Call and focus
+
+; Phases
+§expr           ; Any top-level expression: check phase (sgen check)
+                ; Unmarked top-level expressions: run phase (sgen run)
 
 ; Execution
 (exec c1 c2)    ; c2's non-linear stars can be reused; *-marked ones fire once
@@ -676,5 +720,5 @@ EXECUTION        = Saturation via star fusion
 
 ---
 
-*Last updated: 2026-07-06 — all code examples in this file are verified to run against the current implementation.*
+*Last updated: 2026-07-13 — all code examples in this file are verified to run against the current implementation.*
 *For current implementation details, always refer to `BASICS.md`, the wiki, and source code as the language evolves rapidly.*

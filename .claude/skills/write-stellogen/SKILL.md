@@ -20,6 +20,7 @@ You are writing code in **Stellogen**, an experimental language based on **stell
 5. **Focus (`@`) is critical.** It marks state stars (data being transformed). Without `@`, nothing executes.
 6. **Actions are reusable by default**; prefix a star with `*` to mark it consumable (used at most once). `*{...}` marks every star in a group consumable.
 7. **`then` chains** constellations sequentially (built-in).
+8. **Programs have two phases.** `§` before a top-level expression puts it in the check phase (`sgen check`); unmarked expressions form the run phase (`sgen run`); `(object x ...)` definitions are shared between both. Each phase only sees its own definitions plus objects.
 
 ## Writing Process
 
@@ -36,6 +37,8 @@ You are writing code in **Stellogen**, an experimental language based on **stell
 - Assuming variables are shared between stars (they are LOCAL to each star)
 - Wrong polarity direction (need `+` provider and `-` requester)
 - Thinking execution is clause-based like Prolog (it is NOT — constellations are unordered, polarity and focus drive execution)
+- Referencing a run-phase `def` from a `§` item or vice versa (each phase only sees its own definitions plus objects — share the definition with `object` instead)
+- Defining a value with `def` when both a `::` assertion and the run program use it (the `::` expansion is check-phase, so the value must be an `object`)
 
 ## Parameterised Definitions
 
@@ -54,6 +57,16 @@ If the program needs the `::` type assertion macro, start with:
 ```stellogen
 (use "milkyway/prelude.sg")
 ```
+
+`::` hides a `§` in its expansion, so every type assertion lives in the
+check phase: `sgen check` verifies it, `sgen run` skips it. Consequences
+when writing code:
+
+- A type (`spec`) only used by assertions gets `§`: `§(spec nat {...})`
+- A value that is both type-checked and used by the run program must be
+  an `object`; a value only ever type-checked can be `§(def ...)`
+- Place each check right after the definition it checks
+- Verify with BOTH commands: `sgen run file.sg` and `sgen check file.sg`
 
 ## Output
 

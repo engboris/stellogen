@@ -22,6 +22,7 @@ let string_of_token = function
   | Parser.LBRACE -> "{"
   | Parser.RBRACE -> "}"
   | Parser.SHARP -> "#"
+  | Parser.SECTION -> "\xc2\xa7"
   | Parser.EOF -> "EOF"
 
 (* Generate a helpful error message based on context *)

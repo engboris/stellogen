@@ -1,0 +1,3 @@
+; a run-phase expression referencing a check-phase definition
+§(def aux (+f a))
+(show #aux)

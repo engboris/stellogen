@@ -35,6 +35,19 @@ type frame =
   ; location : source_location option
   }
 
+(* The phase a command evaluates: sgen check runs Check, sgen run runs Run *)
+type phase =
+  | Check
+  | Run
+
+(* Which phase(s) a top-level program item belongs to. Shared items (object
+   definitions) are visible to both phases; the § marker makes an item
+   CheckOnly; everything else is RunOnly. *)
+type item_phase =
+  | Shared
+  | CheckOnly
+  | RunOnly
+
 type err =
   | ExpectError of
       { got : Marked.constellation
@@ -51,10 +64,17 @@ type err =
       ; trace : frame list
       }
   | UnknownID of string * source_location option * frame list
+  | WrongPhaseID of string * phase * source_location option * frame list
   | ExprError of expr_err * source_location option * frame list
 
-type env = { objs : (ident * sgen_expr) list }
+(* skipped records the names of definitions the active phase did not
+   evaluate, so a failed lookup can say "defined in the other phase"
+   instead of "identifier not found" *)
+type env =
+  { objs : (ident * sgen_expr) list
+  ; skipped : ident list
+  }
 
-let initial_env = { objs = [] }
+let initial_env = { objs = []; skipped = [] }
 
-type program = sgen_expr list
+type program = (item_phase * sgen_expr) list

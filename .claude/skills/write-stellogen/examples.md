@@ -19,4 +19,4 @@ Read these files for reference patterns before writing code.
 
 ## Prelude
 
-- **`examples/milkyway/prelude.sg`** — Standard macros: `::` (type assertion).
+- **`examples/milkyway/prelude.sg`** — Standard macros: `::` (type assertion; its expansion carries `§`, putting every call site in the check phase).

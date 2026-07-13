@@ -21,8 +21,8 @@
 
 (show (exec #id #x_arg #linker))
 
-; linear types
-(spec (larrow a a)
+; linear types (check phase)
+§(spec (larrow a a)
   {[+test1 [
     [(-x X) (+parxy X)]
     [(-y X)]
