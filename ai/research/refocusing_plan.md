@@ -18,40 +18,6 @@ Numbering of the remaining items is unchanged so cross-references stay valid.
 
 ## Phase 2: Simplify the Implementation (remaining)
 
-### 2.2b Factorize execution variants — **design note, decision pending**
-Recorded 2026-07-06 (Boris to decide later). Execution is **one operation**
-(saturation of a focused space) with two orthogonal axes:
-
-- *Resource discipline of action stars*: which structural rules actions
-  enjoy. Weakening always (unused actions are discarded); contraction =
-  `exec` (actions as if under `!`); none = `fire` (purely linear dynamics).
-  The AST already half-knows this: `Exec of bool * …`, the bool is this
-  axis.
-- *Composition shape*: flat vs staged (`then`). Staging is **not** an
-  execution mode: it is derived notation (a left fold of executions), which
-  is why it never touches the evaluator.
-
-Proposals on the table:
-
-1. **Encode the mode axis honestly:** replace the bool with
-   `type exec_mode = Reuse | Linear`. Extensible to bounded/soft disciplines
-   later; exponential disciplines correspond to complexity classes (light
-   logics), which connects directly to the descriptive-complexity program
-   (evaluation doc §6). The mode axis is research-relevant, not plumbing.
-2. **2×2 matrix** {reuse, linear} × {flat, staged}: ship three cells
-   (`exec`, `fire`, `then` = staged reuse); staged-linear is a 2-line
-   addition when a use case arrives (e.g. step-by-step proof construction).
-3. **Naming options:** (i) systematic family `exec`/`exec-lin`/`exec-seq`
-   (renames `fire`: churn); (ii) mode symbols inside one head,
-   `(exec lin seq …)` — **rejected**: bare symbols become context-dependent,
-   the §4.2 reader hazard; (iii) keep `exec`/`fire` + `then` — least churn,
-   current choice pending the decision.
-
-`KERNEL.md` (section 1.5, written 2026-07-07) states the current
-factorization in exactly these terms: one operation, mode = structural
-discipline of actions, staging = derived fold. Update that section when
-the naming decision lands.
-
 ### 2.7 Kernel audit: write `KERNEL.md` — **done 2026-07-07**
 Removed from the plan per the convention above; two findings from the
 audit differ from what this plan predicted and are recorded here so they
@@ -96,8 +62,8 @@ are not re-litigated:
 ### 2.9 Meta-kernel census and reflection — **design note recorded 2026-07-07**
 - **Why:** The meta-kernel is a glue language with a fixed menu; macros
   can rearrange it but cannot create new execution disciplines or
-  judgments (`::lin` exists only because `fire` is on the menu). Serious
-  practices will keep hitting this ceiling.
+  judgments (`::lin` exists only because the `*` linearity modality is
+  on the menu). Serious practices will keep hitting this ceiling.
 - **Design:** `ai/research/meta_kernel.md`. An admission rule (a form is
   admitted only if inexpressible by lower strata plus macros;
   observation additions cost the most), a census of the fourteen forms
@@ -111,7 +77,7 @@ are not re-litigated:
   encoding contract 2.5.2); sharpen KERNEL.md entries for `~=`/`forall`
   and note `then` as debt; `quote` (reify execution results into the
   %-encoding; demotes `~=`, dissolves negative assertions, inverts the
-  trust trend); fuel axis with the 2.2b factorization; `eval` only with
+  trust trend); fuel axis; `eval` only with
   its first strategy/tactic client and a written trust story.
 
 ---
@@ -223,7 +189,7 @@ logics/
 | Category | Items |
 |----------|-------|
 | **Harden** | macro-system diagnostics, expansion guard, aliases, freshening (2.8) |
-| **Decide** | execution-variant factorization (2.2b); internal polarities (gates encoding contract and `quote`, 2.9) |
+| **Decide** | internal polarities (gates encoding contract and `quote`, 2.9) |
 | **Reflect** | `quote` for execution results, fuel axis, `eval` gated on first client (2.9) |
 | **Document** | file-shape house style in `BASICS.md` (`KERNEL.md` written 2026-07-07; keep it in sync) |
 | **New content** | `logics/` library + flagship MLL tutorial, exercise extensions |

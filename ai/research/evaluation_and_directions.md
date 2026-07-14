@@ -159,7 +159,7 @@ from not naming them.
   interactive, non-deterministic, possibly non-terminating. This is the
   logic/constraint-programming flavour — the chemistry.
 - **The meta-language: the expression layer.** `def`, `#`-reference,
-  parametric definitions, fixed-arity `macro`, `exec`/`fire`/`process`,
+  parametric definitions, fixed-arity `macro`, `exec`/`then`,
   `show`, `==`, `~=`, `forall`, `use`. Its semantics is a small functional
   evaluator: deterministic, ordered, substitution-based. Its *only* data are
   terms and constellations; its *only* job is to build constellations, run
@@ -587,7 +587,8 @@ in-repo. The judgment has at least three independent degrees of freedom,
 and existing practices vary along each:
 
 - *How to run*: `prelude.sg`'s `::` uses `exec`; `mll.sg` had to define
-  `::lin` with `fire` (linear proofs must not duplicate actions), plus
+  `::lin` with `*`-marked stars (linear proofs must not duplicate
+  actions), plus
   adapter pre-composition before checking.
 - *Against what*: each test in the spec galaxy, separately (`forall`).
 - *What counts as passing*: the `ok` residue today; annihilation (empty
@@ -595,7 +596,7 @@ and existing practices vary along each:
   checks (Appendix A.5) for future practices.
 
 Even a permanently standardized `ok` token would not have saved a
-primitive `::` — the `exec`/`fire` axis alone breaks it (`::lin` would
+primitive `::` — the linearity axis alone breaks it (`::lin` would
 have required a kernel patch). In ludics terms this is exactly right: the
 orthogonality relation ⊥ is a *parameter* of the model — daimon-
 convergence, nilpotency, normalization are different choices yielding

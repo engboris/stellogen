@@ -59,7 +59,7 @@ raises an existence error. Stellogen's call position is the file spine.
 Inner expressions cannot be checked by name (an unknown head is
 legitimate data anywhere), but they can be checked for meaninglessness
 in *run positions*: an action star with no polarized ray can never fuse,
-so inside an `exec`/`fire` space it is dead weight, discarded unused.
+so inside an `exec` space it is dead weight, discarded unused.
 Unexpanded notation that lands in an interaction space typically becomes
 exactly that, a neutral-headed single-ray star. So "this execution
 received an action star that cannot interact" is the object-level
