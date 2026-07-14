@@ -1,17 +1,19 @@
 (use "milkyway/prelude.sg")
 
-(spec direction
+§(spec direction
   {[-north ok]
    [-south ok]
    [-west ok]
    [-east ok]})
 
-(def n +north) (:: n direction)
+; n is only ever type-checked, so it lives in the check phase too
+§(def n +north) (:: n direction)
 
-(spec result
+§(spec result
   {[(-ok X) ok] [(-error X) ok]})
 
-(def x (+ok a)) (:: x result)
+; x is shared: checked here, consumed by the program below
+(object x (+ok a)) (:: x result)
 
 ;pattern matching
 (def get_ok {

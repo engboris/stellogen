@@ -83,8 +83,9 @@
 (def g2 #(get g1 test1))
 (show #(get g2 test2))
 
-;define type (spec is a built-in for galaxies)
-(spec nat
+;define type as a shared object: visible in both the check
+;and run phases (spec would define it for the current phase only)
+(object nat
   {[(-nat 0) ok]
    [(-nat (s N)) (+nat N)]})
 
@@ -113,9 +114,14 @@
 ; (~= (+f a) (+f b))  ;constants a and b do not unify
 
 ;type checking
-(def 2 (+nat (s (s 0))))
+(object 2 (+nat (s (s 0))))
 (== @(exec @#2 #nat) ok)
 
 ;import file and type assertion macro
 (use "milkyway/prelude.sg")
 (:: 2 nat)
+
+;phase separation: § puts a top-level expression in the check phase,
+;evaluated by 'sgen check' and skipped by 'sgen run'
+§(def z (+nat 0))
+§(== @(exec @#z #nat) ok)

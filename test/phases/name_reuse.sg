@@ -1,0 +1,6 @@
+; the phases have separate namespaces: one name, two values
+§(def input (+q one))
+(def input (+q two))
+
+§(show #input)
+(show #input)

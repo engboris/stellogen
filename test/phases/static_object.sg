@@ -1,0 +1,2 @@
+; § on an object is contradictory: shared vs check-only
+§(object x (+f a))

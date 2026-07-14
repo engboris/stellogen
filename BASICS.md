@@ -457,3 +457,53 @@ It says that a `Tested` is of type `Test` when their interaction with focus on
 
 Notice that a constellation can have several types providing it passes all
 the tests of those types.
+
+---
+
+## Phase Separation: check and run
+
+Since typing is user-side, a Stellogen file is really two superposed
+programs: a layer that typechecks and a layer that actually runs. Every
+top-level expression belongs to exactly one of three kinds:
+
+| kind | `sgen check` (phase 1) | `sgen run` (phase 2) |
+|---|---|---|
+| `(object x ...)` shared definition | visible | visible |
+| `§X` where X is any expression | evaluated | skipped |
+| unmarked expression | skipped | evaluated |
+
+The rule is uniform: `§` moves a top-level expression to the check phase,
+whatever it is. A `§(def ...)` is a check-phase definition, `§(== ...)` a
+check-phase assertion. `def` and `spec` stay synonyms usable in either
+phase; only `object` is shared.
+
+```stellogen
+(object add {
+  [(+add 0 Y Y)]
+  [(-add X Y Z) (+add (s X) Y (s Z))]})
+
+; check phase: types and assertions, skipped by sgen run
+§(spec nat {
+  [(-nat 0) ok]
+  [(-nat (s N)) (+nat N)]})
+§(== @(exec #add @[(-add (s 0) (s 0) R) R]) (s (s 0)))
+
+; run phase: the shipped program
+(show (exec #add @[(-add (s (s 0)) (s (s 0)) R) R]))
+```
+
+Each phase resolves `#name` calls against its own definitions plus the
+shared objects; referencing a name defined in the other phase is reported
+as such.
+
+The prelude's `::` macro hides a `§` in its expansion, so every type
+assertion written with it automatically lives in the check phase. A check
+goes right after the definition it checks.
+
+`sgen check` must pass before shipping (e.g. as a CI gate): `sgen run`
+skips every check and pays nothing for them, so nothing at runtime
+verifies that checking ever happened.
+
+Imports (`use`) are executed by both phases and the imported file's items
+classify themselves; `§(use ...)` imports only in the check phase. Macros
+are phase-less: they are expanded before phases exist.

@@ -54,6 +54,11 @@ jobs:
       - name: build
         run: |
           opam exec -- dune build @install
+      - name: build-web-playground
+        if: runner.os == 'Linux'
+        run: |
+          node web/build-examples.js
+          opam exec -- dune build web/playground.bc.js
       - name: test
         run: |
           opam exec -- dune runtest

@@ -1,0 +1,2 @@
+; macros are erased before phases exist, so § cannot apply to them
+§(macro (id X) X)

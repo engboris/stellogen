@@ -6,6 +6,9 @@ type expr_err =
   | InvalidDeclaration of string
   | InvalidMacroArgument of string
   | InvalidBanStructure of string
+  | MisplacedStatic of string
+  | StaticOnObject
+  | StaticOnMacro
   | CircularImport of string
   | FileLoadError of
       { filename : string

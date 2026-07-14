@@ -1,15 +1,18 @@
+; user-defined checking macro: the § in the expansion sends every
+; call site to the check phase
 (macro (:: Tested Test)
-  (forall Test T
+  §(forall Test T
     (== (then #T #Tested) ok)))
 
-(spec u4
+§(spec u4
   {[(-b _ 1 _) (-b _ 2 _) (-b _ 3 _) (-b _ 4 _) ok]})
 
-(def (make_bin Name X1 X2 X3 X4)
+; shared: the values below call it from both phases
+(object (make_bin Name X1 X2 X3 X4)
   { [(+b Name 1 X1)] [(+b Name 2 X2)] [(+b Name 3 X3)] [(+b Name 4 X4)] })
 
-(def b1 #(make_bin b1 0 0 0 1)) (:: b1 u4)
-(def b2 #(make_bin b2 0 0 1 1)) (:: b2 u4)
+(object b1 #(make_bin b1 0 0 0 1)) (:: b1 u4)
+(object b2 #(make_bin b2 0 0 1 1)) (:: b2 u4)
 
 (show #b1)
 (show #b2)

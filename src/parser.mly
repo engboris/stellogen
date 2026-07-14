@@ -12,6 +12,7 @@ open Expression.Raw
 %token LBRACK RBRACK
 %token LBRACE RBRACE
 %token SHARP
+%token SECTION
 %token EOF
 
 %start <Expression.Raw.t list> expr_file
@@ -56,6 +57,7 @@ let raw_expr :=
   | SHARP; ~=expr; <Call>
   | AT; ~=expr; <Focus>
   | STAR; ~=expr; <Linear>
+  | SECTION; ~=expr; <Static>
   | ~=SYM; <Symbol>
   | ~=VAR; <Var>
   | ~=STRING; <String>

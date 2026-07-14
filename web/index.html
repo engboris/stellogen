@@ -312,6 +312,7 @@
 
     <div class="controls">
         <button id="runBtn">Run</button>
+        <button id="checkBtn">Check</button>
         <select id="examples">
             <option value="hello" selected>Hello</option>
             <option value="macros">Macros</option>
@@ -332,7 +333,6 @@
         <span id="status"></span>
     </div>
 
-    <script src="playground.js"></script>
     <script src="examples.js"></script>
     <script>
         const editor = document.getElementById('editor');
@@ -340,6 +340,7 @@
         const lineNumbers = document.getElementById('line-numbers');
         const output = document.getElementById('output');
         const runBtn = document.getElementById('runBtn');
+        const checkBtn = document.getElementById('checkBtn');
         const clearBtn = document.getElementById('clearBtn');
         const importBtn = document.getElementById('importBtn');
         const exportBtn = document.getElementById('exportBtn');
@@ -363,7 +364,7 @@
             let pos = 0;
 
             // Keywords and operators
-            const keywords = ['exec', 'process', 'show', 'use', 'macro', 'spec', 'def'];
+            const keywords = ['exec', 'then', 'show', 'use', 'macro', 'spec', 'def', 'object', 'forall'];
 
             // Tokenize the code
             while (pos < code.length) {
@@ -400,7 +401,7 @@
                 }
 
                 // Operators
-                const ops = ['==', '~=', '||', '@', '*', '#'];
+                const ops = ['==', '~=', '||', '@', '*', '#', '§'];
                 for (const op of ops) {
                     if (!matched && code.substr(pos, op.length) === op) {
                         tokens.push({ type: 'operator', text: op });
@@ -494,34 +495,65 @@
         // Initial highlight
         updateHighlighting();
 
-        function runCode() {
-            const code = editor.value;
-            status.textContent = 'Running...';
-            output.textContent = 'Executing...';
+        // The interpreter runs in a web worker so the page stays responsive
+        // and a diverging program can be terminated instead of freezing the
+        // tab. Note: workers require serving over HTTP, not file://.
+        const TIMEOUT_MS = 5000;
+        let worker = null;
+        let pending = null;
+        let nextId = 0;
 
-            try {
-                console.log('Running code:', code);
-
-                // Add timeout to prevent infinite loops
-                let result;
-                const timeout = setTimeout(() => {
-                    throw new Error('Execution timeout - possible infinite loop');
-                }, 5000);
-
-                result = Stellogen.run(code);
-                clearTimeout(timeout);
-
-                console.log('Result:', result);
-                output.textContent = result || '(no output)';
-                output.className = 'success';
-                status.textContent = 'Success';
-                setTimeout(() => status.textContent = '', 2000);
-            } catch (e) {
-                console.error('Error:', e);
-                output.textContent = 'JavaScript error: ' + e.message + '\n\nCheck browser console (F12) for details.';
+        function startWorker() {
+            worker = new Worker('worker.js');
+            worker.onmessage = (e) => {
+                if (!pending || e.data.id !== pending.id) return;
+                clearTimeout(pending.timer);
+                pending = null;
+                showResult(e.data.result);
+            };
+            worker.onerror = (e) => {
+                if (pending) clearTimeout(pending.timer);
+                pending = null;
+                output.textContent = 'Worker error: ' + e.message;
                 output.className = 'error';
                 status.textContent = 'Error';
-            }
+            };
+        }
+        startWorker();
+
+        function showResult(result) {
+            // "ERROR: " prefix is set by playground.ml on failures
+            const failed = result.startsWith('ERROR: ');
+            output.textContent = (failed ? result.slice(7) : result) || '(no output)';
+            output.className = failed ? 'error' : 'success';
+            status.textContent = failed ? 'Error' : 'Done';
+            if (!failed) setTimeout(() => status.textContent = '', 2000);
+        }
+
+        function execute(mode) {
+            if (pending) return; // one execution at a time
+            const id = ++nextId;
+            status.textContent = mode === 'check' ? 'Checking...' : 'Running...';
+            output.textContent = 'Executing...';
+            output.className = '';
+            const timer = setTimeout(() => {
+                pending = null;
+                worker.terminate();
+                startWorker();
+                output.textContent = 'Execution timed out after ' + (TIMEOUT_MS / 1000) + 's (possible infinite loop).';
+                output.className = 'error';
+                status.textContent = 'Timeout';
+            }, TIMEOUT_MS);
+            pending = { id, timer };
+            worker.postMessage({ id, mode, code: editor.value });
+        }
+
+        function runCode() {
+            execute('run');
+        }
+
+        function checkCode() {
+            execute('check');
         }
 
         function clear() {
@@ -581,6 +613,7 @@
         });
 
         runBtn.addEventListener('click', runCode);
+        checkBtn.addEventListener('click', checkCode);
         clearBtn.addEventListener('click', clear);
         importBtn.addEventListener('click', importCode);
         exportBtn.addEventListener('click', exportCode);
@@ -595,10 +628,11 @@
 
         // Keyboard shortcuts
         editor.addEventListener('keydown', (e) => {
-            // Ctrl+Enter or Cmd+Enter to run
+            // Ctrl+Enter to run, Ctrl+Shift+Enter to check (Cmd on Mac)
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
-                runCode();
+                if (e.shiftKey) checkCode();
+                else runCode();
                 return;
             }
 

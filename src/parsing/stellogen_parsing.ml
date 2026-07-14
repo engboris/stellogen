@@ -7,6 +7,10 @@ open Terminal
 
 exception ImportError of expr_err
 
+(* Raised instead of exiting by the string-based parsing API, so the web
+   playground can display the message; carries the formatted report *)
+exception ParseError of string
+
 let get_line filename line_num =
   try
     In_channel.with_file filename ~f:(fun ic ->
@@ -33,27 +37,32 @@ let show_source_location filename pos =
       ~column
   | None -> ""
 
-let print_syntax_error pos error_msg filename =
+let format_syntax_error pos error_msg filename =
   let header = error_label ^ ": " ^ bold error_msg in
   let loc_str = format_location filename pos in
   let source = show_source_location filename pos in
-  Stdlib.Printf.eprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
+  Stdlib.Printf.sprintf "%s\n  %s %s\n%s\n" header (cyan "-->") loc_str source
+
+(* Format a single parse error report, as printed on stderr by the CLI *)
+let format_parse_error filename error =
+  let hint_msg =
+    match error.Parse_error.hint with
+    | Some h -> "\n  " ^ hint_label ^ ": " ^ h ^ "\n"
+    | None -> ""
+  in
+  format_syntax_error error.position error.message filename
+  ^ hint_msg
+  ^ Stdlib.Printf.sprintf "\n%s\n" (bold (red "found 1 error(s)"))
 
 (* Report a single parse error and exit *)
 let report_error filename error =
-  let hint_msg =
-    match error.Parse_error.hint with
-    | Some h -> "\n  " ^ hint_label ^ ": " ^ h
-    | None -> ""
-  in
-  print_syntax_error error.position error.message filename;
-  if Option.is_some error.hint then Stdlib.Printf.eprintf "%s\n" hint_msg;
-  Stdlib.Printf.eprintf "\n%s\n" (bold (red "found 1 error(s)"));
+  Stdlib.Printf.eprintf "%s" (format_parse_error filename error);
   Stdlib.exit 1
 
-(* Drive Menhir's incremental parser to completion, stopping and reporting
-   at the first error (fail-fast, no error recovery) *)
-let parse_with_error filename lexbuf =
+(* Drive Menhir's incremental parser to completion, stopping at the first
+   error (fail-fast, no error recovery). [on_error] never returns: the CLI
+   reports and exits, the playground raises. *)
+let parse_with_error_handler ~on_error filename lexbuf =
   Parser_context.current_filename := filename;
 
   let lex_next () =
@@ -78,18 +87,21 @@ let parse_with_error filename lexbuf =
       let error =
         Parse_error.error_from_env env !last_token !delimiters_stack
       in
-      report_error filename error
+      on_error error
     | Parser.MenhirInterpreter.Accepted result -> result
     | Parser.MenhirInterpreter.Rejected ->
-      report_error filename
+      on_error
         (Parse_error.create_error ~position:Lexing.dummy_pos
            ~message:"parse rejected" () )
   in
 
   try drive (Parser.Incremental.expr_file Lexing.dummy_pos)
   with LexerError (msg, pos) ->
-    report_error filename
-      (Parse_error.create_error ~position:pos ~message:msg ())
+    on_error (Parse_error.create_error ~position:pos ~message:msg ())
+
+let parse_with_error filename lexbuf =
+  parse_with_error_handler filename lexbuf ~on_error:(fun error ->
+    report_error filename error )
 
 (* ---------------------------------------
    Macro Import Handling
@@ -160,11 +172,14 @@ let preprocess_with_imports (source_file : string)
 let create_start_pos_for_string () =
   { Lexing.pos_fname = "<playground>"; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
 
-(* Parse from string instead of file *)
+(* Parse from string instead of file. Parse errors raise [ParseError]
+   instead of exiting the process, since there is no process to exit in
+   the browser. *)
 let parse_from_string (code : string) : Expression.Raw.t list =
   let lexbuf = Sedlexing.Utf8.from_string code in
   Sedlexing.set_position lexbuf (create_start_pos_for_string ());
-  parse_with_error "<playground>" lexbuf
+  parse_with_error_handler "<playground>" lexbuf ~on_error:(fun error ->
+    raise (ParseError (format_parse_error "<playground>" error)) )
 
 (* Preprocess without file imports (for web playground) *)
 let preprocess_without_imports (raw_exprs : Expression.Raw.t list) :

@@ -1,6 +1,4 @@
 open Base
-open Pretty
-open Syntax
 
 (* Global output buffer *)
 let output_buffer : string list ref = ref []
@@ -11,88 +9,74 @@ let get_output () = String.concat ~sep:"\n" (List.rev !output_buffer)
 
 let clear_output () = output_buffer := []
 
-(* Simple show implementation that writes to buffer *)
-let show_to_buffer constellation =
-  let output = string_of_constellation constellation in
-  add_output output
+(* Parse and preprocess a program from a string. The browser has no
+   filesystem, so imports are not resolved; playground examples inline
+   the prelude instead. *)
+let parse_program (code : string) =
+  let raw_exprs = Stellogen_parsing.parse_from_string code in
+  let preprocessed = Stellogen_parsing.preprocess_without_imports raw_exprs in
+  Expression.program_of_expr preprocessed
 
-(* Simplified eval that uses buffer for output *)
-let eval_program_with_buffer (p : program) =
-  clear_output ();
+let format_err err =
+  match Evaluator.pp_err err with
+  | Ok msg -> msg
+  | Error _ -> "Evaluation error"
 
-  let eval_term env = function
-    | Syntax.Show (exprs, _loc) ->
-      (* Evaluate all expressions and collect results *)
-      let rec eval_all env_acc results = function
-        | [] ->
-          (* Convert all results to strings and concatenate with space *)
-          let output =
-            List.rev results
-            |> List.map ~f:(fun term ->
-              let constellation = Evaluator.constellation_of_term term in
-              string_of_constellation
-                (List.map constellation ~f:Constellation.Marked.remove) )
-            |> String.concat ~sep:" "
-          in
-          add_output output;
-          Ok env_acc
-        | expr :: rest -> (
-          match Evaluator.eval_sgen_expr env_acc expr with
-          | Ok (env', term) -> eval_all env' (term :: results) rest
-          | Error e -> Error e )
-      in
-      eval_all env [] exprs
-    | term -> (
-      (* For all other terms, use standard eval but discard term result *)
-      match Evaluator.eval_sgen_expr env term with
-      | Ok (env', _) -> Ok env'
-      | Error e -> Error e )
-  in
+(* Prepend buffered show output to a message so it is not lost when
+   evaluation stops on an error. *)
+let with_shows msg =
+  let output = get_output () in
+  if String.is_empty output then msg else output ^ "\n" ^ msg
 
-  let rec eval_program_internal env = function
-    | [] -> Ok env
-    | term :: rest -> (
-      match eval_term env term with
-      | Ok env' -> eval_program_internal env' rest
-      | Error e -> Error e )
-  in
+let count_check_items program =
+  List.count program ~f:(fun (item_phase, _) ->
+    match item_phase with Syntax.CheckOnly -> true | _ -> false )
 
-  match eval_program_internal Syntax.initial_env p with
-  | Ok _env -> Ok ()
-  | Error e -> Error e
-
-(* Run Stellogen code from a string and return output *)
-let run_from_string (code : string) : (string, string) Result.t =
+let eval_with_buffer (code : string)
+  (eval : Syntax.program -> (string, string) Result.t) =
   try
-    (* Parse from string *)
-    let raw_exprs = Stellogen_parsing.parse_from_string code in
-
-    (* Preprocess without imports *)
-    let preprocessed = Stellogen_parsing.preprocess_without_imports raw_exprs in
-
-    (* Convert to program *)
-    match Expression.program_of_expr preprocessed with
-    | Error (expr_error, loc) -> (
-      match Evaluator.pp_err (Syntax.ExprError (expr_error, loc, [])) with
-      | Ok error_msg -> Error error_msg
-      | Error _ -> Error "Parse error" )
-    | Ok program -> (
-      (* Evaluate with buffered output *)
-      match eval_program_with_buffer program with
-      | Ok () -> Ok (get_output ())
-      | Error err -> (
-        match Evaluator.pp_err err with
-        | Ok error_msg ->
-          let output = get_output () in
-          if String.is_empty output then Error error_msg
-          else Error (output ^ "\n" ^ error_msg)
-        | Error _ -> Error "Evaluation error" ) )
+    match parse_program code with
+    | Error (expr_error, loc) ->
+      Error (format_err (Syntax.ExprError (expr_error, loc, [])))
+    | Ok program ->
+      clear_output ();
+      Evaluator.show_printer := add_output;
+      eval program
   with
+  | Stellogen_parsing.ParseError report -> Error report
   | Failure msg -> Error ("Error: " ^ msg)
   | exn -> Error ("Exception: " ^ Exn.to_string exn)
 
-(* Trace is disabled for web mode - use CLI version instead *)
-let trace_from_string (_code : string) : (string, string) Result.t =
-  Error
-    "Trace mode is not available in the web playground. Please use the CLI \
-     version: dune exec sgen trace -- yourfile.sg"
+(* Run the run phase of a program, like 'sgen run' *)
+let run_from_string (code : string) : (string, string) Result.t =
+  eval_with_buffer code (fun program ->
+    match Evaluator.eval_program_internal Syntax.initial_env program with
+    | Ok _ ->
+      let output = get_output () in
+      let checked = count_check_items program in
+      if String.is_empty output && checked > 0 then
+        Ok
+          (Printf.sprintf
+             "No run-phase output. %d check-phase items were skipped; use \
+              Check to evaluate them."
+             checked )
+      else Ok output
+    | Error err -> Error (with_shows (format_err err)) )
+
+(* Run the check phase of a program, like 'sgen check', with a summary
+   line since the playground has no exit code to inspect *)
+let check_from_string (code : string) : (string, string) Result.t =
+  eval_with_buffer code (fun program ->
+    let checked = count_check_items program in
+    let _env, errors = Evaluator.eval_program_check program in
+    match errors with
+    | [] ->
+      let summary =
+        if checked = 0 then
+          "Nothing to check: no check-phase items (marked with \xc2\xa7)."
+        else Printf.sprintf "Check passed (%d check-phase items)." checked
+      in
+      Ok (with_shows summary)
+    | _ ->
+      let messages = List.map errors ~f:format_err |> String.concat ~sep:"\n" in
+      Error (with_shows messages) )
