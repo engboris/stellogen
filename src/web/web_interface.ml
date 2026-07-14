@@ -18,7 +18,9 @@ let parse_program (code : string) =
   Expression.program_of_expr preprocessed
 
 let format_err err =
-  match Evaluator.pp_err err with Ok msg -> msg | Error _ -> "Evaluation error"
+  match Evaluator.pp_err err with
+  | Ok msg -> msg
+  | Error _ -> "Evaluation error"
 
 (* Prepend buffered show output to a message so it is not lost when
    evaluation stops on an error. *)
@@ -30,7 +32,8 @@ let count_check_items program =
   List.count program ~f:(fun (item_phase, _) ->
     match item_phase with Syntax.CheckOnly -> true | _ -> false )
 
-let eval_with_buffer (code : string) (eval : Syntax.program -> (string, string) Result.t) =
+let eval_with_buffer (code : string)
+  (eval : Syntax.program -> (string, string) Result.t) =
   try
     match parse_program code with
     | Error (expr_error, loc) ->
@@ -75,7 +78,5 @@ let check_from_string (code : string) : (string, string) Result.t =
       in
       Ok (with_shows summary)
     | _ ->
-      let messages =
-        List.map errors ~f:format_err |> String.concat ~sep:"\n"
-      in
+      let messages = List.map errors ~f:format_err |> String.concat ~sep:"\n" in
       Error (with_shows messages) )
