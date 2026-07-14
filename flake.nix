@@ -58,6 +58,7 @@
                     ./examples
                     ./web/build-examples.js
                     ./web/index.html
+                    ./web/worker.js
                   ];
                 };
               buildPhase = ''
@@ -71,7 +72,7 @@
               installPhase = ''
                 runHook preInstall
                 mkdir -p "$out/share/web/"
-                cp web/index.html web/examples.js  "$out/share/web/"
+                cp web/index.html web/examples.js web/worker.js "$out/share/web/"
                 cp ${self'.packages.stellogen-web}/share/web/playground.js "$out/share/web/"
                 runHook postInstall
               '';
