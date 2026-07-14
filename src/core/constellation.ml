@@ -99,8 +99,7 @@ let injective_renaming (base : int) (rays : ray list) : (ray -> ray) * int =
   let distinct =
     List.concat_map rays ~f:vars
     |> List.fold ~init:[] ~f:(fun acc v ->
-         if List.mem acc v ~equal:StellarSig.equal_idvar then acc
-         else v :: acc )
+      if List.mem acc v ~equal:StellarSig.equal_idvar then acc else v :: acc )
     |> List.rev
   in
   let renamed =
