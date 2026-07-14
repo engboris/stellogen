@@ -130,12 +130,21 @@ let find_action_matches ~repl1 ~repl2 (state_ray : ray) (action : star) :
     work queue processor for a single ray. *)
 let find_ray_fusions ~config ~emit_event ~state_idx ~state_ray_idx ~state_ray
   ~other_state_rays ~state_bans (actions : live_action list) : fusion_result =
-  let repl1 = replace_indices config.var_counter in
+  let rays_of_ban = function Ineq (b1, b2) | Incomp (b1, b2) -> [ b1; b2 ] in
+  let repl1, used1 =
+    injective_renaming config.var_counter
+      ( (state_ray :: other_state_rays)
+      @ List.concat_map state_bans ~f:rays_of_ban )
+  in
   let results = ref [] in
   let consumed_actions = ref [] in
 
   List.iteri actions ~f:(fun action_idx { raw = action; linear } ->
-    let repl2 = replace_indices (config.var_counter + 1) in
+    let repl2, used2 =
+      injective_renaming
+        (config.var_counter + used1)
+        (action.content @ List.concat_map action.bans ~f:rays_of_ban)
+    in
     let matches = find_action_matches ~repl1 ~repl2 state_ray action in
 
     List.iter matches ~f:(fun (action_ray_idx, other_action_rays, theta) ->
@@ -159,7 +168,7 @@ let find_ray_fusions ~config ~emit_event ~state_idx ~state_ray_idx ~state_ray
       in
       if coherent_bans fused.bans then (
         results := fused :: !results;
-        config.var_counter <- config.var_counter + 2;
+        config.var_counter <- config.var_counter + used1 + used2;
         if linear then consumed_actions := action_idx :: !consumed_actions ) ) );
 
   let remaining =

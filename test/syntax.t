@@ -20,3 +20,7 @@ Galaxy and forall test:
 
 Match (~=) is polarity-blind structural unifiability:
   $ sgen run syntax/match.sg
+
+Variable renaming (same-named locals in fused stars stay distinct):
+  $ sgen run syntax/var_renaming.sg
+  [(o1 5) (o2 7)]

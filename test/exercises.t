@@ -13,4 +13,4 @@ Exercise 2 - Registers:
 
 Exercise 3 - Boolean Logic:
   $ sgen run ../exercises/solutions/03-boolean.sg
-  { [(-and X14 0 1) (x X14) (y 1) (z 1)] [(x 1) (y 0) (z 0)] [(x 1) (y 0) (z 1)] [(x 1) (y 1) (z 0)] }
+  { [(-and X27 0 1) (x X27) (y 1) (z 1)] [(x 1) (y 0) (z 0)] [(x 1) (y 0) (z 1)] [(x 1) (y 1) (z 0)] }
