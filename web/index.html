@@ -324,6 +324,7 @@
         <button id="runBtn">Run</button>
         <button id="checkBtn">Check</button>
         <select id="examples">
+            <option value="blank">Blank</option>
             <option value="hello" selected>Hello</option>
             <option value="macros">Macros</option>
             <option value="relational-arithmetic">Relational - Arithmetic</option>
@@ -499,13 +500,31 @@
             lineNumbers.style.transform = `translateY(${-editor.scrollTop}px)`;
         }
 
+        // The Blank entry is the user's own scratch space, persisted in
+        // localStorage; examples always load pristine from examples.js
+        const DRAFT_KEY = 'stellogen-playground-draft';
+        function saveDraft(code) {
+            try { localStorage.setItem(DRAFT_KEY, code); } catch (_) {}
+        }
+        function loadDraft() {
+            try { return localStorage.getItem(DRAFT_KEY); } catch (_) { return null; }
+        }
+
         // Update highlighting on input
-        editor.addEventListener('input', updateHighlighting);
+        editor.addEventListener('input', () => {
+            updateHighlighting();
+            if (examplesSelect.value === 'blank') saveDraft(editor.value);
+        });
         editor.addEventListener('scroll', syncScroll);
 
-        // Keep the default editor content in sync with examples.js, so it
+        // Land on the saved draft if there is one, otherwise on hello.
+        // The default content stays in sync with examples.js, so it
         // can't drift from examples/hello.sg like the old hardcoded copy did
-        if (typeof examples !== 'undefined' && examples.hello) {
+        const draft = loadDraft();
+        if (draft) {
+            examplesSelect.value = 'blank';
+            editor.value = draft;
+        } else if (typeof examples !== 'undefined' && examples.hello) {
             editor.value = examples.hello;
         }
 
@@ -579,7 +598,9 @@
         }
 
         function clear() {
+            examplesSelect.value = 'blank';
             editor.value = '';
+            saveDraft('');
             output.textContent = 'Click "Run" to execute your code...';
             output.className = '';
             updateHighlighting();
@@ -619,7 +640,9 @@
 
             const reader = new FileReader();
             reader.onload = (event) => {
+                examplesSelect.value = 'blank';
                 editor.value = event.target.result;
+                saveDraft(editor.value);
                 updateHighlighting();
                 status.textContent = `Imported: ${file.name}`;
                 setTimeout(() => status.textContent = '', 2000);
@@ -641,6 +664,11 @@
         exportBtn.addEventListener('click', exportCode);
 
         examplesSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'blank') {
+                editor.value = loadDraft() || '';
+                updateHighlighting();
+                return;
+            }
             const example = examples[e.target.value];
             if (example) {
                 editor.value = example;
