@@ -17,8 +17,8 @@ Hello world example:
 
 Lambda calculus example:
   $ sgen run ../examples/lambda/lambda.sg
-  [(out [r X7]) (ida (exp [l X7] d))]
-  [(out X7) (x (exp X7 d))]
+  [(out [r X8]) (ida (exp [l X8] d))]
+  [(out X8) (x (exp X8 d))]
 
 Linear lambda example:
   $ sgen run ../examples/lambda/linear_lambda.sg

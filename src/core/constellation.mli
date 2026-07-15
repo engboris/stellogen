@@ -182,6 +182,12 @@ val is_polarised : ray -> bool
 (** Replace variable indices in a ray *)
 val replace_indices : int -> ray -> ray
 
+(** Rename each distinct variable of the given rays to a fresh index starting at
+    the given base. Injective on variables: same-named variables with different
+    indices stay distinct. Returns the renaming and the number of indices
+    consumed. *)
+val injective_renaming : int -> ray list -> (ray -> ray) * int
+
 (** Try to match two polarized rays, returning substitution if successful *)
 val raymatcher : ray -> ray -> StellarRays.substitution option
 

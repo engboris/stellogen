@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-07
 **Status:** Design note. Companion to `evaluation_and_directions.md`
-(sections 5.2, 5.4, 7.3), `refocusing_plan.md` (2.2b, 2.5.2, 2.9),
+(sections 5.2, 5.4, 7.3), `refocusing_plan.md` (2.5.2, 2.9),
 `macro_system.md`, and KERNEL.md parts II and IV. Written after the
 meta-kernel census question: what is fair to add to the meta-kernel,
 what is lacking, what deserves factorization.
@@ -30,10 +30,11 @@ The meta-kernel divides into four strata, each with its own bar:
    anything inspecting run-time results.
 2. **Assembly** (`def`, `#`, `@`, galaxy formation): naming and grouping
    only, no computation. Essentially complete.
-3. **Execution** (`exec`, `fire`, `then`): modes of the one interaction
-   operation. Fair to add: a genuinely new axis. Contraction
-   (exec vs fire) is one; a step bound (fuel) is the only other candidate
-   in sight (section 8).
+3. **Execution** (`exec`, `then`): the one interaction operation. Its
+   axes are not separate execution forms but modalities on stars: `@`
+   (focus) and `*` (linearity, which subsumed the former `fire`). Fair
+   to add: a genuinely new axis, preferably as a modality; a step
+   bound (fuel) is the only other candidate in sight (section 8).
 4. **Observation** (`show`, `==`, `~=`, `forall`): the trusted base.
    Every practice's soundness bottoms out here, so each addition is
    something all users must trust rather than inspect. Highest bar.
@@ -47,9 +48,9 @@ and aliases are for.
 
 Applying the rule sorts the current fourteen forms into three groups.
 
-**Genuine primitives.** `def`/`#` (the environment), `@` (focus),
-`exec`/`fire` (the interaction interface), `show` (the only effect),
-`==` (the trusted judgment). No argument.
+**Genuine primitives.** `def`/`#` (the environment), `@` (focus), `*`
+(linearity), `exec` (the interaction interface), `show` (the only
+effect), `==` (the trusted judgment). No argument.
 
 **Stranded by the fixed-arity macro system.** `spec` (settled: an alias
 of `def`, demotes when bare-symbol aliases land; see `macro_system.md`
@@ -105,9 +106,10 @@ section 9.
 
 The census settles what the menu should contain, but the deeper problem
 is that a fixed menu is a ceiling. Macros can rearrange
-`exec`/`fire`/`==`/`~=` but can never create a new execution discipline
+`exec`/`==`/`~=` but can never create a new execution discipline
 or a new judgment. The `::lin` practice (`examples/proofnets/mll.sg`)
-exists only because `fire` happened to be on the menu. The next practice
+exists only because the `*` modality happened to be on the menu. The
+next practice
 that needs "run for at most n steps", or "the result contains no
 polarized ray", or "equal up to star reordering", is stuck. The pressure
 for "more flexibility in execution and observation" is real and will
@@ -171,8 +173,8 @@ over encoded data, judged by `==` against `ok`:
 The trust trend inverts. Way 1 grows the trusted base with every need;
 quote shrinks it: `~=`, disequality, and every future judgment move from
 "forms all users must trust" to "code any user can read", bottoming out
-in the single judgment `==`. The kernel converges toward `def`/`#`, `@`,
-one execution operation with two axes, quote, `show`, and `==`. This is
+in the single judgment `==`. The kernel converges toward `def`/`#`, the
+star modalities, one execution operation, quote, `show`, and `==`. This is
 a stronger version of the LCF factoring than the current one (KERNEL.md
 part IV).
 
@@ -193,7 +195,7 @@ The dual primitive: run an encoded constellation. This is what
 user-defined *execution* needs. With both halves, a practice can write a
 metacircular executor, an alternative strategy, a step debugger, or a
 bounded-run driver as object-level code over encoded stars, with native
-`exec`/`fire` remaining the fast path. A metacircular executor is also
+`exec` remaining the fast path. A metacircular executor is also
 the artifact the theory keeps asking for: the language accounting for
 its own execution. With eval, even `forall` becomes derivable in
 principle (iterate the encoded galaxy at the object level, judging each
@@ -217,12 +219,11 @@ kernel.
 
 ## 8. Fuel: the one native addition reflection cannot replace
 
-A step bound on `exec`/`fire` must be native, because divergence is a
+A step bound on `exec` must be native, because divergence is a
 property of the native engine and no object-level code can observe
-"did not terminate within n steps" from outside. Fuel is a second honest
-axis next to contraction (it slots into the 2.2b factorization: one
-operation, now two axes), and it is what makes negative tests and
-tooling divergence-safe. It also composes with quote: "run bounded,
+"did not terminate within n steps" from outside. Fuel is a second
+honest axis next to the `*` linearity modality, and it is what makes
+negative tests and tooling divergence-safe. It also composes with quote: "run bounded,
 reify, inspect the partial result" is the step-debugging story without
 any debugger machinery.
 
@@ -253,8 +254,7 @@ any debugger machinery.
    of the same species as `spec`. Pure documentation.
 3. **Design and implement quote** (result reification into the
    %-encoding). Small language work once the encoding contract is fixed.
-4. **Fuel axis** on the execution operation, together with the 2.2b
-   factorization decision. Small language work.
+4. **Fuel axis** on the execution operation. Small language work.
 5. **Eval**, when a strategy or tactic practice actually wants it, with
    the staging and trust story written first (per plan 2.5.2). Not
    before.

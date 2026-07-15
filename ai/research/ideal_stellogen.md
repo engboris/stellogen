@@ -20,7 +20,7 @@ built into `sgen`; the top two are ordinary `.sg` files.
   Layer 2   NOTATION                  user space     prelude.sg
             macros over layers 0–1                   ::, spec, get, quote, ...
   ═════════════════════════════════════════════════════════════════════════════
-  Layer 1   META KERNEL               built-in       def  #  exec  fire  process
+  Layer 1   META KERNEL               built-in       def  #  exec  process
             functional glue                          show  ==  ~=  forall  use  macro
   ─────────────────────────────────────────────────────────────────────────────
   Layer 0   OBJECT KERNEL             built-in       terms  rays  stars  {...}
@@ -144,8 +144,8 @@ one of them starts computing, it is drift.
 | `(def (name p ...) e)` | parametric bind | naming families of things |
 | `#name`, `#(name a ...)` | reference | using named things |
 | `@e` | focus | marking state (shared with layer 0) |
+| `*e` | linear | marking consumable stars (shared with layer 0) |
 | `(exec e ...)` | run, non-linear | the point of the language |
-| `(fire e ...)` | run, linear | resource-aware variant |
 | `(process e ...)` | run, chained | pipelines; built-in because it *orders* runs, which macros cannot honestly express without variadic recursion |
 | `(show e)` | display | observation |
 | `(== e1 e2)` | assert equal | comparison |
@@ -295,7 +295,7 @@ The flagship (§8 of the evaluation doc). Same triple, richer content:
 ```
 
 The pattern generalizes: `logics/` grows one file per certified fragment
-— acyclic (termination), linear (`fire`-safety), MLL (correctness),
+— acyclic (termination), linear (resource discipline), MLL (correctness),
 eventually shape hierarchies for complexity classes. Each file is
 potentially a paper; the directory *is* the research program.
 

@@ -91,6 +91,28 @@ let is_polarised r : bool =
 let replace_indices (i : int) : ray -> ray =
   map Fn.id (fun (x, _) -> Var (x, Some i))
 
+(* Rename each distinct variable of [rays] to a fresh index starting at
+   [base]. Injective on variables: same-named variables with different
+   indices stay distinct. Returns the renaming and the number of
+   indices consumed. *)
+let injective_renaming (base : int) (rays : ray list) : (ray -> ray) * int =
+  let distinct =
+    List.concat_map rays ~f:vars
+    |> List.fold ~init:[] ~f:(fun acc v ->
+      if List.mem acc v ~equal:StellarSig.equal_idvar then acc else v :: acc )
+    |> List.rev
+  in
+  let renamed =
+    List.mapi distinct ~f:(fun k (x, _) -> Var (x, Some (base + k)))
+  in
+  let assoc = List.zip_exn distinct renamed in
+  let rename v =
+    match List.Assoc.find assoc ~equal:StellarSig.equal_idvar v with
+    | Some t -> t
+    | None -> Var v
+  in
+  (map Fn.id rename, List.length distinct)
+
 let raymatcher r r' : substitution option =
   if is_polarised r && is_polarised r' then solution [ (r, r') ] else None
 
