@@ -7,14 +7,18 @@
 (def b [(-f X)])
 
 ;define constellation
+;unmarked stars are reactive: linear, consumed by reacting,
+;part of the result
 (def c {
-  @[+a] ;focus
+  [+a]
   [-a b]})
 
-;full focus
-(def f @{ [a] [b] [c] })
+;catalyst star: * marks a star reusable, passive (it participates
+;only when a reactive ray solicits it) and dropped from the result
+(def f [+a] )
+(def f1 { *[+a] [-a b] })
 
-;full linear (every star consumable, used at most once)
+;full catalyst (every star of the constellation)
 (def f2 *{ [a] [b] [c] })
 
 ;identifier
@@ -36,8 +40,8 @@
 ;execution
 (def x [(+f X) X])
 (def y (-f a))
-(def ex (exec @#x #y))     ;non-linear: action can be reused
-(def ex (exec @#x *#y))    ;linear: * marks the action consumable, used once
+(def ex (exec #x #y))      ;both reactive: consumed by their fusion
+(def ex (exec #x *#y))     ;catalyst: y is reusable and dropped
 
 ;show constellation
 (show #ex)
@@ -49,16 +53,25 @@
 (show #(f a b))
 
 ;inequality constraints
+;the facts are catalysts so both can be read twice
 (def ineq {
-  [(+f a)]
-  [(+f b)]
-  @[(-f X) (-f Y) (r X Y) || (!= X Y)]})
+  *[(+f a)]
+  *[(+f b)]
+  [(-f X) (-f Y) (r X Y) || (!= X Y)]})
 (show #ineq)
 (show (exec #ineq))
 
+;ground guards: !X makes a ray wait until the position is ground
+;here (-table !X R) cannot query the table before X is known
+(def guarded (exec
+  {[(-val X) (-table !X R) (out R)]
+   [(+val 5)]}
+  *[(+table 5 found)]))
+(show #guarded)
+
 ;staged execution (then): each step executes against
-;the previous result focused as state
-; (then a b) == (exec b @a)
+;the previous result
+; (then a b) == (exec b a)
 (def c (then
   (+n0 0)                 ;base constellation
   [(-n0 X) (+n1 (s X))]   ;interacts with previous
@@ -71,8 +84,9 @@
   [(+field test2) [(+f b) ok]]})
 (show #g)
 
-;field access and evaluation
-(def (get G X) (exec #G @[(-field X)]))
+;field access and evaluation (the record is a catalyst: the fields
+;that are not selected are dropped)
+(def (get G X) (exec *#G [(-field X)]))
 (show #(get g test1))
 (show #(get g test2))
 
@@ -113,9 +127,9 @@
 ; (~= (+f a) (-g b))  ;different function symbols
 ; (~= (+f a) (+f b))  ;constants a and b do not unify
 
-;type checking
+;type checking: the tested value is reactive, the test a catalyst
 (object 2 (+nat (s (s 0))))
-(== @(exec @#2 #nat) ok)
+(== (exec #2 *#nat) ok)
 
 ;import file and type assertion macro
 (use "milkyway/prelude.sg")
@@ -124,4 +138,4 @@
 ;phase separation: § puts a top-level expression in the check phase,
 ;evaluated by 'sgen check' and skipped by 'sgen run'
 §(def z (+nat 0))
-§(== @(exec @#z #nat) ok)
+§(== (exec #z *#nat) ok)

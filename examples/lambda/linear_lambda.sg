@@ -6,18 +6,22 @@
 ; id id
 (def id_arg [(ida [l|X]) (+arg [l r|X])])
 
-(def linker [
-  [(-id X) (-arg X)]
-  @[(+arg [r|X]) (out X)]])
+; the cut linking function to argument carries two addresses, so it
+; is written split address-wise: one reactive star per address
+(def linker {
+  [(-id [l|X]) (-arg [l|X])]
+  [(-id [r|X]) (-arg [r|X])]
+  [(+arg [r|X]) (out X)]})
 
 (show (exec #id #id_arg #linker))
 
 ; id x
 (def x_arg [(x X) (+arg [l X])])
 
-(def linker [
-  [(-id X) (-arg X)]
-  @[(+arg [r|X]) (out X)]])
+(def linker {
+  [(-id [l|X]) (-arg [l|X])]
+  [(-id [r|X]) (-arg [r|X])]
+  [(+arg [r|X]) (out X)]})
 
 (show (exec #id #x_arg #linker))
 
@@ -26,11 +30,11 @@
   {[+test1 [
     [(-x X) (+parxy X)]
     [(-y X)]
-    @[(-parxy X) ok]]]}
+    [(-parxy X) ok]]]}
   {[+test2 [
     [(-x X)]
     [(-y X) (+parxy X)]
-    @[(-parxy X) ok]]]})
+    [(-parxy X) ok]]]})
 
 (def adapter {
   [(-id [l|X]) (+x X)]

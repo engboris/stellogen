@@ -15,9 +15,10 @@
 ; x is shared: checked here, consumed by the program below
 (object x (+ok a)) (:: x result)
 
-;pattern matching
+;pattern matching: a catalyst, so the branch that does not match is
+;dropped from the result
 (def get_ok {
   [(-ok X) X]
   [(-error X) (+error X)]})
 
-(show (exec #get_ok @#x))
+(show (exec *#get_ok #x))
