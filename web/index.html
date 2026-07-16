@@ -77,7 +77,6 @@
 
         #line-numbers {
             position: relative;
-            padding: 1rem 0.5rem 1rem 1rem;
             background: #f5f5f5;
             color: #999999;
             font-size: 14px;
@@ -91,10 +90,19 @@
             min-width: 3em;
         }
 
+        /* Translated to follow the editor's scroll; it must not scroll on
+           its own, or its scroll range can drift from the textarea's
+           (whose scrollbars eat into its viewport on some platforms). */
+        #line-numbers-content {
+            padding: 1rem 0.5rem 1rem 1rem;
+            will-change: transform;
+        }
+
         .editor-wrapper {
             flex: 1;
             position: relative;
             overflow: hidden;
+            background: #ffffff;
         }
 
         #editor {
@@ -119,23 +127,25 @@
             z-index: 2;
         }
 
+        /* Same idea as #line-numbers-content: no own scrolling, follows
+           the textarea via transform so the painted text can never drift
+           from the caret (the textarea is transparent on top of this). */
         #highlight-layer {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            min-width: 100%;
+            min-height: 100%;
             padding: 1rem;
-            background: #ffffff;
             color: #333333;
             font-size: 14px;
             line-height: 1.5;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
-            overflow-y: auto;
             white-space: pre;
             overflow-wrap: normal;
             pointer-events: none;
             z-index: 1;
+            will-change: transform;
         }
 
         /* Syntax highlighting colors */
@@ -290,7 +300,7 @@
         <div class="panel">
             <div class="panel-header">Editor</div>
             <div class="editor-container">
-                <div id="line-numbers" aria-hidden="true"></div>
+                <div id="line-numbers" aria-hidden="true"><div id="line-numbers-content"></div></div>
                 <div class="editor-wrapper">
                     <div id="highlight-layer" aria-hidden="true"></div>
                     <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">; A positive ray offers a greeting; a focused negative ray requests it.
@@ -314,6 +324,7 @@
         <button id="runBtn">Run</button>
         <button id="checkBtn">Check</button>
         <select id="examples">
+            <option value="blank">Blank</option>
             <option value="hello" selected>Hello</option>
             <option value="macros">Macros</option>
             <option value="relational-arithmetic">Relational - Arithmetic</option>
@@ -337,7 +348,7 @@
     <script>
         const editor = document.getElementById('editor');
         const highlightLayer = document.getElementById('highlight-layer');
-        const lineNumbers = document.getElementById('line-numbers');
+        const lineNumbers = document.getElementById('line-numbers-content');
         const output = document.getElementById('output');
         const runBtn = document.getElementById('runBtn');
         const checkBtn = document.getElementById('checkBtn');
@@ -473,22 +484,47 @@
             const text = editor.value;
             highlightLayer.innerHTML = highlightSyntax(text);
             updateLineNumbers();
+            // editing can move the textarea's scroll position without a
+            // scroll event (e.g. deleting lines at the bottom clamps it)
+            syncScroll();
         }
 
-        // Sync scroll between editor, highlight layer, and line numbers
+        // The overlay and the gutter follow the textarea's scroll by being
+        // translated, not by scrolling themselves: a scrolling overlay has
+        // its own maximum scroll offset, which differs from the textarea's
+        // once scrollbars take up layout space (Windows), letting the
+        // painted text drift one line away from the caret near the bottom.
         function syncScroll() {
-            highlightLayer.scrollTop = editor.scrollTop;
-            highlightLayer.scrollLeft = editor.scrollLeft;
-            lineNumbers.scrollTop = editor.scrollTop;
+            highlightLayer.style.transform =
+                `translate(${-editor.scrollLeft}px, ${-editor.scrollTop}px)`;
+            lineNumbers.style.transform = `translateY(${-editor.scrollTop}px)`;
+        }
+
+        // The Blank entry is the user's own scratch space, persisted in
+        // localStorage; examples always load pristine from examples.js
+        const DRAFT_KEY = 'stellogen-playground-draft';
+        function saveDraft(code) {
+            try { localStorage.setItem(DRAFT_KEY, code); } catch (_) {}
+        }
+        function loadDraft() {
+            try { return localStorage.getItem(DRAFT_KEY); } catch (_) { return null; }
         }
 
         // Update highlighting on input
-        editor.addEventListener('input', updateHighlighting);
+        editor.addEventListener('input', () => {
+            updateHighlighting();
+            if (examplesSelect.value === 'blank') saveDraft(editor.value);
+        });
         editor.addEventListener('scroll', syncScroll);
 
-        // Keep the default editor content in sync with examples.js, so it
+        // Land on the saved draft if there is one, otherwise on hello.
+        // The default content stays in sync with examples.js, so it
         // can't drift from examples/hello.sg like the old hardcoded copy did
-        if (typeof examples !== 'undefined' && examples.hello) {
+        const draft = loadDraft();
+        if (draft) {
+            examplesSelect.value = 'blank';
+            editor.value = draft;
+        } else if (typeof examples !== 'undefined' && examples.hello) {
             editor.value = examples.hello;
         }
 
@@ -504,7 +540,12 @@
         let nextId = 0;
 
         function startWorker() {
-            worker = new Worker('worker.js');
+            // worker.js is tiny, so always fetch a fresh copy: worker
+            // scripts are cached hard by browsers (even across reloads),
+            // which kept serving stale code after redeploys. worker.js
+            // itself reloads the big playground.js with a revalidating
+            // fetch, so that one still benefits from the cache.
+            worker = new Worker('worker.js?v=' + Date.now());
             worker.onmessage = (e) => {
                 if (!pending || e.data.id !== pending.id) return;
                 clearTimeout(pending.timer);
@@ -557,7 +598,9 @@
         }
 
         function clear() {
+            examplesSelect.value = 'blank';
             editor.value = '';
+            saveDraft('');
             output.textContent = 'Click "Run" to execute your code...';
             output.className = '';
             updateHighlighting();
@@ -597,7 +640,9 @@
 
             const reader = new FileReader();
             reader.onload = (event) => {
+                examplesSelect.value = 'blank';
                 editor.value = event.target.result;
+                saveDraft(editor.value);
                 updateHighlighting();
                 status.textContent = `Imported: ${file.name}`;
                 setTimeout(() => status.textContent = '', 2000);
@@ -619,6 +664,11 @@
         exportBtn.addEventListener('click', exportCode);
 
         examplesSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'blank') {
+                editor.value = loadDraft() || '';
+                updateHighlighting();
+                return;
+            }
             const example = examples[e.target.value];
             if (example) {
                 editor.value = example;
