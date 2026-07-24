@@ -658,6 +658,11 @@ let classify_item (expr : expr loc) :
   | List ({ content = Symbol h; _ } :: _) when String.equal h object_op ->
     let* sgen = sgen_expr_of_expr expr in
     Ok (Shared, sgen)
+  | List ({ content = Symbol h; _ } :: _) when String.equal h spec_op ->
+    (* spec marks a test suite / type: it belongs to the check phase by
+       nature, so it is CheckOnly without needing a § marker. *)
+    let* sgen = sgen_expr_of_expr expr in
+    Ok (CheckOnly, sgen)
   | List [ { content = Symbol h; _ }; _ ] when String.equal h "use" ->
     (* Imports run in both phases; the imported file's items
        self-classify under the active phase *)
