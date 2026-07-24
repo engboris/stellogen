@@ -33,7 +33,8 @@
 ;    \   \______/____/
 ;     \________/
 ;
-;    corresponding to the constellation
+;    corresponding to the constellation. Everything is reactive
+;    (markless): axioms and cuts are all consumed by cut-elimination
 (def x {
   [+1 +2] [+3 +4] [+5 +6]
       [-1 -4]  [-2 -5]
@@ -48,9 +49,9 @@
 ;
 ;   [3, 6]
 ;
-; This corresponds to the following execution in stellogen
-; in which [-3 +3] is a way to initiate a starting point in computation
-(def comp (exec #x @[-3 +3]))
+; This corresponds to the following execution in stellogen: the
+; reactive net normalizes by itself, no starting point is needed
+(def comp (exec #x))
 (def res { [+3 +6] })
 (== #comp #res)
 

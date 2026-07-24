@@ -17,8 +17,8 @@ Hello world example:
 
 Lambda calculus example:
   $ sgen run ../examples/lambda/lambda.sg
-  [(out [r X8]) (ida (exp [l X8] d))]
-  [(out X8) (x (exp X8 d))]
+  [(out [r X9]) (ida (exp [l X9] d))]
+  [(out X9) (x (exp X9 d))]
 
 Linear lambda example:
   $ sgen run ../examples/lambda/linear_lambda.sg
@@ -27,7 +27,7 @@ Linear lambda example:
 
 MALL (multiplicative-additive linear logic) example:
   $ sgen run ../examples/proofnets/mall.sg
-  { [(-3 [r l X6]) (-3 [r r X6]) || (slice c b)] [(c X11) (d X11) || (slice c a)] }
+  { [(-3 [r r X7]) (-3 [r l X7]) || (slice c b)] [(d X11) (c X11) || (slice c a)] }
 
 MLL (multiplicative linear logic) example:
   $ sgen run ../examples/proofnets/mll.sg
@@ -81,6 +81,7 @@ Syntax reference:
   (function a b)
   { [(+f a)] [(+f b)] [(-f X) (-f Y) (r X Y) || (!= X Y)] }
   { [(r a b) || (!= a b)] [(r b a) || (!= b a)] }
+  (out found)
   (+n2 (s (s 0)))
   { [(+field test1) [(+f a) ok]] [(+field test2) [(+f b) ok]] }
   [(+f a) ok]
@@ -104,3 +105,6 @@ NFA (non-deterministic finite automaton) example:
   accept
   {}
   {}
+
+Boolean circuits example (reactive net with ground guards):
+  $ sgen run ../examples/circuits.sg

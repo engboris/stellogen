@@ -79,13 +79,18 @@
 ;   |_______|
 ;      cut
 
-;    becomes
+;    becomes the net below. Everything is reactive (markless). A cut
+;    between binary connectives carries one exchange per address, so
+;    it is written split address-wise (one star per address): this is
+;    exactly the rewired form the ⅋/⊗ rule produces, left with left
+;    and right with right.
 
 (def x {
   [(+(⅋ 1 2) [l|X]) (+(⅋ 1 2) [r|X])]
   [(+3 X) (+(⊗ 4 5) [l|X])]
   [(+(⊗ 4 5) [r|X]) (+6 X)]
-  [(-(⅋ 1 2) X) (-(⊗ 4 5) X)]
+  [(-(⅋ 1 2) [l|X]) (-(⊗ 4 5) [l|X])]
+  [(-(⅋ 1 2) [r|X]) (-(⊗ 4 5) [r|X])]
 })
 
 ; by cut-elimination, it is evaluated into
@@ -115,9 +120,9 @@
 ;
 ;   [3, 6]
 ;
-; This corresponds to the following execution in stellogen
-; in which [] is a way to initiate a starting point in computation
-(def comp (exec #x @[(-3 X) (+3 X)]))
+; This corresponds to the following execution in stellogen: the
+; reactive net normalizes by itself, no starting point is needed
+(def comp (exec #x))
 (def res { [(+3 X) (+6 X)] })
 (~= #comp #res)
 
@@ -158,19 +163,19 @@
 ; (_ ⊗ _) ⊸ (_ ⊗ _)
 ; Each test is a separate constellation in the galaxy.
 §(spec (⊸ (⊗ A B) (⊗ C D))
-  {@[(- (var A)) (- (var B)) (+ (⊗ A B))]
+  {[(- (var A)) (- (var B)) (+ (⊗ A B))]
    [(- (var C))] [(- (var D)) (+ (⅋ C D))]
    [(- (⊗ A B)) +concl] [(- (⅋ C D))]
    [-concl ok]}
-  {@[(- (var A)) (- (var B)) (+ (⊗ A B))]
+  {[(- (var A)) (- (var B)) (+ (⊗ A B))]
    [(- (var C))] [(- (var D)) (+ (⅋ C D))]
    [(- (⊗ A B))] [+concl (- (⅋ C D))]
    [-concl ok]}
-  {@[(- (var A)) (- (var B)) (+ (⊗ A B))]
+  {[(- (var A)) (- (var B)) (+ (⊗ A B))]
    [(- (var D))] [(- (var C)) (+ (⅋ C D))]
    [(- (⊗ A B)) +concl] [(- (⅋ C D))]
    [-concl ok]}
-  {@[(- (var A)) (- (var B)) (+ (⊗ A B))]
+  {[(- (var A)) (- (var B)) (+ (⊗ A B))]
    [(- (var D))] [(- (var C)) (+ (⅋ C D))]
    [(- (⊗ A B))] [+concl (- (⅋ C D))]
    [-concl ok]})
@@ -183,13 +188,14 @@
   [(-(⊗ 3 4) [l|X]) (+ (var 3))]
   [(-(⊗ 3 4) [r|X]) (+ (var 4))]
 })
-§(def proof?+adapters (exec @#proof? #adapters))
+§(def proof?+adapters (exec #proof? #adapters))
 
-; Linear type assertion: proof is action, test has its own focus.
-; * marks every star of both sides consumable (used at most once).
+; Linear type assertion: everything is reactive (markless), so both
+; sides are consumed by the interaction and success demands exact
+; consumption: the residue must be exactly ok.
 (macro (::lin Tested Test)
   §(forall Test T
-    (== @(exec *{ #Tested #T }) ok)))
+    (== (exec #Tested #T) ok)))
 
 (::lin proof?+adapters (⊸ (⊗ 1 2) (⊗ 3 4)))
 
@@ -201,12 +207,12 @@
 ;  ========================================================
 
 §(spec (⊗ A B)
-  {@[(- (var A)) (- (var B)) (+ (⊗ A B))]
+  {[(- (var A)) (- (var B)) (+ (⊗ A B))]
    [(- (⊗ A B)) ok]})
 
 §(def proof? [(+1 X) (+2 X)])
 §(def adapters { [(-1 X) (+ (var 1))] [(-2 X) (+ (var 2))] })
-§(def proof?+adapters (exec @#proof? #adapters))
+§(def proof?+adapters (exec #proof? #adapters))
 ;(::lin proof?+adapters (⊗ 1 2)) ; does not typecheck
 
 ;  ========================================================
@@ -218,14 +224,14 @@
 ; The two specifications above become:
 
 §(spec (comp-o (⊗ A B) (⊗ C D))
-  {@[(- (var A)) (- (var B)) +concl] [(- (var C))] [(- (var D))]
+  {[(- (var A)) (- (var B)) +concl] [(- (var C))] [(- (var D))]
    [-concl ok]}
-  {@[(- (var A)) (- (var B))] [(- (var C))] [(- (var D)) +concl]
+  {[(- (var A)) (- (var B))] [(- (var C))] [(- (var D)) +concl]
    [-concl ok]}
-  {@[(- (var A)) (- (var B)) +concl] [(- (var D))] [(- (var C))]
+  {[(- (var A)) (- (var B)) +concl] [(- (var D))] [(- (var C))]
    [-concl ok]}
-  {@[(- (var A)) (- (var B))] [(- (var D))] [(- (var C)) +concl]
+  {[(- (var A)) (- (var B))] [(- (var D))] [(- (var C)) +concl]
    [-concl ok]})
 
 §(spec (comp-⊗ A B)
-  {@[(- A) (- B) ok]})
+  {[(- A) (- B) ok]})
